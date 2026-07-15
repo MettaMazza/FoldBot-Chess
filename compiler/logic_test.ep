@@ -1,0 +1,25 @@
+define main:
+    display "--- ErnosPlain Logical Combinators Demonstration ---"
+    
+    set score to 95
+    set age to 20
+    
+    # Test 1: AND check (both true)
+    if score is greater than 90 and also age is less than 25:
+        display "Pass: Scholarship criteria met (AND worked)!"
+    else:
+        display "Fail: AND check failed"
+        
+    # Test 2: AND short-circuit (first false)
+    if score is less than 50 and also age is less than 25:
+        display "Fail: First false should have failed the AND check"
+    else:
+        display "Pass: First false correctly short-circuited the AND check!"
+        
+    # Test 3: OR check (first false, second true)
+    if score is less than 50 or else age is less than 25:
+        display "Pass: Or check passed (one of them is true)!"
+    else:
+        display "Fail: OR check failed"
+        
+    return 0

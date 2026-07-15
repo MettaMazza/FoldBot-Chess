@@ -1,0 +1,54 @@
+# Test Float FFI — ep_dlcall_f* functions
+# Tests calling C math functions (sin, cos, sqrt) via float FFI
+
+define main:
+    # Load libm (math library)
+    set lib to ep_dlopen("libm.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libm.so.6")
+    if lib equals 0:
+        set lib to ep_dlopen("libm.so")
+    if lib equals 0:
+        display "Could not load libm"
+        return 1
+
+    # Get function pointers
+    set sin_ptr to ep_dlsym(lib and "sin")
+    set cos_ptr to ep_dlsym(lib and "cos")
+    set sqrt_ptr to ep_dlsym(lib and "sqrt")
+    set pow_ptr to ep_dlsym(lib and "pow")
+    set fabs_ptr to ep_dlsym(lib and "fabs")
+
+    # Test sin(0.0) = 0.0
+    set result to ep_dlcall_f1(sin_ptr and 0.0)
+    display "sin(0.0) ="
+    display result
+
+    # Test cos(0.0) = 1.0
+    set result2 to ep_dlcall_f1(cos_ptr and 0.0)
+    display "cos(0.0) ="
+    display result2
+
+    # Test sqrt(4.0) = 2.0
+    set result3 to ep_dlcall_f1(sqrt_ptr and 4.0)
+    display "sqrt(4.0) ="
+    display result3
+
+    # Test sqrt(9.0) = 3.0
+    set result4 to ep_dlcall_f1(sqrt_ptr and 9.0)
+    display "sqrt(9.0) ="
+    display result4
+
+    # Test pow(2.0, 10.0) = 1024.0
+    set result5 to ep_dlcall_f2(pow_ptr and 2.0 and 10.0)
+    display "pow(2.0, 10.0) ="
+    display result5
+
+    # Test fabs(-42.5) = 42.5
+    set result6 to ep_dlcall_f1(fabs_ptr and -42.5)
+    display "fabs(-42.5) ="
+    display result6
+
+    display "Float FFI test complete!"
+    ep_dlclose(lib)
+    return 0

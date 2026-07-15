@@ -1,0 +1,19 @@
+async define worker with name as Str and delay as Int returning Str:
+    display f"Worker {name} starting with delay {delay} ms"
+    set dummy to await sleep_ms(delay)
+    display f"Worker {name} woke up"
+    return name
+
+define main:
+    display "=== Testing Async Loop Event loop ==="
+    set fut1 to worker("A" and 60)
+    set fut2 to worker("B" and 20)
+    set fut3 to worker("C" and 40)
+    
+    # Await them in order
+    set res1 to await fut1
+    set res2 to await fut2
+    set res3 to await fut3
+    
+    display f"Woke workers: {res1}, {res2}, {res3}"
+    return 0

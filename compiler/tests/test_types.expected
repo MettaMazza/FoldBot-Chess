@@ -1,0 +1,14 @@
+=== Structs ===
+Point: (10, 20)
+After set: (50, 20)
+Named: test = 42
+=== Enums ===
+Going north
+=== Enum with data ===
+circle area: 75
+rect area: 12
+=== String match ===
+color is red
+=== Int match ===
+OK
+ALL TYPE TESTS PASSED

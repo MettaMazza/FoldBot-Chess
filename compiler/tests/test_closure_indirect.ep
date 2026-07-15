@@ -1,0 +1,11 @@
+define apply with f and x as Int returning Int:
+    return f(x)
+
+define main:
+    set base to 100
+    set add_base to given x:
+        return x + base
+    
+    display add_base(7)
+    display apply(add_base and 7)
+    return 0

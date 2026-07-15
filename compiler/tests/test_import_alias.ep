@@ -1,0 +1,8 @@
+# Test namespace imports with 'as' alias
+import "math" as m
+
+define main:
+    # Use aliased function name: m_absolute from math.ep
+    set result to m_absolute(-42)
+    display result
+    return 0

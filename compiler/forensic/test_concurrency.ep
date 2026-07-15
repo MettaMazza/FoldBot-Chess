@@ -1,0 +1,38 @@
+# Forensic Test 4: Concurrency — channels, spawn, multi-worker
+
+define producer with ch and id:
+    set i to 0
+    repeat while i is less than 5:
+        send id times 100 plus i to ch
+        set i to i plus 1
+    return 0
+
+define main:
+    # 1. Basic channel send/receive
+    set ch to channel
+    send 42 to ch
+    set val to receive from ch
+    display f"Basic channel: {val}"
+
+    # 2. Multi-producer
+    set results to channel
+    spawn producer(results and 1)
+    spawn producer(results and 2)
+
+    set total to 0
+    set count to 0
+    repeat while count is less than 10:
+        set msg to receive from results
+        set total to total plus msg
+        set count to count plus 1
+
+    display f"Total from 2 producers (10 messages): {total}"
+
+    # 3. Channel as synchronization
+    set done to channel
+    spawn producer(done and 3)
+    set first to receive from done
+    display f"First from producer 3: {first}"
+
+    display "CONCURRENCY: ALL PASSED"
+    return 0

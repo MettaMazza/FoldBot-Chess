@@ -1,0 +1,9 @@
+define main:
+    set is_exit to 1
+    display f"before loop: {is_exit}"
+    set idx to 2
+    repeat while idx >= 0:
+        display f"  is_exit={is_exit}"
+        set is_exit to 0
+        set idx to idx - 1
+    return 0

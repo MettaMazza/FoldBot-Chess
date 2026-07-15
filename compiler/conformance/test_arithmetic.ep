@@ -1,0 +1,34 @@
+# Conformance Test: Integer Arithmetic
+define main:
+    set a to 10
+    set b to 3
+    
+    # Addition
+    set sum to a + b
+    display sum
+    
+    # Subtraction
+    set diff to a - b
+    display diff
+    
+    # Multiplication
+    set prod to a * b
+    display prod
+    
+    # Division
+    set quot to a / b
+    display quot
+    
+    # Modulo
+    set rem to a modulo b
+    display rem
+    
+    # Complex expression
+    set complex to (a + b) * 2 - 1
+    display complex
+    
+    # Negative numbers
+    set neg to 0 - 42
+    display neg
+    
+    return 0

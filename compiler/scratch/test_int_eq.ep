@@ -1,0 +1,38 @@
+# Test: Integer equality with == operator
+# Verifies that == and != use native C comparison for integers,
+# not ep_str_equals which would try strcmp on integer values.
+
+define main:
+    # Basic integer equality
+    set x to 0
+    if x == 0:
+        display "zero_ok"
+    
+    # Non-zero integer equality
+    set y to 42
+    if y == 42:
+        display "forty_two_ok"
+    
+    # Integer not-equals
+    set z to 10
+    if z != 5:
+        display "not_equal_ok"
+    
+    # Large integer equality (would segfault with strcmp if > 4096)
+    set big to 100000
+    if big == 100000:
+        display "big_ok"
+    
+    # Comparison result used in variable
+    set a to 7
+    set b to 7
+    set eq to a == b
+    if eq:
+        display "var_eq_ok"
+    
+    # String equality still works
+    set s to "hello"
+    if s equals "hello":
+        display "str_ok"
+    
+    return 0

@@ -1,0 +1,9 @@
+# election module - simulates the imported function
+define election_start_vote with node:
+    set votes to create_map()
+    set ok to map_insert(votes and "self" and 1)
+    set ok to map_insert(votes and "peer1" and 0)
+    set ok to map_insert(votes and "peer2" and 0)
+    set count to map_size(votes)
+    display f"election: created {count} vote entries"
+    return votes

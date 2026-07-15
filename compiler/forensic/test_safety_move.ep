@@ -1,0 +1,11 @@
+# Forensic Test 8: Safety — Negative tests (these SHOULD fail to compile)
+# expected_compile_error
+
+# This tests use-after-move: sending a value should move it
+define main:
+    set data to [1, 2, 3]
+    set ch to channel
+    send data to ch
+    # This should be caught — data was moved by send
+    display data
+    return 0

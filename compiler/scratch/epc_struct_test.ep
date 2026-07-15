@@ -1,0 +1,20 @@
+define structure Point:
+    field x as Int
+    field y as Int
+
+define distance on Point with other as Point returning Int:
+    set dx to self.x - other.x
+    set dy to self.y - other.y
+    return dx * dx + dy * dy
+
+define main:
+    set a to create Point:
+        x is 0
+        y is 0
+    set b to create Point:
+        x is 3
+        y is 4
+    display a.distance(b)
+    display a.x
+    display b.y
+    return 0

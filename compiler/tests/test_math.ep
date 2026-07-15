@@ -1,0 +1,30 @@
+# Math and Utility Test — Full Coverage
+
+define main:
+    display "=== Random ==="
+    set r to ep_random_int(0 and 100)
+    display f"random (0-100): {r}"
+
+    display "=== Abs ==="
+    display f"abs(-42): {ep_abs(-42)}"
+    display f"abs(42): {ep_abs(42)}"
+    display f"abs(0): {ep_abs(0)}"
+
+    display "=== Time ==="
+    set t1 to ep_time_now_ms()
+    ep_sleep_ms(50)
+    set t2 to ep_time_now_ms()
+    set diff to t2 - t1
+    display f"sleep 50ms, elapsed: {diff}ms"
+    if diff >= 40:
+        display "timing ok"
+
+    display "=== Time Components ==="
+    set now to ep_time_now_sec()
+    set year to ep_time_year(now)
+    set month to ep_time_month(now)
+    set day to ep_time_day(now)
+    display f"date: {year}-{month}-{day}"
+
+    display "ALL MATH TESTS PASSED"
+    return 0

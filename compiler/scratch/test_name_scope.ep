@@ -1,0 +1,82 @@
+# Test: Cross-function name collision bug
+# Ensures closure_c_names and list_element_types don't leak between functions
+
+# Function A: defines a closure named "handler"
+define func_with_closure:
+    set handler to given x:
+        return x * 2
+    set result to handler(21)
+    return result
+
+# Function B: calls a regular function also named "handler"
+# Without the fix, codegen thinks "handler" is a closure from func_with_closure
+define handler with x:
+    return x + 100
+
+define func_calling_handler:
+    set v to handler(5)
+    return v
+
+# Function C: has a list named "items" with strings
+define func_with_string_list:
+    set items to create_list()
+    set ok to append_list(items and "hello")
+    set ok to append_list(items and "world")
+    set out to ""
+    for each item in items:
+        set out to concat(out and item)
+    return out
+
+# Function D: has a list named "items" with integers
+# Without the fix, for-each infers Str type from func_with_string_list
+define func_with_int_list:
+    set items to create_list()
+    set ok to append_list(items and 10)
+    set ok to append_list(items and 20)
+    set total to 0
+    for each item in items:
+        set total to total + item
+    return total
+
+# Function E: uses map_size with same var name as another function
+define func_with_map_votes:
+    set votes to create_map()
+    set ok to map_insert(votes and "a" and 1)
+    set ok to map_insert(votes and "b" and 2)
+    return map_size(votes)
+
+define func_with_list_votes:
+    set votes to create_list()
+    set ok to append_list(votes and 100)
+    set ok to append_list(votes and 200)
+    set ok to append_list(votes and 300)
+    return length_list(votes)
+
+define main:
+    set r1 to func_with_closure()
+    if r1 != 42:
+        display f"FAIL: closure result = {r1}, expected 42"
+        return 1
+
+    set r2 to func_calling_handler()
+    if r2 != 105:
+        display f"FAIL: handler result = {r2}, expected 105"
+        return 1
+
+    set r3 to func_with_int_list()
+    if r3 != 30:
+        display f"FAIL: int list sum = {r3}, expected 30"
+        return 1
+
+    set r4 to func_with_map_votes()
+    if r4 != 2:
+        display f"FAIL: map_size = {r4}, expected 2"
+        return 1
+
+    set r5 to func_with_list_votes()
+    if r5 != 3:
+        display f"FAIL: list length = {r5}, expected 3"
+        return 1
+
+    display "PASS: no cross-function name collisions"
+    return 0

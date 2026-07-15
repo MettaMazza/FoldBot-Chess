@@ -1,0 +1,160 @@
+# ============================================================================
+#  ASSEMBLY ENUMERATION  --  the candidate space is GENERATED, not hand-listed.
+# ============================================================================
+#
+#  WHY THIS EXISTS
+#  ---------------
+#  A form guard that compares the chosen assembly against a few hand-written
+#  neighbours proves uniqueness only among those neighbours -- and which neighbours
+#  is asserted by the author. This module removes that gap: it GENERATES the whole
+#  candidate space from a stated rule and runs all of it.
+#
+#  THE STATED RULE (the grammar)
+#  -----------------------------
+#  An "assembly" is any expression built from the forced ingredients (the leaves)
+#  combined by the four operations + - * /, with no other literal. The candidate
+#  space of size <= N is EVERY such expression with at most N operations -- finite
+#  and complete by construction, nothing chosen by hand.
+#
+#  THE CLAIM IT CHECKS (minimality, complete over the simpler space)
+#  -----------------------------------------------------------------
+#  The canonical assembly is a MINIMAL-size assembly of the value: the engine
+#  generates EVERY assembly of fewer operations over the forced ingredients and
+#  confirms NONE of them reproduces the value. By the zero-unforced-structure rule,
+#  the minimal assembly is the forced one -- nothing simpler can stand in for it,
+#  and the whole simpler space has been searched, not a hand-picked list. forced_to_be
+#  halts if any simpler assembly reaches the value.
+#
+#  (Note on "unique": counting EXACTLY ONE assembly at the minimal size is not used,
+#  because trivial restatements -- 1 - (a + a) vs (1 - a) - a -- are distinct trees
+#  of the same value, which would inflate the count. Same-size structural
+#  alternatives are instead handled by each module's named-shape form guard; this
+#  module proves the harder, complete half: nothing simpler exists.)
+#
+#  HOW VALUES ARE CARRIED
+#  ----------------------
+#  ErnosPlain's lists carry whole numbers, so each rational value is carried as a
+#  parallel pair of Int lists -- numerators and denominators, always reduced with
+#  the denominator positive. The constants that use this enumerator have small
+#  values that sit well inside a machine word, so native whole-number arithmetic is
+#  exact here. (The constants themselves still derive in full exact fractions; this
+#  module is only the search over candidate FORMS.)
+# ============================================================================
+
+import "../foundation/form_enforcement.ep"
+
+
+# The absolute value of a whole number.
+define absolute_whole with value as Int returning Int:
+    if value < 0:
+        return 0 - value
+    return value
+
+# Whether a whole number is zero (no literal-zero comparison pitfalls).
+define whole_is_zero with value as Int returning Bool:
+    set minus_one to 0 - 1
+    if value > minus_one:
+        if value < 1:
+            return true
+    return false
+
+# Greatest common divisor of two non-negative whole numbers (Euclid).
+define greatest_common_divisor with first as Int and second as Int returning Int:
+    set x to first
+    set y to second
+    repeat while y > 0:
+        set quotient to x / y
+        set remainder to x - quotient * y
+        set x to y
+        set y to remainder
+    return x
+
+# Reduce raw_num/raw_den (den != 0) to lowest terms with a positive denominator,
+# and append it to the parallel (nums, dens) value lists.
+define append_reduced with nums as List and dens as List and raw_num as Int and raw_den as Int returning Int:
+    set num to raw_num
+    set den to raw_den
+    if den < 0:
+        set num to 0 - raw_num
+        set den to 0 - raw_den
+    set magnitude to absolute_whole(num)
+    set divisor to greatest_common_divisor(magnitude and den)
+    if divisor < 1:
+        set divisor to 1
+    set reduced_num to num / divisor
+    set reduced_den to den / divisor
+    set ok to append_list(nums and reduced_num)
+    set ok to append_list(dens and reduced_den)
+    return 0
+
+# For every pair (a/b from first, c/d from second), append the four results
+# a/b + c/d, a/b - c/d, a/b * c/d, and a/b / c/d (skipping division by zero) to
+# the output value lists. This is one application of the grammar.
+define combine_rationals with first_nums as List and first_dens as List and second_nums as List and second_dens as List and out_nums as List and out_dens as List returning Int:
+    set first_size to length_list(first_nums)
+    set second_size to length_list(second_nums)
+    set i to 0
+    repeat while i < first_size:
+        set a to get_list(first_nums and i)
+        set b to get_list(first_dens and i)
+        set j to 0
+        repeat while j < second_size:
+            set c to get_list(second_nums and j)
+            set d to get_list(second_dens and j)
+            set ok to append_reduced(out_nums and out_dens and a * d + c * b and b * d)
+            set ok to append_reduced(out_nums and out_dens and a * d - c * b and b * d)
+            set ok to append_reduced(out_nums and out_dens and a * c and b * d)
+            set divisor_is_zero to whole_is_zero(c)
+            if divisor_is_zero:
+                set ok to 0
+            else:
+                set ok to append_reduced(out_nums and out_dens and a * d and b * c)
+            set j to j + 1
+        set i to i + 1
+    return 0
+
+# Count the values (held reduced in the parallel lists) equal to the reduced target.
+define count_rational_matches with nums as List and dens as List and target_num as Int and target_den as Int returning Int:
+    set total to 0
+    set size to length_list(nums)
+    set i to 0
+    repeat while i < size:
+        set n to get_list(nums and i)
+        set numerator_gap to n - target_num
+        set numerator_equal to whole_is_zero(numerator_gap)
+        if numerator_equal:
+            set d to get_list(dens and i)
+            set denominator_gap to d - target_den
+            set denominator_equal to whole_is_zero(denominator_gap)
+            if denominator_equal:
+                set total to total + 1
+        set i to i + 1
+    return total
+
+# The canonical assembly is a MINIMAL-size assembly of the value: the engine
+# GENERATES every assembly of fewer than canonical_size operations over the leaves
+# (the whole simpler space) and confirms NONE reproduces the value -- so nothing
+# simpler can stand in for the canonical. forced_to_be halts if any simpler
+# assembly does reach it. canonical_size is 1 or 2. Returns 1 when minimal.
+define canonical_assembly_is_minimal with label as Str and leaf_nums as List and leaf_dens as List and target_num as Int and target_den as Int and canonical_size as Int returning Int:
+    set count_zero to count_rational_matches(leaf_nums and leaf_dens and target_num and target_den)
+    set smaller to count_zero
+    # Size-one assemblies: one operation on two leaves (S1 = combine(S0, S0)).
+    set s1_nums to create_list()
+    set s1_dens to create_list()
+    if canonical_size > 1:
+        set ok to combine_rationals(leaf_nums and leaf_dens and leaf_nums and leaf_dens and s1_nums and s1_dens)
+        set count_one to count_rational_matches(s1_nums and s1_dens and target_num and target_den)
+        set smaller to smaller + count_one
+    # Size-two assemblies: one operation on a total-size-one pair, S2 =
+    # combine(S0, S1) union combine(S1, S0) -- both orders, since - and / are not
+    # symmetric. This lifts the complete simpler-space search to canonical size 3.
+    if canonical_size > 2:
+        set s2_nums to create_list()
+        set s2_dens to create_list()
+        set ok to combine_rationals(leaf_nums and leaf_dens and s1_nums and s1_dens and s2_nums and s2_dens)
+        set ok to combine_rationals(s1_nums and s1_dens and leaf_nums and leaf_dens and s2_nums and s2_dens)
+        set count_two to count_rational_matches(s2_nums and s2_dens and target_num and target_den)
+        set smaller to smaller + count_two
+    set no_simpler to forced_to_be(label and smaller and 0)
+    return 1

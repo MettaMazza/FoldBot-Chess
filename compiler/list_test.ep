@@ -1,0 +1,22 @@
+define main:
+    display "--- ErnosPlain Dynamic List Demonstration ---"
+    
+    set names to create_list()
+    
+    # Add strings (pointers stored as integers)
+    set ok to append_list(names and "Alice")
+    set ok to append_list(names and "Bob")
+    set ok to append_list(names and "Charlie")
+    
+    set size to length_list(names)
+    display "Total names in list:"
+    display size
+    
+    display "Printing elements by loop:"
+    set idx to 0
+    repeat while idx is less than size:
+        set item to get_list(names and idx)
+        set ok to display_string(item)
+        set idx to idx plus 1
+        
+    return 0

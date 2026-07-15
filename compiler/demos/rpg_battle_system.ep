@@ -1,0 +1,362 @@
+# demos/rpg_battle_system.ep
+# A tactical turn-based RPG battle engine showcasing object-oriented and polymorphic features:
+# - Traits: Defines a Combatant trait.
+# - Structs & Methods: Implements Combatant for Player, Companion, and Monster subtypes.
+# - Dynamic Method Dispatch: Showcases trait-based polymorphism via a Choice enum wrapper.
+
+external define ep_random_int with min and max returning Int
+
+define structure Player:
+    field name as Str
+    field hp as Int
+    field max_hp as Int
+    field atk as Int
+
+define structure Companion:
+    field name as Str
+    field hp as Int
+    field max_hp as Int
+    field atk as Int
+    field mp as Int
+
+define structure Monster:
+    field name as Str
+    field hp as Int
+    field max_hp as Int
+    field atk as Int
+    field species as Str
+
+# Choice enum wrapper for polymorphic collections
+define choice CombatantObj:
+    variant PlayerType with val as Player
+    variant CompanionType with val as Companion
+    variant MonsterType with val as Monster
+
+define trait Combatant:
+    define get_name returning Str
+    define get_hp returning Int
+    define get_max_hp returning Int
+    define take_damage with damage as Int returning Int
+    define heal with amount as Int returning Int
+    define attack_target with target as CombatantObj returning Int
+    define is_alive returning Bool
+
+implement Combatant for Player:
+    define get_name returning Str:
+        return self.name
+    define get_hp returning Int:
+        return self.hp
+    define get_max_hp returning Int:
+        return self.max_hp
+    define take_damage with damage as Int returning Int:
+        set self.hp to self.hp - damage
+        if self.hp < 0:
+            set self.hp to 0
+        return self.hp
+    define heal with amount as Int returning Int:
+        set self.hp to self.hp + amount
+        if self.hp > self.max_hp:
+            set self.hp to self.max_hp
+        return self.hp
+    define attack_target with target as CombatantObj returning Int:
+        # 20% critical hit chance
+        set roll to ep_random_int(1 and 100)
+        set dmg to self.atk
+        if roll > 80:
+            set dmg to self.atk * 2
+            display f"⚔️  CRITICAL HIT! {self.name} strikes {target.get_name()} for {dmg} damage!"
+        else:
+            display f"⚔️  {self.name} attacks {target.get_name()} for {dmg} damage!"
+        
+        set new_hp to target.take_damage(dmg)
+        return new_hp
+    define is_alive returning Bool:
+        return self.hp > 0
+
+implement Combatant for Companion:
+    define get_name returning Str:
+        return self.name
+    define get_hp returning Int:
+        return self.hp
+    define get_max_hp returning Int:
+        return self.max_hp
+    define take_damage with damage as Int returning Int:
+        set self.hp to self.hp - damage
+        if self.hp < 0:
+            set self.hp to 0
+        return self.hp
+    define heal with amount as Int returning Int:
+        set self.hp to self.hp + amount
+        if self.hp > self.max_hp:
+            set self.hp to self.max_hp
+        return self.hp
+    define attack_target with target as CombatantObj returning Int:
+        # Companion has a chance to heal or attack
+        set dmg to self.atk
+        display f"🪄  {self.name} shoots a magic bolt at {target.get_name()} for {dmg} damage!"
+        set new_hp to target.take_damage(dmg)
+        return new_hp
+    define is_alive returning Bool:
+        return self.hp > 0
+
+implement Combatant for Monster:
+    define get_name returning Str:
+        return self.name
+    define get_hp returning Int:
+        return self.hp
+    define get_max_hp returning Int:
+        return self.max_hp
+    define take_damage with damage as Int returning Int:
+        set self.hp to self.hp - damage
+        if self.hp < 0:
+            set self.hp to 0
+        return self.hp
+    define heal with amount as Int returning Int:
+        set self.hp to self.hp + amount
+        if self.hp > self.max_hp:
+            set self.hp to self.max_hp
+        return self.hp
+    define attack_target with target as CombatantObj returning Int:
+        # Monster standard attack
+        set dmg to self.atk + ep_random_int(-2 and 2)
+        display f"👹  [{self.species}] {self.name} claws {target.get_name()} for {dmg} damage!"
+        set new_hp to target.take_damage(dmg)
+        return new_hp
+    define is_alive returning Bool:
+        return self.hp > 0
+
+
+# Delegate methods for Choice Enum to dispatch to trait implementations
+define get_name on CombatantObj returning Str:
+    check self:
+        if PlayerType with p:
+            return p.get_name()
+        if CompanionType with c:
+            return c.get_name()
+        if MonsterType with m:
+            return m.get_name()
+    return ""
+
+define get_hp on CombatantObj returning Int:
+    check self:
+        if PlayerType with p:
+            return p.get_hp()
+        if CompanionType with c:
+            return c.get_hp()
+        if MonsterType with m:
+            return m.get_hp()
+    return 0
+
+define get_max_hp on CombatantObj returning Int:
+    check self:
+        if PlayerType with p:
+            return p.get_max_hp()
+        if CompanionType with c:
+            return c.get_max_hp()
+        if MonsterType with m:
+            return m.get_max_hp()
+    return 0
+
+define take_damage on CombatantObj with damage as Int returning Int:
+    check self:
+        if PlayerType with p:
+            return p.take_damage(damage)
+        if CompanionType with c:
+            return c.take_damage(damage)
+        if MonsterType with m:
+            return m.take_damage(damage)
+    return 0
+
+define heal on CombatantObj with amount as Int returning Int:
+    check self:
+        if PlayerType with p:
+            return p.heal(amount)
+        if CompanionType with c:
+            return c.heal(amount)
+        if MonsterType with m:
+            return m.heal(amount)
+    return 0
+
+define attack_target on CombatantObj with target as CombatantObj returning Int:
+    check self:
+        if PlayerType with p:
+            return p.attack_target(target)
+        if CompanionType with c:
+            return c.attack_target(target)
+        if MonsterType with m:
+            return m.attack_target(target)
+    return 0
+
+define is_alive on CombatantObj returning Bool:
+    check self:
+        if PlayerType with p:
+            return p.is_alive()
+        if CompanionType with c:
+            return c.is_alive()
+        if MonsterType with m:
+            return m.is_alive()
+    return false
+
+
+# Companion special healing skill
+define cast_mend on Companion with target as CombatantObj:
+    if self.mp >= 10:
+        set self.mp to self.mp - 10
+        display f"❇️  {self.name} casts Mend on {target.get_name()}!"
+        set r to target.heal(30)
+        display f"    {target.get_name()} is healed. HP: {target.get_hp()}/{target.get_max_hp()}"
+    else:
+        display f"⚠️  {self.name} tried to cast Mend, but has out of MP!"
+    return 0
+
+define try_companion_heal on CombatantObj with target as CombatantObj returning Int:
+    check self:
+        if CompanionType with c:
+            set r to c.cast_mend(target)
+            return 1
+        if PlayerType with p:
+            return 0
+        if MonsterType with m:
+            return 0
+    return 0
+
+
+# Utility functions for lists of CombatantObj
+define count_alive with team as List returning Int:
+    set count to 0
+    set len to length_list(team)
+    set i to 0
+    repeat while i < len:
+        set member as CombatantObj to get_list(team and i)
+        if member.is_alive():
+            set count to count + 1
+        set i to i + 1
+    return count
+
+define get_first_alive with team as List returning CombatantObj:
+    set len to length_list(team)
+    set i to 0
+    repeat while i < len:
+        set member as CombatantObj to get_list(team and i)
+        if member.is_alive():
+            return member
+        set i to i + 1
+    set fallback as CombatantObj to get_list(team and 0)
+    return fallback
+
+define display_team_status with team_name as Str and team as List:
+    display f"--- {team_name} Status ---"
+    set len to length_list(team)
+    set i to 0
+    repeat while i < len:
+        set member as CombatantObj to get_list(team and i)
+        if member.is_alive():
+            display f"  🟢 {member.get_name()}: {member.get_hp()}/{member.get_max_hp()} HP"
+        else:
+            display f"  💀 {member.get_name()}: DEAD"
+        set i to i + 1
+    return 0
+
+
+define main:
+    display "============================================="
+    display "⚔️  WELCOME TO THE ERNOSPLAIN RPG ENTIRETY ⚔️"
+    display "============================================="
+    
+    # Initialize heroes
+    set hero_struct to create Player:
+        name is "Alric the Bold"
+        hp is 120
+        max_hp is 120
+        atk is 30
+        
+    set healer_struct to create Companion:
+        name is "Lyra the Priestess"
+        hp is 80
+        max_hp is 80
+        atk is 12
+        mp is 30
+
+    # Wrap them
+    set hero to PlayerType with hero_struct
+    set healer to CompanionType with healer_struct
+    
+    # Put in list
+    set party to create_list()
+    set ok to append_list(party and hero)
+    set ok to append_list(party and healer)
+
+    # Initialize enemies
+    set goblin_struct to create Monster:
+        name is "Grizzle"
+        hp is 60
+        max_hp is 60
+        atk is 14
+        species is "Goblin"
+        
+    set orc_struct to create Monster:
+        name is "Kargoth"
+        hp is 110
+        max_hp is 110
+        atk is 22
+        species is "Orc Berserker"
+        
+    set goblin to MonsterType with goblin_struct
+    set orc to MonsterType with orc_struct
+    
+    set enemies to create_list()
+    set ok to append_list(enemies and goblin)
+    set ok to append_list(enemies and orc)
+
+    # Main Battle Loop
+    set round to 1
+    repeat while count_alive(party) > 0 and also count_alive(enemies) > 0:
+        display f"\n⚔️ ── ROUND {round} ── ⚔️"
+        set ok to display_team_status("Party" and party)
+        set ok to display_team_status("Enemies" and enemies)
+        display ""
+        
+        # --- PARTY TURN ---
+        set party_len to length_list(party)
+        set party_idx to 0
+        repeat while party_idx < party_len and also count_alive(enemies) > 0:
+            set member as CombatantObj to get_list(party and party_idx)
+            if member.is_alive():
+                check member:
+                    if CompanionType with c:
+                        # Healer AI: heal hero if below 60, else attack
+                        set hero_ref as CombatantObj to get_list(party and 0)
+                        if hero_ref.get_hp() < 60 and also hero_ref.is_alive():
+                            set r to member.try_companion_heal(hero_ref)
+                        else:
+                            set target to get_first_alive(enemies)
+                            set r to member.attack_target(target)
+                    if PlayerType with p:
+                        set target to get_first_alive(enemies)
+                        set r to member.attack_target(target)
+                    if MonsterType with m:
+                        set target to get_first_alive(enemies)
+                        set r to member.attack_target(target)
+            set party_idx to party_idx + 1
+                
+        # --- ENEMIES TURN ---
+        set enemy_len to length_list(enemies)
+        set i to 0
+        repeat while i < enemy_len and also count_alive(party) > 0:
+            set enemy as CombatantObj to get_list(enemies and i)
+            if enemy.is_alive():
+                set target to get_first_alive(party)
+                set r to enemy.attack_target(target)
+            set i to i + 1
+            
+        set round to round + 1
+        
+    # --- BATTLE RESOLUTION ---
+    display "\n============================================="
+    if count_alive(party) > 0:
+        display "🎉 VICTORY! The heroes have defeated the monsters! 🎉"
+    else:
+        display "💀 DEFEAT! The party has fallen in battle... 💀"
+    display "============================================="
+    
+    return 0

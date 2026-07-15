@@ -1,0 +1,203 @@
+# ============================================================
+# libsodium Bridge for ErnosPlain
+# Modern cryptography — encryption, hashing, passwords
+# ============================================================
+# Usage: import "stdlib/bridge/libsodium"
+# Requires: libsodium installed (brew install libsodium / apt install libsodium-dev)
+# ============================================================
+
+set SODIUM_HANDLE to 0
+
+# ---- Size constants ----
+set crypto_secretbox_KEYBYTES to 32
+set crypto_secretbox_NONCEBYTES to 24
+set crypto_secretbox_MACBYTES to 16
+set crypto_box_PUBLICKEYBYTES to 32
+set crypto_box_SECRETKEYBYTES to 32
+set crypto_box_NONCEBYTES to 24
+set crypto_box_MACBYTES to 16
+set crypto_sign_PUBLICKEYBYTES to 32
+set crypto_sign_SECRETKEYBYTES to 64
+set crypto_sign_BYTES to 64
+set crypto_generichash_BYTES to 32
+set crypto_generichash_KEYBYTES to 32
+set crypto_hash_sha256_BYTES to 32
+set crypto_hash_sha512_BYTES to 64
+set crypto_pwhash_SALTBYTES to 16
+set crypto_pwhash_STRBYTES to 128
+set crypto_pwhash_OPSLIMIT_INTERACTIVE to 2
+set crypto_pwhash_OPSLIMIT_MODERATE to 3
+set crypto_pwhash_OPSLIMIT_SENSITIVE to 4
+set crypto_pwhash_MEMLIMIT_INTERACTIVE to 67108864
+set crypto_pwhash_MEMLIMIT_MODERATE to 268435456
+set crypto_aead_xchacha20poly1305_ietf_KEYBYTES to 32
+set crypto_aead_xchacha20poly1305_ietf_NPUBBYTES to 24
+set crypto_aead_xchacha20poly1305_ietf_ABYTES to 16
+
+# ============================================================
+# Library loading
+# ============================================================
+define sodium_load:
+    set SODIUM_HANDLE to ep_dlopen("libsodium.dylib")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("/opt/homebrew/lib/libsodium.dylib")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("/usr/local/lib/libsodium.dylib")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("libsodium.so")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("libsodium.so.26")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("libsodium.so.23")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libsodium.so.23")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("libsodium.dll")
+    if SODIUM_HANDLE equals 0:
+        set SODIUM_HANDLE to ep_dlopen("sodium.dll")
+    return SODIUM_HANDLE
+
+# ============================================================
+# Initialization
+# ============================================================
+define sodium_init returning Int:
+    if SODIUM_HANDLE equals 0:
+        set ok to sodium_load()
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_init")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Random
+# ============================================================
+define sodium_randombytes_buf with buf as Int and size as Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "randombytes_buf")
+    return ep_dlcall2(fn and buf and size)
+
+define sodium_randombytes_uniform with upper_bound as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "randombytes_uniform")
+    return ep_dlcall1(fn and upper_bound)
+
+# ============================================================
+# Generic hashing (BLAKE2b)
+# ============================================================
+define sodium_generichash with out as Int and outlen as Int and input as Int and inlen as Int and key as Int and keylen as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_generichash")
+    return ep_dlcall6(fn and out and outlen and input and inlen and key and keylen)
+
+# ============================================================
+# SHA-256 / SHA-512
+# ============================================================
+define sodium_sha256 with out as Int and input as Int and inlen as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_hash_sha256")
+    return ep_dlcall3(fn and out and input and inlen)
+
+define sodium_sha512 with out as Int and input as Int and inlen as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_hash_sha512")
+    return ep_dlcall3(fn and out and input and inlen)
+
+# ============================================================
+# Password hashing (Argon2id)
+# ============================================================
+define sodium_pwhash_str with out as Int and passwd as Str and passwdlen as Int and opslimit as Int and memlimit as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_pwhash_str")
+    return ep_dlcall5(fn and out and passwd and passwdlen and opslimit and memlimit)
+
+define sodium_pwhash_str_verify with hashed as Str and passwd as Str and passwdlen as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_pwhash_str_verify")
+    return ep_dlcall3(fn and hashed and passwd and passwdlen)
+
+# ============================================================
+# Secret-key encryption (XSalsa20-Poly1305)
+# ============================================================
+define sodium_secretbox_keygen with key as Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_secretbox_keygen")
+    return ep_dlcall1(fn and key)
+
+define sodium_secretbox_easy with cipher as Int and msg as Int and msglen as Int and nonce as Int and key as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_secretbox_easy")
+    return ep_dlcall5(fn and cipher and msg and msglen and nonce and key)
+
+define sodium_secretbox_open_easy with msg as Int and cipher as Int and cipherlen as Int and nonce as Int and key as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_secretbox_open_easy")
+    return ep_dlcall5(fn and msg and cipher and cipherlen and nonce and key)
+
+# ============================================================
+# Public-key encryption (X25519-XSalsa20-Poly1305)
+# ============================================================
+define sodium_box_keypair with pk as Int and sk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_box_keypair")
+    return ep_dlcall2(fn and pk and sk)
+
+define sodium_box_easy with cipher as Int and msg as Int and msglen as Int and nonce as Int and pk as Int and sk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_box_easy")
+    return ep_dlcall6(fn and cipher and msg and msglen and nonce and pk and sk)
+
+define sodium_box_open_easy with msg as Int and cipher as Int and cipherlen as Int and nonce as Int and pk as Int and sk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_box_open_easy")
+    return ep_dlcall6(fn and msg and cipher and cipherlen and nonce and pk and sk)
+
+# ============================================================
+# Digital signatures (Ed25519)
+# ============================================================
+define sodium_sign_keypair with pk as Int and sk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_sign_keypair")
+    return ep_dlcall2(fn and pk and sk)
+
+define sodium_sign with signed_msg as Int and signed_msg_len as Int and msg as Int and msglen as Int and sk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_sign")
+    return ep_dlcall5(fn and signed_msg and signed_msg_len and msg and msglen and sk)
+
+define sodium_sign_verify with signed_msg as Int and signed_msg_len as Int and pk as Int returning Int:
+    # Note: crypto_sign_open needs an output buffer; this is simplified
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_sign_open")
+    return ep_dlcall5(fn and 0 and 0 and signed_msg and signed_msg_len and pk)
+
+define sodium_sign_detached with sig as Int and siglen as Int and msg as Int and msglen as Int and sk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_sign_detached")
+    return ep_dlcall5(fn and sig and siglen and msg and msglen and sk)
+
+define sodium_sign_verify_detached with sig as Int and msg as Int and msglen as Int and pk as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_sign_verify_detached")
+    return ep_dlcall4(fn and sig and msg and msglen and pk)
+
+# ============================================================
+# Utility
+# ============================================================
+define sodium_memzero with buf as Int and len as Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_memzero")
+    return ep_dlcall2(fn and buf and len)
+
+define sodium_bin2hex with hex as Int and hexlen as Int and bin as Int and binlen as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_bin2hex")
+    return ep_dlcall4(fn and hex and hexlen and bin and binlen)
+
+define sodium_hex2bin with bin as Int and binlen as Int and hex as Str and hexlen as Int and ignore as Int and binlen_out as Int and hex_end as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_hex2bin")
+    return ep_dlcall7(fn and bin and binlen and hex and hexlen and ignore and binlen_out and hex_end)
+
+define sodium_memcmp with a as Int and b as Int and len as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_memcmp")
+    return ep_dlcall3(fn and a and b and len)
+
+define sodium_increment with n as Int and nlen as Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_increment")
+    return ep_dlcall2(fn and n and nlen)
+
+define sodium_pad with padded_len as Int and buf as Int and unpadded_len as Int and blocksize as Int and maxlen as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "sodium_pad")
+    return ep_dlcall5(fn and padded_len and buf and unpadded_len and blocksize and maxlen)
+
+# ============================================================
+# AEAD (XChaCha20-Poly1305-IETF)
+# ============================================================
+define sodium_aead_keygen with key as Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_aead_xchacha20poly1305_ietf_keygen")
+    return ep_dlcall1(fn and key)
+
+define sodium_aead_encrypt with cipher as Int and cipherlen as Int and msg as Int and msglen as Int and ad as Int and adlen as Int and nsec as Int and npub as Int and key as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_aead_xchacha20poly1305_ietf_encrypt")
+    return ep_dlcall9(fn and cipher and cipherlen and msg and msglen and ad and adlen and nsec and npub and key)
+
+define sodium_aead_decrypt with msg as Int and msglen as Int and nsec as Int and cipher as Int and cipherlen as Int and ad as Int and adlen as Int and npub as Int and key as Int returning Int:
+    set fn to ep_dlsym(SODIUM_HANDLE and "crypto_aead_xchacha20poly1305_ietf_decrypt")
+    return ep_dlcall9(fn and msg and msglen and nsec and cipher and cipherlen and ad and adlen and npub and key)

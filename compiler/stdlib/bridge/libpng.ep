@@ -1,0 +1,114 @@
+# ErnosPlain Bridge: libpng (PNG Image I/O)
+# Usage: import "stdlib/bridge/libpng"
+# Requires: libpng installed (brew install libpng)
+
+# ========== Constants ==========
+set PNG_COLOR_TYPE_GRAY to 0
+set PNG_COLOR_TYPE_RGB to 2
+set PNG_COLOR_TYPE_PALETTE to 3
+set PNG_COLOR_TYPE_GRAY_ALPHA to 4
+set PNG_COLOR_TYPE_RGBA to 6
+
+set PNG_INTERLACE_NONE to 0
+set PNG_COMPRESSION_TYPE_DEFAULT to 0
+set PNG_FILTER_TYPE_DEFAULT to 0
+
+# ========== Internal: Load Library ==========
+
+define png_load_lib returning Int:
+    set lib to ep_dlopen("libpng.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libpng16.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libpng.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libpng16.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libpng16.so.16")
+    return lib
+
+# ========== Core Functions ==========
+
+define png_create_read_struct returning Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        display "Error: could not load libpng"
+        return 0
+    set fn to ep_dlsym(lib and "png_create_read_struct")
+    if fn equals 0:
+        return 0
+    # png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)
+    set ver_fn to ep_dlsym(lib and "png_get_libpng_ver")
+    return ep_dlcall4(fn and 0 and 0 and 0 and 0)
+
+define png_create_write_struct returning Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_create_write_struct")
+    return ep_dlcall4(fn and 0 and 0 and 0 and 0)
+
+define png_create_info_struct with png_ptr as Int returning Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_create_info_struct")
+    return ep_dlcall1(fn and png_ptr)
+
+define png_get_image_width with png_ptr as Int and info_ptr as Int returning Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_get_image_width")
+    return ep_dlcall2(fn and png_ptr and info_ptr)
+
+define png_get_image_height with png_ptr as Int and info_ptr as Int returning Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_get_image_height")
+    return ep_dlcall2(fn and png_ptr and info_ptr)
+
+define png_set_IHDR with png_ptr as Int and info_ptr as Int and width as Int and height as Int and bit_depth as Int and color_type as Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    # png_set_IHDR(png, info, w, h, bit_depth, color_type, interlace, compression, filter)
+    # Using 6 args for the main ones, rest default
+    set fn to ep_dlsym(lib and "png_set_IHDR")
+    return ep_dlcall6(fn and png_ptr and info_ptr and width and height and bit_depth and color_type)
+
+define png_write_info with png_ptr as Int and info_ptr as Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_write_info")
+    return ep_dlcall2(fn and png_ptr and info_ptr)
+
+define png_write_row with png_ptr as Int and row_data as Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_write_row")
+    return ep_dlcall2(fn and png_ptr and row_data)
+
+define png_write_end with png_ptr as Int and info_ptr as Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_write_end")
+    return ep_dlcall2(fn and png_ptr and info_ptr)
+
+define png_read_info with png_ptr as Int and info_ptr as Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_read_info")
+    return ep_dlcall2(fn and png_ptr and info_ptr)
+
+define png_read_row with png_ptr as Int and row_ptr as Int:
+    set lib to png_load_lib()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "png_read_row")
+    return ep_dlcall2(fn and png_ptr and row_ptr)

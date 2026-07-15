@@ -1,0 +1,4 @@
+define main:
+    set a to create_list()
+    while 1 < 2:
+        set b to a

@@ -1,0 +1,10 @@
+# Static server path sanitization must reject directory traversal, including
+# percent-encoded forms, while allowing legitimate paths.
+import "static_server"
+define main:
+    display sanitize_path("/index.html")
+    display sanitize_path("/../etc/passwd")
+    display sanitize_path("/%2e%2e/etc/passwd")
+    display sanitize_path("/%2e%2e%2fetc%2fpasswd")
+    display sanitize_path("/css/app.css")
+    return 0

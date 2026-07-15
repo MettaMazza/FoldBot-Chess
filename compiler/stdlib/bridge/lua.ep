@@ -1,0 +1,128 @@
+# ============================================================
+# Lua Bridge for ErnosPlain
+# Scripting Layer — embeds Lua
+# ============================================================
+# Usage: import "stdlib/bridge/lua"
+# ============================================================
+
+set LUA_HANDLE to 0
+
+# ---- Library loading ----
+define lua_load:
+    set LUA_HANDLE to ep_dlopen("liblua.5.4.dylib")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("liblua.5.4.so")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("liblua.5.3.dylib")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("liblua.5.3.so")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("liblua.dylib")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("liblua.so")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("/opt/homebrew/lib/liblua.dylib")
+    if LUA_HANDLE equals 0:
+        set LUA_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/liblua5.4.so")
+    return LUA_HANDLE
+
+# ---- Init / Cleanup ----
+define lua_init returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_load()
+    return LUA_HANDLE
+
+# ---- Core Functions ----
+define luaL_newstate returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "luaL_newstate")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define lua_close with L as Int returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_close")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and L)
+
+define luaL_openlibs with L as Int returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "luaL_openlibs")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and L)
+
+define luaL_loadstring with L as Int and code as Str returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "luaL_loadstring")
+    if fn equals 0:
+        return 1
+    return ep_dlcall2(fn and L and code)
+
+define lua_pcallk with L as Int and nargs as Int and nresults as Int and errfunc as Int and ctx as Int and k as Int returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_pcallk")
+    if fn equals 0:
+        return 1
+    return ep_dlcall6(fn and L and nargs and nresults and errfunc and ctx and k)
+
+define lua_pcall with L as Int and nargs as Int and nresults as Int and errfunc as Int returning Int:
+    # Convenience wrapper for lua_pcallk
+    return lua_pcallk(L and nargs and nresults and errfunc and 0 and 0)
+
+define lua_tostring with L as Int and idx as Int returning Str:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_tolstring")
+    if fn equals 0:
+        return ""
+    # lua_tolstring(L, idx, NULL)
+    return ep_dlcall3(fn and L and idx and 0)
+
+define lua_pushstring with L as Int and s as Str returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_pushstring")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and L and s)
+
+define lua_pushinteger with L as Int and n as Int returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_pushinteger")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and L and n)
+
+define lua_tointeger with L as Int and idx as Int returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_tointegerx")
+    if fn equals 0:
+        return 0
+    # lua_tointegerx(L, idx, NULL)
+    return ep_dlcall3(fn and L and idx and 0)
+
+define lua_getglobal with L as Int and name as Str returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_getglobal")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and L and name)
+
+define lua_setglobal with L as Int and name as Str returning Int:
+    if LUA_HANDLE equals 0:
+        set ok to lua_init()
+    set fn to ep_dlsym(LUA_HANDLE and "lua_setglobal")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and L and name)

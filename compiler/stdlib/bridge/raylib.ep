@@ -1,0 +1,525 @@
+# ============================================================
+# raylib Bridge for ErnosPlain
+# 2D/3D game rendering, audio, input — raylib.com
+# ============================================================
+# Usage: import "stdlib/bridge/raylib"
+# Requires: raylib installed (brew install raylib / apt install libraylib-dev)
+# Library: libraylib.dylib (macOS) / libraylib.so (Linux)
+# ============================================================
+
+# Library handle (global)
+set RAYLIB_HANDLE to 0
+
+# ============================================================
+# Color constants (RGBA packed as 32-bit: R | G<<8 | B<<16 | A<<24)
+# ============================================================
+set RAYLIB_WHITE to 4294967295
+set RAYLIB_BLACK to 255
+set RAYLIB_RED to 4278190335
+set RAYLIB_GREEN to 4278255360
+set RAYLIB_BLUE to 4294901760
+set RAYLIB_YELLOW to 4278255615
+set RAYLIB_ORANGE to 4278233343
+set RAYLIB_PURPLE to 4286578943
+set RAYLIB_PINK to 4290825215
+set RAYLIB_LIGHTGRAY to 4291348680
+set RAYLIB_DARKGRAY to 4283716692
+set RAYLIB_GRAY to 4286611584
+set RAYLIB_MAROON to 4278190208
+set RAYLIB_LIME to 4278255104
+set RAYLIB_DARKBLUE to 4289069056
+set RAYLIB_DARKGREEN to 4278222848
+set RAYLIB_DARKPURPLE to 4285595648
+set RAYLIB_BEIGE to 4292854067
+set RAYLIB_MAGENTA to 4294902015
+set RAYLIB_SKYBLUE to 4294945254
+set RAYLIB_GOLD to 4278236159
+set RAYLIB_BROWN to 4281543807
+set RAYLIB_DARKBROWN to 4279638016
+set RAYLIB_VIOLET to 4294887783
+set RAYLIB_RAYWHITE to 4294572537
+set RAYLIB_BLANK to 0
+
+# ============================================================
+# Key constants (raylib key codes)
+# ============================================================
+set KEY_SPACE to 32
+set KEY_ESCAPE to 256
+set KEY_ENTER to 257
+set KEY_TAB to 258
+set KEY_BACKSPACE to 259
+set KEY_DELETE to 261
+set KEY_RIGHT to 262
+set KEY_LEFT to 263
+set KEY_DOWN to 264
+set KEY_UP to 265
+set KEY_PAGE_UP to 266
+set KEY_PAGE_DOWN to 267
+set KEY_HOME to 268
+set KEY_END to 269
+set KEY_F1 to 290
+set KEY_F2 to 291
+set KEY_F3 to 292
+set KEY_F4 to 293
+set KEY_F5 to 294
+set KEY_F6 to 295
+set KEY_F7 to 296
+set KEY_F8 to 297
+set KEY_F9 to 298
+set KEY_F10 to 299
+set KEY_F11 to 300
+set KEY_F12 to 301
+set KEY_LEFT_SHIFT to 340
+set KEY_LEFT_CONTROL to 341
+set KEY_LEFT_ALT to 342
+set KEY_RIGHT_SHIFT to 344
+set KEY_RIGHT_CONTROL to 345
+set KEY_RIGHT_ALT to 346
+set KEY_A to 65
+set KEY_B to 66
+set KEY_C to 67
+set KEY_D to 68
+set KEY_E to 69
+set KEY_F to 70
+set KEY_G to 71
+set KEY_H to 72
+set KEY_I to 73
+set KEY_J to 74
+set KEY_K to 75
+set KEY_L to 76
+set KEY_M to 77
+set KEY_N to 78
+set KEY_O to 79
+set KEY_P to 80
+set KEY_Q to 81
+set KEY_R to 82
+set KEY_S to 83
+set KEY_T to 84
+set KEY_U to 85
+set KEY_V to 86
+set KEY_W to 87
+set KEY_X to 88
+set KEY_Y to 89
+set KEY_Z to 90
+set KEY_ZERO to 48
+set KEY_ONE to 49
+set KEY_TWO to 50
+set KEY_THREE to 51
+set KEY_FOUR to 52
+set KEY_FIVE to 53
+set KEY_SIX to 54
+set KEY_SEVEN to 55
+set KEY_EIGHT to 56
+set KEY_NINE to 57
+
+# Mouse button constants
+set MOUSE_LEFT to 0
+set MOUSE_RIGHT to 1
+set MOUSE_MIDDLE to 2
+
+# ============================================================
+# Library initialization
+# ============================================================
+define raylib_load:
+    set RAYLIB_HANDLE to ep_dlopen("libraylib.dylib")
+    if RAYLIB_HANDLE equals 0:
+        set RAYLIB_HANDLE to ep_dlopen("/opt/homebrew/lib/libraylib.dylib")
+    if RAYLIB_HANDLE equals 0:
+        set RAYLIB_HANDLE to ep_dlopen("/usr/local/lib/libraylib.dylib")
+    if RAYLIB_HANDLE equals 0:
+        set RAYLIB_HANDLE to ep_dlopen("libraylib.so")
+    if RAYLIB_HANDLE equals 0:
+        set RAYLIB_HANDLE to ep_dlopen("libraylib.so.5")
+    if RAYLIB_HANDLE equals 0:
+        set RAYLIB_HANDLE to ep_dlopen("/usr/lib/libraylib.so")
+    return RAYLIB_HANDLE
+
+# ============================================================
+# Window management
+# ============================================================
+define raylib_init_window with width as Int and height as Int and title as Str:
+    if RAYLIB_HANDLE equals 0:
+        set ok to raylib_load()
+    set fn to ep_dlsym(RAYLIB_HANDLE and "InitWindow")
+    return ep_dlcall3(fn and width and height and title)
+
+define raylib_close_window:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "CloseWindow")
+    return ep_dlcall0(fn)
+
+define raylib_window_should_close returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "WindowShouldClose")
+    return ep_dlcall0(fn)
+
+define raylib_set_target_fps with fps as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetTargetFPS")
+    return ep_dlcall1(fn and fps)
+
+define raylib_get_fps returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetFPS")
+    return ep_dlcall0(fn)
+
+define raylib_get_screen_width returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetScreenWidth")
+    return ep_dlcall0(fn)
+
+define raylib_get_screen_height returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetScreenHeight")
+    return ep_dlcall0(fn)
+
+define raylib_set_window_title with title as Str:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetWindowTitle")
+    return ep_dlcall1(fn and title)
+
+define raylib_toggle_fullscreen:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "ToggleFullscreen")
+    return ep_dlcall0(fn)
+
+define raylib_set_window_size with width as Int and height as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetWindowSize")
+    return ep_dlcall2(fn and width and height)
+
+define raylib_is_window_resized returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsWindowResized")
+    return ep_dlcall0(fn)
+
+define raylib_is_window_focused returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsWindowFocused")
+    return ep_dlcall0(fn)
+
+define raylib_set_window_icon with image as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetWindowIcon")
+    return ep_dlcall1(fn and image)
+
+# ============================================================
+# Drawing — frame control
+# ============================================================
+define raylib_begin_drawing:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "BeginDrawing")
+    return ep_dlcall0(fn)
+
+define raylib_end_drawing:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "EndDrawing")
+    return ep_dlcall0(fn)
+
+define raylib_clear_background with color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "ClearBackground")
+    return ep_dlcall1(fn and color)
+
+# ============================================================
+# Drawing — basic shapes
+# ============================================================
+define raylib_draw_pixel with x as Int and y as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawPixel")
+    return ep_dlcall3(fn and x and y and color)
+
+define raylib_draw_line with startx as Int and starty as Int and endx as Int and endy as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawLine")
+    return ep_dlcall5(fn and startx and starty and endx and endy and color)
+
+define raylib_draw_circle with cx as Int and cy as Int and radius as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawCircle")
+    return ep_dlcall4(fn and cx and cy and radius and color)
+
+define raylib_draw_circle_lines with cx as Int and cy as Int and radius as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawCircleLines")
+    return ep_dlcall4(fn and cx and cy and radius and color)
+
+define raylib_draw_rectangle with x as Int and y as Int and width as Int and height as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawRectangle")
+    return ep_dlcall5(fn and x and y and width and height and color)
+
+define raylib_draw_rectangle_lines with x as Int and y as Int and width as Int and height as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawRectangleLines")
+    return ep_dlcall5(fn and x and y and width and height and color)
+
+define raylib_draw_triangle with x1 as Int and y1 as Int and x2 as Int and y2 as Int and x3 as Int and y3 as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawTriangle")
+    return ep_dlcall7(fn and x1 and y1 and x2 and y2 and x3 and y3 and color)
+
+define raylib_draw_poly with cx as Int and cy as Int and sides as Int and radius as Int and rotation as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawPoly")
+    return ep_dlcall6(fn and cx and cy and sides and radius and rotation and color)
+
+define raylib_draw_ring with cx as Int and cy as Int and inner_radius as Int and outer_radius as Int and start_angle as Int and end_angle as Int and segments as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawRing")
+    return ep_dlcall8(fn and cx and cy and inner_radius and outer_radius and start_angle and end_angle and segments and color)
+
+# ============================================================
+# Drawing — text
+# ============================================================
+define raylib_draw_text with text as Str and x as Int and y as Int and size as Int and color as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawText")
+    return ep_dlcall5(fn and text and x and y and size and color)
+
+define raylib_measure_text with text as Str and size as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "MeasureText")
+    return ep_dlcall2(fn and text and size)
+
+define raylib_draw_fps with x as Int and y as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawFPS")
+    return ep_dlcall2(fn and x and y)
+
+define raylib_load_font with path as Str returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "LoadFont")
+    return ep_dlcall1(fn and path)
+
+define raylib_unload_font with font as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "UnloadFont")
+    return ep_dlcall1(fn and font)
+
+# ============================================================
+# Textures
+# ============================================================
+define raylib_load_texture with path as Str returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "LoadTexture")
+    return ep_dlcall1(fn and path)
+
+define raylib_unload_texture with tex as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "UnloadTexture")
+    return ep_dlcall1(fn and tex)
+
+define raylib_draw_texture with tex as Int and x as Int and y as Int and tint as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawTexture")
+    return ep_dlcall4(fn and tex and x and y and tint)
+
+define raylib_draw_texture_ex with tex as Int and x as Int and y as Int and rotation as Int and scale as Int and tint as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "DrawTextureEx")
+    return ep_dlcall6(fn and tex and x and y and rotation and scale and tint)
+
+define raylib_load_image with path as Str returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "LoadImage")
+    return ep_dlcall1(fn and path)
+
+define raylib_unload_image with image as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "UnloadImage")
+    return ep_dlcall1(fn and image)
+
+define raylib_load_texture_from_image with image as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "LoadTextureFromImage")
+    return ep_dlcall1(fn and image)
+
+# ============================================================
+# Input — keyboard
+# ============================================================
+define raylib_is_key_pressed with key as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsKeyPressed")
+    return ep_dlcall1(fn and key)
+
+define raylib_is_key_down with key as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsKeyDown")
+    return ep_dlcall1(fn and key)
+
+define raylib_is_key_released with key as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsKeyReleased")
+    return ep_dlcall1(fn and key)
+
+define raylib_is_key_up with key as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsKeyUp")
+    return ep_dlcall1(fn and key)
+
+define raylib_get_key_pressed returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetKeyPressed")
+    return ep_dlcall0(fn)
+
+define raylib_get_char_pressed returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetCharPressed")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Input — mouse
+# ============================================================
+define raylib_is_mouse_button_pressed with button as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsMouseButtonPressed")
+    return ep_dlcall1(fn and button)
+
+define raylib_is_mouse_button_down with button as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsMouseButtonDown")
+    return ep_dlcall1(fn and button)
+
+define raylib_is_mouse_button_released with button as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsMouseButtonReleased")
+    return ep_dlcall1(fn and button)
+
+define raylib_get_mouse_x returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetMouseX")
+    return ep_dlcall0(fn)
+
+define raylib_get_mouse_y returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetMouseY")
+    return ep_dlcall0(fn)
+
+define raylib_get_mouse_wheel_move returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetMouseWheelMove")
+    return ep_dlcall0(fn)
+
+define raylib_set_mouse_position with x as Int and y as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetMousePosition")
+    return ep_dlcall2(fn and x and y)
+
+define raylib_show_cursor:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "ShowCursor")
+    return ep_dlcall0(fn)
+
+define raylib_hide_cursor:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "HideCursor")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Audio system
+# ============================================================
+define raylib_init_audio:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "InitAudioDevice")
+    return ep_dlcall0(fn)
+
+define raylib_close_audio:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "CloseAudioDevice")
+    return ep_dlcall0(fn)
+
+define raylib_is_audio_ready returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsAudioDeviceReady")
+    return ep_dlcall0(fn)
+
+define raylib_set_master_volume with volume as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetMasterVolume")
+    return ep_dlcall1(fn and volume)
+
+# Sound (short audio clips)
+define raylib_load_sound with path as Str returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "LoadSound")
+    return ep_dlcall1(fn and path)
+
+define raylib_unload_sound with sound as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "UnloadSound")
+    return ep_dlcall1(fn and sound)
+
+define raylib_play_sound with sound as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "PlaySound")
+    return ep_dlcall1(fn and sound)
+
+define raylib_stop_sound with sound as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "StopSound")
+    return ep_dlcall1(fn and sound)
+
+define raylib_pause_sound with sound as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "PauseSound")
+    return ep_dlcall1(fn and sound)
+
+define raylib_resume_sound with sound as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "ResumeSound")
+    return ep_dlcall1(fn and sound)
+
+define raylib_is_sound_playing with sound as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsSoundPlaying")
+    return ep_dlcall1(fn and sound)
+
+define raylib_set_sound_volume with sound as Int and volume as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetSoundVolume")
+    return ep_dlcall2(fn and sound and volume)
+
+# Music (streamed audio)
+define raylib_load_music with path as Str returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "LoadMusicStream")
+    return ep_dlcall1(fn and path)
+
+define raylib_unload_music with music as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "UnloadMusicStream")
+    return ep_dlcall1(fn and music)
+
+define raylib_play_music with music as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "PlayMusicStream")
+    return ep_dlcall1(fn and music)
+
+define raylib_stop_music with music as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "StopMusicStream")
+    return ep_dlcall1(fn and music)
+
+define raylib_update_music with music as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "UpdateMusicStream")
+    return ep_dlcall1(fn and music)
+
+define raylib_is_music_playing with music as Int returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsMusicStreamPlaying")
+    return ep_dlcall1(fn and music)
+
+define raylib_set_music_volume with music as Int and volume as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetMusicVolume")
+    return ep_dlcall2(fn and music and volume)
+
+# ============================================================
+# Collision detection
+# ============================================================
+define raylib_check_collision_recs with x1 as Int and y1 as Int and w1 as Int and h1 as Int and x2 as Int and y2 as Int and w2 as Int and h2 as Int returning Int:
+    # Manual AABB collision since CheckCollisionRecs takes Rectangle structs by value
+    if x1 < x2 + w2 and x1 + w1 > x2 and y1 < y2 + h2 and y1 + h1 > y2:
+        return 1
+    return 0
+
+define raylib_check_collision_circles with cx1 as Int and cy1 as Int and r1 as Int and cx2 as Int and cy2 as Int and r2 as Int returning Int:
+    # Manual circle collision (avoid struct-by-value)
+    set dx to cx1 - cx2
+    set dy to cy1 - cy2
+    set dist_sq to dx * dx + dy * dy
+    set rad_sum to r1 + r2
+    if dist_sq < rad_sum * rad_sum:
+        return 1
+    return 0
+
+define raylib_check_collision_point_rec with px as Int and py as Int and rx as Int and ry as Int and rw as Int and rh as Int returning Int:
+    # Manual point-in-rectangle check
+    if px >= rx and px <= rx + rw and py >= ry and py <= ry + rh:
+        return 1
+    return 0
+
+# ============================================================
+# Timing
+# ============================================================
+define raylib_get_frame_time returning Int:
+    # Returns frame delta as integer milliseconds (raylib returns float)
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetFrameTime")
+    return ep_dlcall0(fn)
+
+define raylib_get_time returning Int:
+    # Returns elapsed time since InitWindow (raylib returns double)
+    set fn to ep_dlsym(RAYLIB_HANDLE and "GetTime")
+    return ep_dlcall0(fn)
+
+define raylib_wait with seconds as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "WaitTime")
+    return ep_dlcall1(fn and seconds)
+
+# ============================================================
+# Misc
+# ============================================================
+define raylib_set_trace_log_level with level as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetTraceLogLevel")
+    return ep_dlcall1(fn and level)
+
+define raylib_take_screenshot with path as Str:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "TakeScreenshot")
+    return ep_dlcall1(fn and path)
+
+define raylib_set_config_flags with flags as Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "SetConfigFlags")
+    return ep_dlcall1(fn and flags)
+
+define raylib_is_window_ready returning Int:
+    set fn to ep_dlsym(RAYLIB_HANDLE and "IsWindowReady")
+    return ep_dlcall0(fn)
+
+# Config flags
+set FLAG_VSYNC_HINT to 64
+set FLAG_FULLSCREEN_MODE to 2
+set FLAG_WINDOW_RESIZABLE to 4
+set FLAG_WINDOW_UNDECORATED to 8
+set FLAG_WINDOW_TRANSPARENT to 16
+set FLAG_MSAA_4X_HINT to 32
+set FLAG_WINDOW_ALWAYS_RUN to 256
+
+# Log levels
+set LOG_NONE to 7
+set LOG_ERROR to 5
+set LOG_WARNING to 4
+set LOG_INFO to 3
+set LOG_DEBUG to 2
+set LOG_TRACE to 1

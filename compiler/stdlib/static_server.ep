@@ -1,0 +1,163 @@
+# ErnosPlain Static File Server Library
+# Serves static files over HTTP with MIME type detection and path sanitization
+
+import "http"
+import "fs"
+import "string"
+
+# ───────────── MIME Type Detection ─────────────
+
+define get_mime_type with ext:
+    if concat(ext and "") equals "html":
+        return "text/html"
+    else if concat(ext and "") equals "htm":
+        return "text/html"
+    else if concat(ext and "") equals "css":
+        return "text/css"
+    else if concat(ext and "") equals "js":
+        return "application/javascript"
+    else if concat(ext and "") equals "json":
+        return "application/json"
+    else if concat(ext and "") equals "png":
+        return "image/png"
+    else if concat(ext and "") equals "jpg":
+        return "image/jpeg"
+    else if concat(ext and "") equals "jpeg":
+        return "image/jpeg"
+    else if concat(ext and "") equals "gif":
+        return "image/gif"
+    else if concat(ext and "") equals "svg":
+        return "image/svg+xml"
+    else if concat(ext and "") equals "ico":
+        return "image/x-icon"
+    else if concat(ext and "") equals "woff":
+        return "font/woff"
+    else if concat(ext and "") equals "woff2":
+        return "font/woff2"
+    else if concat(ext and "") equals "txt":
+        return "text/plain"
+    else if concat(ext and "") equals "xml":
+        return "application/xml"
+    else if concat(ext and "") equals "wasm":
+        return "application/wasm"
+    else:
+        return "application/octet-stream"
+
+# ───────────── Path Security ─────────────
+
+define hex_value with c:
+    # Decode one hex digit (ASCII code) to its value, or -1 if not a hex digit.
+    if c >= 48 && c <= 57:
+        return c - 48
+    if c >= 97 && c <= 102:
+        return c - 87
+    if c >= 65 && c <= 70:
+        return c - 55
+    return -1
+
+define url_decode with s:
+    # Percent-decode %XX escapes so encoded traversal (e.g. %2e%2e) is normalized
+    # before the safety check. A NUL byte (%00) is dropped rather than embedded.
+    set out to create_list()
+    set i to 0
+    set n to string_length(s)
+    repeat while i < n:
+        set c to get_character(s and i)
+        if c == 37 && i + 2 < n:
+            set h1 to hex_value(get_character(s and (i + 1)))
+            set h2 to hex_value(get_character(s and (i + 2)))
+            if h1 >= 0 && h2 >= 0:
+                set decoded to (h1 * 16) + h2
+                if decoded > 0:
+                    set ok to append_list(out and decoded)
+                set i to i + 3
+            else:
+                set ok to append_list(out and c)
+                set i to i + 1
+        else:
+            set ok to append_list(out and c)
+            set i to i + 1
+    return string_from_list(out)
+
+define sanitize_path with path:
+    # Decode percent-escapes FIRST, then reject directory traversal — otherwise
+    # an attacker can bypass the check with %2e%2e%2f ("../").
+    set decoded to url_decode(path)
+    if string_contains(decoded and ".."):
+        return "/index.html"
+    # Reject Windows-style separators that could also escape the root.
+    if string_contains(decoded and char_from_code(92)):
+        return "/index.html"
+    # Default to index.html for root
+    if concat(decoded and "") equals "/":
+        return "/index.html"
+    return decoded
+
+# ───────────── HTTP Request Parsing ─────────────
+
+define extract_request_path with raw_request:
+    # Parse "GET /path HTTP/1.1\r\n..." to extract "/path"
+    set first_space to string_index_of(raw_request and " ")
+    if first_space < 0:
+        return "/"
+    set after_method to first_space + 1
+    set rest to substring(raw_request and after_method and string_length(raw_request) - after_method)
+    set second_space to string_index_of(rest and " ")
+    if second_space < 0:
+        return rest
+    return substring(rest and 0 and second_space)
+
+define extract_request_method with raw_request:
+    set first_space to string_index_of(raw_request and " ")
+    if first_space < 0:
+        return "GET"
+    return substring(raw_request and 0 and first_space)
+
+# ───────────── Static File Server ─────────────
+
+define serve_static with port and root_dir:
+    display concat("🌐 Static file server starting on port " and int_to_string(port))
+    display concat("📁 Serving files from: " and root_dir)
+    set server to start_server(port)
+    
+    repeat while 1 == 1:
+        set request to receive from server
+        set client_fd to get_list(request and 0)
+        set req_str to get_list(request and 1)
+        
+        # Parse the request
+        set method to extract_request_method(req_str)
+        set raw_path to extract_request_path(req_str)
+        set safe_path to sanitize_path(raw_path)
+        
+        # Strip leading slash for path_join
+        set rel_path to safe_path
+        if string_length(safe_path) > 1:
+            set first_char to get_character(safe_path and 0)
+            if first_char == 47:
+                set rel_path to substring(safe_path and 1 and string_length(safe_path) - 1)
+        
+        # Build full filesystem path
+        set file_path to path_join(root_dir and rel_path)
+        
+        # Log the request
+        display concat(concat(method and " ") and concat(raw_path and concat(" -> " and file_path)))
+        
+        # Serve the file or 404
+        if file_exists(file_path):
+            if is_directory(file_path):
+                # Try index.html inside directory
+                set index_path to path_join(file_path and "index.html")
+                if file_exists(index_path):
+                    set content to read_file(index_path)
+                    send_response(client_fd and 200 and "text/html" and content)
+                else:
+                    send_response(client_fd and 404 and "text/plain" and "Not Found")
+            else:
+                set content to read_file(file_path)
+                set ext to path_extension(file_path)
+                set mime to get_mime_type(ext)
+                send_response(client_fd and 200 and mime and content)
+        else:
+            send_response(client_fd and 404 and "text/plain" and "404 Not Found")
+    return 0

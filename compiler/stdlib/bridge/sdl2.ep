@@ -1,0 +1,295 @@
+# ============================================================
+# SDL2 Bridge for ErnosPlain
+# Cross-platform graphics, audio, input — libsdl.org
+# ============================================================
+# Usage: import "stdlib/bridge/sdl2"
+# Requires: SDL2 installed (brew install sdl2 / apt install libsdl2-dev)
+# ============================================================
+
+set SDL_HANDLE to 0
+
+# ---- Initialization flags ----
+set SDL_INIT_TIMER to 1
+set SDL_INIT_AUDIO to 16
+set SDL_INIT_VIDEO to 32
+set SDL_INIT_JOYSTICK to 512
+set SDL_INIT_HAPTIC to 4096
+set SDL_INIT_GAMECONTROLLER to 8192
+set SDL_INIT_EVENTS to 16384
+set SDL_INIT_EVERYTHING to 29233
+
+# ---- Window flags ----
+set SDL_WINDOW_FULLSCREEN to 1
+set SDL_WINDOW_SHOWN to 4
+set SDL_WINDOW_HIDDEN to 8
+set SDL_WINDOW_BORDERLESS to 16
+set SDL_WINDOW_RESIZABLE to 32
+set SDL_WINDOW_MINIMIZED to 64
+set SDL_WINDOW_MAXIMIZED to 128
+set SDL_WINDOW_INPUT_GRABBED to 256
+
+# ---- Renderer flags ----
+set SDL_RENDERER_SOFTWARE to 1
+set SDL_RENDERER_ACCELERATED to 2
+set SDL_RENDERER_PRESENTVSYNC to 4
+set SDL_RENDERER_TARGETTEXTURE to 8
+
+# ---- Event types ----
+set SDL_QUIT_EVENT to 256
+set SDL_KEYDOWN to 768
+set SDL_KEYUP to 769
+set SDL_MOUSEMOTION to 1024
+set SDL_MOUSEBUTTONDOWN to 1025
+set SDL_MOUSEBUTTONUP to 1026
+set SDL_MOUSEWHEEL to 1027
+set SDL_WINDOWEVENT to 512
+
+# ---- Key codes (SDL scancodes) ----
+set SDLK_ESCAPE to 27
+set SDLK_RETURN to 13
+set SDLK_SPACE to 32
+set SDLK_LEFT to 1073741904
+set SDLK_RIGHT to 1073741903
+set SDLK_UP to 1073741906
+set SDLK_DOWN to 1073741905
+set SDLK_a to 97
+set SDLK_d to 100
+set SDLK_s to 115
+set SDLK_w to 119
+
+# ---- Pixel format ----
+set SDL_PIXELFORMAT_RGBA8888 to 373694468
+
+# ---- Window position ----
+set SDL_WINDOWPOS_CENTERED to 805240832
+set SDL_WINDOWPOS_UNDEFINED to 536805376
+
+# ============================================================
+# Library loading
+# ============================================================
+define sdl_load:
+    set SDL_HANDLE to ep_dlopen("libSDL2.dylib")
+    if SDL_HANDLE equals 0:
+        set SDL_HANDLE to ep_dlopen("/opt/homebrew/lib/libSDL2.dylib")
+    if SDL_HANDLE equals 0:
+        set SDL_HANDLE to ep_dlopen("/usr/local/lib/libSDL2.dylib")
+    if SDL_HANDLE equals 0:
+        set SDL_HANDLE to ep_dlopen("libSDL2-2.0.so.0")
+    if SDL_HANDLE equals 0:
+        set SDL_HANDLE to ep_dlopen("libSDL2.so")
+    if SDL_HANDLE equals 0:
+        set SDL_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0")
+    return SDL_HANDLE
+
+# ============================================================
+# Init / Quit
+# ============================================================
+define sdl_init with flags as Int returning Int:
+    if SDL_HANDLE equals 0:
+        set ok to sdl_load()
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_Init")
+    return ep_dlcall1(fn and flags)
+
+define sdl_quit:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_Quit")
+    return ep_dlcall0(fn)
+
+define sdl_get_error returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetError")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Window
+# ============================================================
+define sdl_create_window with title as Str and x as Int and y as Int and w as Int and h as Int and flags as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_CreateWindow")
+    return ep_dlcall6(fn and title and x and y and w and h and flags)
+
+define sdl_destroy_window with win as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_DestroyWindow")
+    return ep_dlcall1(fn and win)
+
+define sdl_set_window_title with win as Int and title as Str:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_SetWindowTitle")
+    return ep_dlcall2(fn and win and title)
+
+define sdl_get_window_size with win as Int and w_ptr as Int and h_ptr as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetWindowSize")
+    return ep_dlcall3(fn and win and w_ptr and h_ptr)
+
+define sdl_set_window_fullscreen with win as Int and flags as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_SetWindowFullscreen")
+    return ep_dlcall2(fn and win and flags)
+
+define sdl_show_window with win as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_ShowWindow")
+    return ep_dlcall1(fn and win)
+
+define sdl_hide_window with win as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_HideWindow")
+    return ep_dlcall1(fn and win)
+
+# ============================================================
+# Renderer
+# ============================================================
+define sdl_create_renderer with win as Int and index as Int and flags as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_CreateRenderer")
+    return ep_dlcall3(fn and win and index and flags)
+
+define sdl_destroy_renderer with renderer as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_DestroyRenderer")
+    return ep_dlcall1(fn and renderer)
+
+define sdl_render_clear with renderer as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderClear")
+    return ep_dlcall1(fn and renderer)
+
+define sdl_render_present with renderer as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderPresent")
+    return ep_dlcall1(fn and renderer)
+
+define sdl_set_render_draw_color with renderer as Int and r as Int and g as Int and b as Int and a as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_SetRenderDrawColor")
+    return ep_dlcall5(fn and renderer and r and g and b and a)
+
+define sdl_render_draw_line with renderer as Int and x1 as Int and y1 as Int and x2 as Int and y2 as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderDrawLine")
+    return ep_dlcall5(fn and renderer and x1 and y1 and x2 and y2)
+
+define sdl_render_draw_point with renderer as Int and x as Int and y as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderDrawPoint")
+    return ep_dlcall3(fn and renderer and x and y)
+
+define sdl_render_fill_rect with renderer as Int and rect as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderFillRect")
+    return ep_dlcall2(fn and renderer and rect)
+
+define sdl_render_draw_rect with renderer as Int and rect as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderDrawRect")
+    return ep_dlcall2(fn and renderer and rect)
+
+define sdl_render_copy with renderer as Int and texture as Int and srcrect as Int and dstrect as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_RenderCopy")
+    return ep_dlcall4(fn and renderer and texture and srcrect and dstrect)
+
+# ============================================================
+# Surface / Texture
+# ============================================================
+define sdl_load_bmp with path as Str returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_LoadBMP_RW")
+    set rw_fn to ep_dlsym(SDL_HANDLE and "SDL_RWFromFile")
+    set rw to ep_dlcall2(rw_fn and path and "rb")
+    return ep_dlcall2(fn and rw and 1)
+
+define sdl_free_surface with surface as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_FreeSurface")
+    return ep_dlcall1(fn and surface)
+
+define sdl_create_texture_from_surface with renderer as Int and surface as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_CreateTextureFromSurface")
+    return ep_dlcall2(fn and renderer and surface)
+
+define sdl_destroy_texture with texture as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_DestroyTexture")
+    return ep_dlcall1(fn and texture)
+
+# ============================================================
+# Events
+# ============================================================
+define sdl_poll_event with event_ptr as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_PollEvent")
+    return ep_dlcall1(fn and event_ptr)
+
+define sdl_wait_event with event_ptr as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_WaitEvent")
+    return ep_dlcall1(fn and event_ptr)
+
+# ============================================================
+# Keyboard
+# ============================================================
+define sdl_get_keyboard_state with numkeys_ptr as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetKeyboardState")
+    return ep_dlcall1(fn and numkeys_ptr)
+
+define sdl_get_scancode_from_key with key as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetScancodeFromKey")
+    return ep_dlcall1(fn and key)
+
+# ============================================================
+# Mouse
+# ============================================================
+define sdl_get_mouse_state with x_ptr as Int and y_ptr as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetMouseState")
+    return ep_dlcall2(fn and x_ptr and y_ptr)
+
+define sdl_warp_mouse_in_window with win as Int and x as Int and y as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_WarpMouseInWindow")
+    return ep_dlcall3(fn and win and x and y)
+
+define sdl_show_cursor with toggle as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_ShowCursor")
+    return ep_dlcall1(fn and toggle)
+
+# ============================================================
+# Clipboard
+# ============================================================
+define sdl_set_clipboard_text with text as Str returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_SetClipboardText")
+    return ep_dlcall1(fn and text)
+
+define sdl_get_clipboard_text returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetClipboardText")
+    return ep_dlcall0(fn)
+
+define sdl_has_clipboard_text returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_HasClipboardText")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Timer
+# ============================================================
+define sdl_delay with ms as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_Delay")
+    return ep_dlcall1(fn and ms)
+
+define sdl_get_ticks returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetTicks")
+    return ep_dlcall0(fn)
+
+define sdl_get_performance_counter returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetPerformanceCounter")
+    return ep_dlcall0(fn)
+
+define sdl_get_performance_frequency returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetPerformanceFrequency")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Audio
+# ============================================================
+define sdl_open_audio with desired as Int and obtained as Int returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_OpenAudio")
+    return ep_dlcall2(fn and desired and obtained)
+
+define sdl_close_audio:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_CloseAudio")
+    return ep_dlcall0(fn)
+
+define sdl_pause_audio with pause_on as Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_PauseAudio")
+    return ep_dlcall1(fn and pause_on)
+
+# ============================================================
+# Misc
+# ============================================================
+define sdl_get_platform returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_GetPlatform")
+    return ep_dlcall0(fn)
+
+define sdl_set_hint with name as Str and value as Str returning Int:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_SetHint")
+    return ep_dlcall2(fn and name and value)
+
+define sdl_log with message as Str:
+    set fn to ep_dlsym(SDL_HANDLE and "SDL_Log")
+    return ep_dlcall1(fn and message)

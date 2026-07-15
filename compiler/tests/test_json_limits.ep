@@ -1,0 +1,12 @@
+# JSON parser robustness: normal parsing works, and an absurdly long integer
+# clamps instead of overflowing to a negative value.
+import "json"
+define main:
+    set node to json_parse("{\"a\": 42}")
+    display get_json_value(get_json_object_value(node and "a"))
+    set big to json_parse("999999999999999999999999999")
+    if get_json_value(big) > 0:
+        display "big_positive"
+    else:
+        display "big_WRAPPED_NEGATIVE"
+    return 0

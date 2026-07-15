@@ -1,0 +1,94 @@
+# ============================================================
+# Termbox2 Bridge for ErnosPlain
+# Simpler Terminal Cell UI
+# ============================================================
+# Usage: import "stdlib/bridge/termbox2"
+# ============================================================
+
+set TERMBOX_HANDLE to 0
+
+# ---- Library loading ----
+define termbox_load:
+    set TERMBOX_HANDLE to ep_dlopen("libtermbox.dylib")
+    if TERMBOX_HANDLE equals 0:
+        set TERMBOX_HANDLE to ep_dlopen("libtermbox2.dylib")
+    if TERMBOX_HANDLE equals 0:
+        set TERMBOX_HANDLE to ep_dlopen("/usr/local/lib/libtermbox2.dylib")
+    if TERMBOX_HANDLE equals 0:
+        set TERMBOX_HANDLE to ep_dlopen("libtermbox.so")
+    if TERMBOX_HANDLE equals 0:
+        set TERMBOX_HANDLE to ep_dlopen("libtermbox2.so")
+    if TERMBOX_HANDLE equals 0:
+        set TERMBOX_HANDLE to ep_dlopen("/usr/lib/libtermbox.so")
+    return TERMBOX_HANDLE
+
+# ---- Init / Cleanup ----
+define termbox_bridge_init returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_load()
+    return TERMBOX_HANDLE
+
+# ---- Core Functions ----
+define tb_init returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_init")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define tb_shutdown returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_shutdown")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define tb_width returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_width")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define tb_height returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_height")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define tb_clear returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_clear")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define tb_present returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_present")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define tb_change_cell with x as Int and y as Int and ch as Int and fg as Int and bg as Int returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_change_cell")
+    if fn equals 0:
+        return 1
+    return ep_dlcall5(fn and x and y and ch and fg and bg)
+
+define tb_poll_event with event as Int returning Int:
+    if TERMBOX_HANDLE equals 0:
+        set ok to termbox_bridge_init()
+    set fn to ep_dlsym(TERMBOX_HANDLE and "tb_poll_event")
+    if fn equals 0:
+        return 1
+    return ep_dlcall1(fn and event)

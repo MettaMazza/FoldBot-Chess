@@ -1,0 +1,98 @@
+# ============================================================
+# Mosquitto Bridge for ErnosPlain
+# MQTT for IoT
+# ============================================================
+# Usage: import "stdlib/bridge/mosquitto"
+# ============================================================
+
+set MOSQUITTO_HANDLE to 0
+
+# ---- Library loading ----
+define mosquitto_load:
+    set MOSQUITTO_HANDLE to ep_dlopen("libmosquitto.dylib")
+    if MOSQUITTO_HANDLE equals 0:
+        set MOSQUITTO_HANDLE to ep_dlopen("/opt/homebrew/lib/libmosquitto.dylib")
+    if MOSQUITTO_HANDLE equals 0:
+        set MOSQUITTO_HANDLE to ep_dlopen("/usr/local/lib/libmosquitto.dylib")
+    if MOSQUITTO_HANDLE equals 0:
+        set MOSQUITTO_HANDLE to ep_dlopen("libmosquitto.so.1")
+    if MOSQUITTO_HANDLE equals 0:
+        set MOSQUITTO_HANDLE to ep_dlopen("libmosquitto.so")
+    if MOSQUITTO_HANDLE equals 0:
+        set MOSQUITTO_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libmosquitto.so.1")
+    return MOSQUITTO_HANDLE
+
+# ---- Init / Cleanup ----
+define mosquitto_bridge_init returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_load()
+    return MOSQUITTO_HANDLE
+
+# ---- Core Functions ----
+define mosquitto_lib_init returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_lib_init")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define mosquitto_lib_cleanup returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_lib_cleanup")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define mosquitto_new with id as Str and clean_session as Int and obj as Int returning Int:
+    # Returns pointer to mosquitto struct
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_new")
+    if fn equals 0:
+        return 0
+    return ep_dlcall3(fn and id and clean_session and obj)
+
+define mosquitto_destroy with mosq as Int returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_destroy")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and mosq)
+
+define mosquitto_connect with mosq as Int and host as Str and port as Int and keepalive as Int returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_connect")
+    if fn equals 0:
+        return 1
+    return ep_dlcall4(fn and mosq and host and port and keepalive)
+
+define mosquitto_publish with mosq as Int and mid as Int and topic as Str and payloadlen as Int and payload as Str and qos as Int and retain as Int returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_publish")
+    if fn equals 0:
+        return 1
+    return ep_dlcall7(fn and mosq and mid and topic and payloadlen and payload and qos and retain)
+
+define mosquitto_subscribe with mosq as Int and mid as Int and sub as Str and qos as Int returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MONGOOSE_HANDLE and "mosquitto_subscribe")
+    if fn equals 0:
+        # Fallback to loading it directly if needed
+        set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_subscribe")
+    if fn equals 0:
+        return 1
+    return ep_dlcall4(fn and mosq and mid and sub and qos)
+
+define mosquitto_loop with mosq as Int and timeout as Int and max_packets as Int returning Int:
+    if MOSQUITTO_HANDLE equals 0:
+        set ok to mosquitto_bridge_init()
+    set fn to ep_dlsym(MOSQUITTO_HANDLE and "mosquitto_loop")
+    if fn equals 0:
+        return 1
+    return ep_dlcall3(fn and mosq and timeout and max_packets)

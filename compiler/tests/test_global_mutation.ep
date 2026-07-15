@@ -1,0 +1,17 @@
+# Test mutation of global collections without shadow-declaration or free on exit
+set GLOBAL_MAP to 0
+set GLOBAL_LIST to 0
+
+define init_globals returning Int:
+    if GLOBAL_MAP == 0:
+        set GLOBAL_MAP to create_map()
+    if GLOBAL_LIST == 0:
+        set GLOBAL_LIST to create_list()
+    return 0
+
+define main:
+    set dummy to init_globals()
+    set ok to map_insert(GLOBAL_MAP and 42 and 100)
+    set val to map_get_val(GLOBAL_MAP and 42)
+    display val
+    return 0

@@ -1,0 +1,9 @@
+define main:
+    set total to 0
+    set xs to [1, 2, 3]
+    set f to given seed:
+        for each v in xs:
+            set total to total + v
+        return total + seed
+    display f(100)
+    return 0

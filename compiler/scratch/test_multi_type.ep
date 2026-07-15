@@ -1,0 +1,28 @@
+# Test: Type unification across modules
+# Reproduces: get_list() shared Var IDs causing cross-call-site conflicts
+
+# Module A style: uses get_list result as Str (via concat)
+define content_func:
+    set parts to create_list()
+    set ok to append_list(parts and "hello")
+    set ok to append_list(parts and "world")
+    set first to get_list(parts and 0)
+    set result to concat(first and "!")
+    display result
+    return 0
+
+# Module B style: uses get_list result as Int (via arithmetic)
+define numeric_func:
+    set nums to create_list()
+    set ok to append_list(nums and 10)
+    set ok to append_list(nums and 20)
+    set val to get_list(nums and 0)
+    set doubled to val * 2
+    display doubled
+    return doubled
+
+define main:
+    set r1 to content_func()
+    set r2 to numeric_func()
+    display "PASS: multi-module type check"
+    return 0

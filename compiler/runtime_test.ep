@@ -1,0 +1,23 @@
+define main:
+    display "--- ErnosPlain Built-in Runtime Test ---"
+    
+    # Read the content of hello.ep
+    set content to read_file_content("hello.ep")
+    
+    # Check string length
+    set size to string_length(content)
+    display "File content length of hello.ep is:"
+    display size
+    
+    # Check first character
+    set first_char to get_character(content and 0)
+    display "First character ASCII code is:"
+    display first_char
+    
+    # Confirm it is 'd' (ASCII code 100)
+    if first_char equals 100:
+        display "Confirmed: First character is 'd'!"
+    else:
+        display "Error: First character is not 'd'."
+        
+    return 0

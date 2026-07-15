@@ -1,0 +1,54 @@
+# GC cross-thread channel stress test
+# Tests that objects sent through channels are not collected by GC
+
+define producer with ch and id:
+    set i to 0
+    repeat while i < 200:
+        set m to create_map()
+        set ok to map_insert(m and "id" and id)
+        set ok to map_insert(m and "iter" and i)
+        set ok to map_insert(m and "data" and i * 1000 + id)
+        send m to ch
+        set i to i + 1
+    return 0
+
+define consumer with ch and count:
+    set received to 0
+    set total to 0
+    repeat while received < count:
+        set m to receive from ch
+        set data to map_get_val(m and "data")
+        set total to total + data
+        set received to received + 1
+    return total
+
+define main:
+    set ch to create_channel()
+
+    # 4 producers, each sending 200 maps = 800 total
+    spawn producer(ch and 1)
+    spawn producer(ch and 2)
+    spawn producer(ch and 3)
+    spawn producer(ch and 4)
+
+    # Consume all 800 messages on main thread
+    set total to 0
+    set received to 0
+    repeat while received < 800:
+        set m to receive from ch
+        set data to map_get_val(m and "data")
+        set id_val to map_get_val(m and "id")
+        set iter_val to map_get_val(m and "iter")
+        # Verify the map is still valid (not collected)
+        if data == 0:
+            if id_val == 0:
+                if iter_val == 0:
+                    display "ERROR: map was garbage collected!"
+                    return 1
+        set total to total + data
+        set received to received + 1
+
+    display f"Received {received} maps"
+    display f"Total: {total}"
+    display "PASS: no GC corruption"
+    return 0

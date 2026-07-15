@@ -1,0 +1,15 @@
+import "ep_lexer"
+
+define main:
+    set path to get_argument(1)
+    display "Got path:"
+    display_string(path)
+    display "Reading file..."
+    set source to read_file_content(path)
+    display "File length:"
+    display string_length(source)
+    display "Calling tokenize..."
+    set tokens to tokenize_source(source)
+    display "Tokenize done!"
+    display length_list(tokens)
+    return 0

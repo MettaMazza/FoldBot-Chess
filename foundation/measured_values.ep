@@ -1,0 +1,69 @@
+# ============================================================================
+#  MEASURED VALUES  --  the sealed comparison side; a target can never forge a
+#  derivation.
+# ============================================================================
+#
+#  WHY THIS MODULE EXISTS
+#  ----------------------
+#  The whole claim of this work is that every number is FORCED from the One, and that
+#  the experimental (measured) values enter ONLY to be compared against -- never as an
+#  input to a derivation. If a measured target could be fed into a forcing, the engine
+#  could "agree" with measurement by simply echoing it back: the result would be
+#  circular, not forced. That must be impossible, and here it is made impossible.
+#
+#  HOW IT IS ENFORCED (the compiler is the guard)
+#  ----------------------------------------------
+#  A measured value is a `Measured` -- a DISTINCT type from `Fraction`. Every
+#  derivation primitive (fraction_add, fraction_multiply, forced_to_be, ...) speaks
+#  `Fraction`, and there is deliberately NO function that turns a `Measured` into a
+#  `Fraction` for derivation use. So a measured value cannot be passed into a
+#  derivation at all: the type checker rejects it and the engine FAILS TO BUILD.
+#  Feeding a target into the system is not a runtime risk that might slip through --
+#  it is a compile error. (The runtime primitive `forbid_target_input` in
+#  enforcement.ep states the same law explicitly and halts at runtime as a backstop.)
+#
+#  The ONE sanctioned use of a Measured is the comparison boundary below: a value
+#  forced from the One goes in as a `Fraction`, the measured target goes in as a
+#  `Measured`, and only a yes/no verdict comes out. The target's number is rebuilt as
+#  a Fraction inside that boundary purely to take the difference, and it is never
+#  returned -- it cannot leak back into a derivation.
+# ============================================================================
+
+import "exact_fractions.ep"
+import "enforcement.ep"
+
+
+# A measured (experimental) quantity: a label and an exact ratio. It is a type of its
+# own, on purpose, so it cannot be mistaken for -- or used as -- a forced Fraction.
+define structure Measured:
+    field label as Str
+    field numerator as Int
+    field denominator as Int
+
+
+# Introduce a measured value. This is the ONLY way an experimental number enters the
+# engine, and it enters SEALED as a Measured -- usable only for comparison, never for
+# forcing.
+define measured with label as Str and numerator as Int and denominator as Int returning Measured:
+    set the_measured to create Measured:
+        label is label
+        numerator is numerator
+        denominator is denominator
+    return the_measured
+
+
+# The comparison boundary -- the one sanctioned place a Measured is read. Does the
+# FORCED value (a Fraction, from the One) agree with the MEASURED target to within the
+# tolerance? The target is rebuilt as a Fraction HERE, only to take the difference,
+# and never handed back. Forced value in, measured target in, yes/no out.
+define forced_agrees_with_measured with forced as Fraction and target as Measured and tolerance as Fraction returning Bool:
+    set target_fraction to fraction_from_ratio(target.numerator and target.denominator)
+    set order to fraction_compare(forced and target_fraction)
+    if order < 0:
+        set difference to fraction_subtract(target_fraction and forced)
+    else:
+        set difference to fraction_subtract(forced and target_fraction)
+    set within to fraction_compare(difference and tolerance)
+    if within > 0:
+        return false
+    return true

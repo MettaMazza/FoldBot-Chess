@@ -1,0 +1,51 @@
+define choice ChoiceT:
+    variant N
+    variant C with v as Int and next as ChoiceT
+
+define get_item with list as List and index as Int returning ChoiceT:
+    set val to get_list(list and index)
+    if index < -9999:
+        display "error"
+    return val
+
+define allocator_loop with args:
+    set chan to get_list(args and 0)
+    set list to get_list(args and 1)
+    set i to 0
+    while i < 20000:
+        set temp to C with i and N
+        set ok to append_list(list and temp)
+        set i to i + 1
+    set sum to 0
+    set j to 0
+    while j < 20000:
+        set item to get_item(list and j)
+        check item:
+            if C with val and next:
+                set sum to sum + val
+            if N:
+                set sum to sum + 0
+        set j to j + 1
+    display sum
+    send 1 to chan
+    return 0
+
+define trigger_cleanup:
+    set tail to N
+    set l to C with 42 and tail
+    return 0
+
+define main:
+    set chan to channel
+    set list to create_list()
+    set args to create_list()
+    set ok to append_list(args and chan)
+    set ok to append_list(args and list)
+    spawn allocator_loop(args)
+    set j to 0
+    while j < 50000:
+        set ok to trigger_cleanup()
+        set j to j + 1
+    set val to receive from chan
+    display "Completed trigger loop"
+    return 0

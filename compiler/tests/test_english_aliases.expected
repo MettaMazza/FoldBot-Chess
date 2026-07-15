@@ -1,0 +1,14 @@
+=== English Alias Test ===
+10 times 3 = 30
+same with print: 30
+loop counter: 5
+total (skip 3, stop after 7): 25
+passed (is at least 50)
+valid (is at most 100)
+great (is bigger than 80)
+room to grow (is smaller than 90)
+a is the same as b
+a is different from c
+c does not equal a
+sum of list: 60
+all aliases working

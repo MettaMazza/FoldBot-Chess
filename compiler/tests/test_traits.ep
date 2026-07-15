@@ -1,0 +1,35 @@
+# Test trait implementation checking
+
+define trait Printable:
+    define to_string returning Str
+
+define trait Measurable:
+    define size returning Int
+
+define structure Point:
+    field x as Int
+    field y as Int
+
+implement Printable for Point:
+    define to_string returning Str:
+        return "Point"
+
+implement Measurable for Point:
+    define size returning Int:
+        return 2
+
+define choice Shape:
+    variant Circle with radius as Int
+    variant Rectangle with width as Int and height as Int
+
+implement Printable for Shape:
+    define to_string returning Str:
+        return "Shape"
+
+define main:
+    set p to create Point:
+        x is 10
+        y is 20
+    display p.size()
+    display "Trait test passed!"
+    return 0

@@ -1,0 +1,87 @@
+# ErnosPlain SQLite Database Wrapper Standard Library
+
+external define ep_sqlite3_open with filename and db_ptr returning Int
+external define ep_sqlite3_close with db returning Int
+external define ep_sqlite3_exec with db and sql and callback and callback_arg and errmsg_ptr returning Int
+external define sqlite_get_callback_ptr with dummy returning Int
+external define get_list_data_ptr with list returning Int
+
+# Prepared-statement primitives for parameterized (injection-safe) queries.
+external define ep_sqlite3_prepare_v2 with db and sql returning Int
+external define ep_sqlite3_bind_text with stmt and idx and value returning Int
+external define ep_sqlite3_bind_int with stmt and idx and value returning Int
+external define ep_sqlite3_step with stmt returning Int
+external define ep_sqlite3_column_count with stmt returning Int
+external define ep_sqlite3_column_text with stmt and col
+external define ep_sqlite3_column_int with stmt and col returning Int
+external define ep_sqlite3_finalize with stmt returning Int
+
+define sql_open with filename:
+    set db_ptr to create_list()
+    set ok to append_list(db_ptr and 0)
+    set db_addr to get_list_data_ptr(db_ptr)
+    set res to ep_sqlite3_open(filename and db_addr)
+    if res == 0:
+        set handle to get_list(db_ptr and 0)
+        return handle
+    return 0
+
+define sql_close with db:
+    return ep_sqlite3_close(db)
+
+define sql_execute with db and sql:
+    # RAW execution — `sql` is run verbatim. Never interpolate untrusted input
+    # into `sql`; use sql_execute_params / sql_query_params for that.
+    return ep_sqlite3_exec(db and sql and 0 and 0 and 0)
+
+define sql_query with db and sql:
+    set rows to create_list()
+    set cb to sqlite_get_callback_ptr(0)
+    set res to ep_sqlite3_exec(db and sql and cb and rows and 0)
+    return rows
+
+# ─── Parameterized (injection-safe) API ───
+# `sql` uses `?` placeholders; `params` is a list of values bound positionally.
+# Values are bound, never concatenated, so they cannot alter the statement.
+
+define sql_bind_params with stmt and params:
+    set n to length_list(params)
+    set i to 0
+    repeat while i < n:
+        set v to get_list(params and i)
+        set ok to ep_sqlite3_bind_text(stmt and (i + 1) and str_to_ptr(ep_auto_to_string(v)))
+        set i to i + 1
+    return 0
+
+# Run an INSERT/UPDATE/DELETE/DDL statement with bound parameters.
+# Returns the sqlite step result code (101 = SQLITE_DONE on success), or -1.
+define sql_execute_params with db and sql and params:
+    set stmt to ep_sqlite3_prepare_v2(db and str_to_ptr(sql))
+    if stmt == 0:
+        return -1
+    set ok to sql_bind_params(stmt and params)
+    set rc to ep_sqlite3_step(stmt)
+    set done to ep_sqlite3_finalize(stmt)
+    return rc
+
+# Run a SELECT with bound parameters. Returns a list of rows; each row is a list
+# of column values (as strings).
+define sql_query_params with db and sql and params:
+    set rows to create_list()
+    set stmt to ep_sqlite3_prepare_v2(db and str_to_ptr(sql))
+    if stmt == 0:
+        return rows
+    set ok to sql_bind_params(stmt and params)
+    set ncol to ep_sqlite3_column_count(stmt)
+    set rc to ep_sqlite3_step(stmt)
+    repeat while rc == 100:
+        set row to create_list()
+        set c to 0
+        repeat while c < ncol:
+            set cell to ep_sqlite3_column_text(stmt and c)
+            set ok to append_list(row and cell)
+            set c to c + 1
+        set ok to append_list(rows and row)
+        set rc to ep_sqlite3_step(stmt)
+    set done to ep_sqlite3_finalize(stmt)
+    return rows

@@ -1,0 +1,8 @@
+import "ep_lexer"
+import "ep_parser"
+import "ep_codegen"
+
+define main:
+    display 1
+    display "START"
+    return 0

@@ -1,0 +1,116 @@
+# ErnosPlain Testing Framework
+# Provides assertion functions and test runner
+
+# ---- Test State ----
+# Tests are tracked as a list of [name, passed, message]
+
+external define ep_int_to_str with n:
+
+define create_test_suite with name:
+    set suite to create_list()
+    set ok to append_list(suite and name)
+    set ok to append_list(suite and 0)
+    set ok to append_list(suite and 0)
+    set ok to append_list(suite and create_list())
+    return suite
+
+# ---- Assertions ----
+
+define assert_equal with actual and expected and message:
+    if actual == expected:
+        return 1
+    display "FAIL: "
+    display message
+    display "  expected: "
+    display expected
+    display "  actual: "
+    display actual
+    return 0
+
+define assert_not_equal with actual and expected and message:
+    if actual != expected:
+        return 1
+    display "FAIL: "
+    display message
+    display "  values should not be equal: "
+    display actual
+    return 0
+
+define assert_true with condition and message:
+    if condition == 1:
+        return 1
+    if condition != 0:
+        return 1
+    display "FAIL: "
+    display message
+    display "  expected true, got false"
+    return 0
+
+define assert_false with condition and message:
+    if condition == 0:
+        return 1
+    display "FAIL: "
+    display message
+    display "  expected false, got true"
+    return 0
+
+define assert_greater_than with actual and expected and message:
+    if actual > expected:
+        return 1
+    display "FAIL: "
+    display message
+    display "  expected greater than "
+    display expected
+    display "  got "
+    display actual
+    return 0
+
+define assert_less_than with actual and expected and message:
+    if actual < expected:
+        return 1
+    display "FAIL: "
+    display message
+    display "  expected less than "
+    display expected
+    display "  got "
+    display actual
+    return 0
+
+# ---- Test Runner ----
+
+define test_pass with suite and name:
+    set passed to get_list(suite and 1)
+    set ok to set_list(suite and 1 and passed + 1)
+    set results to get_list(suite and 3)
+    set ok to append_list(results and 1)
+    return 1
+
+define test_fail with suite and name and reason:
+    set failed to get_list(suite and 2)
+    set ok to set_list(suite and 2 and failed + 1)
+    set results to get_list(suite and 3)
+    set ok to append_list(results and 0)
+    display "  FAIL: "
+    display name
+    display "    reason: "
+    display reason
+    return 0
+
+define test_summary with suite:
+    set name to get_list(suite and 0)
+    set passed to get_list(suite and 1)
+    set failed to get_list(suite and 2)
+    set total to passed + failed
+    display ""
+    display "=============================="
+    display name
+    display "=============================="
+    set pass_str to ep_int_to_str(passed)
+    set total_str to ep_int_to_str(total)
+    set fail_str to ep_int_to_str(failed)
+    display concat(concat(pass_str and "/") and concat(total_str and " tests passed"))
+    if failed > 0:
+        display concat(fail_str and " tests FAILED")
+        return 1
+    display "All tests passed!"
+    return 0

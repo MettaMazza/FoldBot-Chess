@@ -1,0 +1,19 @@
+# ErnosPlain Networking Standard Library
+
+define net_connect with host and port:
+    return ep_net_connect(host and port)
+
+define net_listen with port:
+    return ep_net_listen(port)
+
+define net_accept with server_fd:
+    return ep_net_accept(server_fd)
+
+define net_send with fd and data:
+    return ep_net_send(fd and data)
+
+define net_recv with fd and max_len:
+    return ep_net_recv(fd and max_len)
+
+define net_close with fd:
+    return ep_net_close(fd)

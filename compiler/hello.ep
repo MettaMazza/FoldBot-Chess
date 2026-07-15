@@ -1,0 +1,14 @@
+define main:
+    set a to 10
+    set b to 20
+    set result to a plus b multiplied by 2
+    
+    display "The result of the plain English expression is: "
+    display result
+    
+    if result is greater than 30:
+        display "Indeed, it is greater than thirty!"
+    else:
+        display "It is small..."
+        
+    return 0

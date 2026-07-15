@@ -1,0 +1,8 @@
+define main:
+    set x to create_list()
+    set r to borrow x
+    set cl to given dummy:
+        set ok to append_list(r and 42)
+        return 0
+    spawn cl(0)
+    return 0

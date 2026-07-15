@@ -1,0 +1,106 @@
+# === Build output ===
+/target
+
+# === Generated / compiled artifacts (by extension) ===
+*_compiled.c
+*_compiled.ll
+*.ll
+*.o
+*.obj
+*.dSYM/
+
+# === Save-game / runtime data files ===
+*.dat
+
+# === OS / editor cruft ===
+.DS_Store
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# === Temporary / scratch ===
+/tmp/
+gen2_inferred_types.txt
+
+# === Nested unrelated repository (creative writing) ===
+/Civ/
+
+# === Compiled binaries produced from .ep sources ===
+# These are extensionless native executables that sit next to their .ep source.
+# git has no extension to match on, so the build/test dirs and known names are
+# listed explicitly. Prefer running builds into /target or /scratch.
+/epc
+/epc_v*
+/epc_gen*
+/epc_asan
+/hello
+/hello2
+/lexer
+/magic
+/self_hosted_compiler*
+/bootstrap_helper_test
+/compiled_lexer_test
+/compiled_parser_test
+/debug_epc*
+!/debug_epc*.ep
+/review_selfhost*
+/creature_quest*
+/cmp
+/en
+/eof_test
+/ft
+/g1
+/g2
+/g3
+/g4
+/kw
+/neg
+/perf
+/sig
+/simple_game
+/t4
+/t5
+/t6
+/t7
+/t8
+/t9
+/tc[0-9]
+/tc10
+/try1
+/try2
+/z[0-9]
+/z1b
+
+# Test/proof/verify one-off binaries (extensionless; keep .ep sources)
+/test_*
+!/test_*.ep
+/proof_*
+!/proof_*.ep
+/verify*
+!/verify*.ep
+/*_test
+!/*_test.ep
+/borrow_*
+!/borrow_*.ep
+
+# Compiled binaries dropped into example/demo/scratch dirs
+demos/*
+!demos/*.ep
+!demos/*.md
+examples/*
+!examples/*.ep
+!examples/*.md
+scratch/*
+!scratch/*.ep
+!scratch/*.md
+!scratch/*.c
+
+# Compiled test binaries (extensionless executables produced next to their .ep
+# sources by run_tests.sh). Keep the sources and expected-output files.
+tests/*
+!tests/*/
+!tests/*.ep
+!tests/*.expected
+!tests/*.md
+!tests/*.sh

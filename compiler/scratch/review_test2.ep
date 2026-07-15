@@ -1,0 +1,82 @@
+# Review Test 2: Structs, methods, enums, pattern matching, and error handling
+
+define structure Point:
+    field x as Int
+    field y as Int
+
+define distance_squared on Point returning Int:
+    return self.x * self.x + self.y * self.y
+
+define choice Shape:
+    variant Circle with radius as Int
+    variant Rectangle with width as Int and height as Int
+    variant Triangle with base as Int and height as Int
+
+define area with s as Shape returning Int:
+    check s:
+        if Circle with r:
+            return r * r * 3
+        if Rectangle with w and h:
+            return w * h
+        if Triangle with b and h:
+            return b * h / 2
+
+define choice Result:
+    variant Ok with value as Int
+    variant Error with message as Str
+
+define safe_sqrt with n as Int returning Result:
+    if n < 0:
+        return Error with "Cannot sqrt negative"
+    # Simple integer square root approximation
+    set guess to 1
+    while guess * guess < n:
+        set guess to guess + 1
+    if guess * guess == n:
+        return Ok with guess
+    return Ok with guess - 1
+
+define main:
+    # Test struct creation and method
+    set p to create Point:
+        x is 3
+        y is 4
+    display "Point:"
+    display p.x
+    display p.y
+    set d to p.distance_squared()
+    display "Distance squared:"
+    display d
+
+    # Test field mutation
+    set p.x to 10
+    display "After mutation, x:"
+    display p.x
+
+    # Test enums and pattern matching
+    set shapes to [Circle with 5, Rectangle with 3 and 4, Triangle with 6 and 8]
+    set i to 0
+    while i < 3:
+        set s to get_list(shapes and i)
+        display "Area:"
+        display area(s)
+        set i to i + 1
+
+    # Test error handling with Result
+    set r1 to safe_sqrt(25)
+    check r1:
+        if Ok with value:
+            display "sqrt(25):"
+            display value
+        if Error with msg:
+            display msg
+
+    set r2 to safe_sqrt(-4)
+    check r2:
+        if Ok with value:
+            display value
+        if Error with msg:
+            display "Error:"
+            display msg
+
+    return 0

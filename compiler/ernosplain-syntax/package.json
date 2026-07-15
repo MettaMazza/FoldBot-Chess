@@ -1,0 +1,52 @@
+{
+  "name": "ernosplain-syntax",
+  "displayName": "ErnosPlain Language Support",
+  "description": "Syntax highlighting, completions, hover, and go-to-definition for the ErnosPlain programming language.",
+  "version": "0.2.0",
+  "publisher": "ernos",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:ep"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "ep",
+        "aliases": [
+          "ErnosPlain",
+          "ep"
+        ],
+        "extensions": [
+          ".ep"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ep",
+        "scopeName": "source.ep",
+        "path": "./ernosplain.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "ErnosPlain",
+      "properties": {
+        "ernosplain.compilerPath": {
+          "type": "string",
+          "default": "ernos",
+          "description": "Path to the Ernos compiler binary (used for the LSP server)"
+        }
+      }
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

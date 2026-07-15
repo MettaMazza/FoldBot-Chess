@@ -1,0 +1,9 @@
+# expected_compile_error
+# Verify that using 'channel' as parameter name is flagged as compilation error
+
+define foo with channel as Int returning Int:
+    return channel
+
+define main:
+    set result to foo(42)
+    return 0

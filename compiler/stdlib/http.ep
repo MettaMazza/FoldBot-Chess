@@ -1,0 +1,165 @@
+# ErnosPlain HTTP Standard Library
+
+import "net"
+import "string"
+
+external define ep_http_request with method and url and headers and body
+
+define http_get with url and headers:
+    return ep_http_request("GET" and url and headers and "")
+
+define http_post with url and headers and body:
+    return ep_http_request("POST" and url and headers and body)
+
+define http_request with method and url and headers and body:
+    return ep_http_request(method and url and headers and body)
+
+# Maximum request body we are willing to buffer (10 MiB). Larger declared
+# bodies are rejected to avoid memory-exhaustion DoS.
+define http_max_body_size:
+    return 10485760
+
+# Worker thread per connection
+define http_server_client_handler with client_fd and chan:
+    set sb to create_builder()
+    set req to ""
+    set headers_buf to ""
+    set header_len to 0
+    set content_len to 0
+    set body_read to 0
+    set header_end to 0 - 1
+    set valid to 1
+    set running to 1
+
+    # Loop to read headers and body
+    repeat while running == 1:
+        set chunk to net_recv(client_fd and 4096)
+        set chunk_len to string_length(chunk)
+        if chunk_len == 0:
+            # Connection closed or recv timed out. Only acceptable once the
+            # full request has been read; otherwise it is an incomplete request.
+            if header_end < 0:
+                set valid to 0
+            set running to 0
+        else:
+            set ok to builder_append(sb and chunk)
+
+            # If we haven't found the end of headers yet, check
+            if header_end < 0:
+                set headers_buf to concat(headers_buf and chunk)
+                set total_len to string_length(headers_buf)
+
+                # Guard against excessively large headers — reject, do not forward.
+                if total_len > 16384:
+                    set valid to 0
+                    set running to 0
+                else:
+                    set pos to string_index_of(headers_buf and "\r\n\r\n")
+                    if pos >= 0:
+                        set header_end to pos
+                        set header_len to 4
+                    else:
+                        set pos2 to string_index_of(headers_buf and "\n\n")
+                        if pos2 >= 0:
+                            set header_end to pos2
+                            set header_len to 2
+
+                    # If headers are now complete, parse Content-Length
+                    if header_end >= 0:
+                        set headers to substring(headers_buf and 0 and header_end)
+                        set lower_headers to string_to_lower(headers)
+                        # Anchor the match to the start of a header line so a
+                        # value like "X-Foo: content-length: 9" cannot spoof it.
+                        set cl_pos to string_index_of(concat("\n" and lower_headers) and "\ncontent-length:")
+                        if cl_pos >= 0:
+                            set val_start to cl_pos + 15
+                            set cl_sub to substring(lower_headers and val_start and string_length(lower_headers) - val_start)
+                            set nl_pos to string_index_of(cl_sub and "\r")
+                            if nl_pos < 0:
+                                set nl_pos to string_index_of(cl_sub and "\n")
+
+                            set raw_val_sub to substring(headers and val_start and string_length(headers) - val_start)
+                            set cl_val_str to ""
+                            if nl_pos >= 0:
+                                set cl_val_str to substring(raw_val_sub and 0 and nl_pos)
+                            else:
+                                set cl_val_str to raw_val_sub
+
+                            set content_len to string_to_int(string_trim(cl_val_str))
+
+                        if content_len > http_max_body_size():
+                            # Declared body too large — reject, do not forward.
+                            set valid to 0
+                            set running to 0
+                        else:
+                            set body_read to total_len - (header_end + header_len)
+            else:
+                set body_read to body_read + chunk_len
+
+            if running == 1:
+                if header_end >= 0:
+                    if body_read >= content_len:
+                        set running to 0
+
+    if valid == 1:
+        set req to builder_to_string(sb)
+        # We send a message [client_fd, req] to the channel
+        set msg to create_list()
+        set ok to append_list(msg and client_fd)
+        set ok to append_list(msg and req)
+        send msg to chan
+    else:
+        set ok to net_close(client_fd)
+
+# Background connection accepter thread
+define http_server_accepter with server_fd and chan:
+    repeat while 1:
+        set client_fd to net_accept(server_fd)
+        if client_fd > 0:
+            spawn http_server_client_handler(client_fd and chan)
+
+# Starts listening and returns a channel on which HTTP requests will be delivered.
+# The user receives lists: [client_fd, request_string] from the returned channel.
+define start_server with port:
+    set server_fd to net_listen(port)
+    if server_fd < 0:
+        return 0
+    set chan to channel
+    spawn http_server_accepter(server_fd and chan)
+    return chan
+
+# Helper to send a response back and close the client socket
+define send_response with client_fd and status_code and content_type and body:
+    set body_len to string_length(body)
+    set len_str to int_to_string(body_len)
+    
+    set resp to "HTTP/1.1 "
+    if status_code == 200:
+        set resp to concat(resp and "200 OK")
+    else if status_code == 400:
+        set resp to concat(resp and "400 Bad Request")
+    else if status_code == 401:
+        set resp to concat(resp and "401 Unauthorized")
+    else if status_code == 403:
+        set resp to concat(resp and "403 Forbidden")
+    else if status_code == 404:
+        set resp to concat(resp and "404 Not Found")
+    else if status_code == 405:
+        set resp to concat(resp and "405 Method Not Allowed")
+    else:
+        set resp to concat(resp and "500 Internal Server Error")
+            
+    # Strip CR/LF so a caller-supplied content type cannot inject extra
+    # response headers (HTTP response splitting).
+    set safe_content_type to string_replace(content_type and "\r" and "")
+    set safe_content_type to string_replace(safe_content_type and "\n" and "")
+    set resp to concat(resp and "\r\nContent-Type: ")
+    set resp to concat(resp and safe_content_type)
+    set resp to concat(resp and "\r\nContent-Length: ")
+    set resp to concat(resp and len_str)
+    set resp to concat(resp and "\r\nConnection: close\r\n\r\n")
+    set resp to concat(resp and body)
+    
+    set ok to net_send(client_fd and resp)
+    set ok to net_close(client_fd)
+    return ok

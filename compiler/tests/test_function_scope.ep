@@ -1,0 +1,21 @@
+# Variables `set` inside if/else and loop bodies are function-scoped: they stay
+# visible after the block. This locks in the type checker's scoping model.
+define pick with n as Int returning Int:
+    if n > 0:
+        set chosen to 100
+    else:
+        set chosen to 200
+    return chosen
+
+define run_loop with limit as Int returning Int:
+    set i to 0
+    repeat while i < limit:
+        set milestone to i
+        set i to i + 1
+    return milestone
+
+define main:
+    display pick(5)
+    display pick(-1)
+    display run_loop(4)
+    return 0

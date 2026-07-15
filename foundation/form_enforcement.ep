@@ -1,0 +1,39 @@
+# ============================================================================
+#  FORM ENFORCEMENT  --  the assembled FORM must be unique, not just its parts.
+# ============================================================================
+#
+#  WHY THIS EXISTS
+#  ---------------
+#  forced_to_be guards the ingredient COUNTS (each structural integer equals an
+#  independent forced relation, or the engine halts). But a constant is not just
+#  its ingredients -- it is the specific algebraic FORM that combines them. A form
+#  could still be SELECTED: chosen from several admissible assemblies of the same
+#  forced parts that happen to give the same value.
+#
+#  This module closes that gap. For a constant, enumerate the candidate space of
+#  admissible forms over the forced ingredients (the natural structural shapes the
+#  assembly is claimed to be forced from), count how many reproduce the forced
+#  value, and require EXACTLY ONE. If two admissible forms coincide on the value,
+#  the chosen one was selected -- and the engine halts, exactly as the lepton
+#  neutral channel does for its ingredient.
+# ============================================================================
+
+import "exact_fractions.ep"
+import "enforcement.ep"
+
+
+# Add one to the running tally if this candidate form reproduces the target value.
+# Threaded through every candidate in the space to count the coincidences.
+define count_form_match with running_total as Int and candidate as Fraction and target as Fraction returning Int:
+    if fraction_is_equal(candidate and target):
+        return running_total + 1
+    return running_total
+
+# Enforce that, among the enumerated candidate forms, exactly ONE reproduced the
+# target -- the chosen assembly. total_matching is how many candidates matched;
+# the chosen one is one of them, so the number of ALTERNATIVES that also matched
+# is total_matching - 1. forced_unique halts the engine if that is not zero (a
+# coincident admissible form means the assembly was selected, not forced).
+define forbid_form_selection with label as Str and total_matching as Int returning Int:
+    set alternatives to total_matching - 1
+    return forced_unique(label and 1 and alternatives)

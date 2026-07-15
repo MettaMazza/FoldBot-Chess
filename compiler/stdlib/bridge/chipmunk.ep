@@ -1,0 +1,79 @@
+# ============================================================
+# Chipmunk Physics Bridge for ErnosPlain
+# 2D Physics Engine
+# ============================================================
+# Usage: import "stdlib/bridge/chipmunk"
+# ============================================================
+
+set CHIPMUNK_HANDLE to 0
+
+# ---- Library loading ----
+define chipmunk_load:
+    set CHIPMUNK_HANDLE to ep_dlopen("libchipmunk.dylib")
+    if CHIPMUNK_HANDLE equals 0:
+        set CHIPMUNK_HANDLE to ep_dlopen("/opt/homebrew/lib/libchipmunk.dylib")
+    if CHIPMUNK_HANDLE equals 0:
+        set CHIPMUNK_HANDLE to ep_dlopen("/usr/local/lib/libchipmunk.dylib")
+    if CHIPMUNK_HANDLE equals 0:
+        set CHIPMUNK_HANDLE to ep_dlopen("libchipmunk.so")
+    if CHIPMUNK_HANDLE equals 0:
+        set CHIPMUNK_HANDLE to ep_dlopen("/usr/lib/libchipmunk.so")
+    if CHIPMUNK_HANDLE equals 0:
+        set CHIPMUNK_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libchipmunk.so")
+    return CHIPMUNK_HANDLE
+
+# ---- Init / Cleanup ----
+define chipmunk_bridge_init returning Int:
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_load()
+    return CHIPMUNK_HANDLE
+
+# ---- Core Functions ----
+define cpSpaceNew returning Int:
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_bridge_init()
+    set fn to ep_dlsym(CHIPMUNK_HANDLE and "cpSpaceNew")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define cpSpaceFree with space as Int returning Int:
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_bridge_init()
+    set fn to ep_dlsym(CHIPMUNK_HANDLE and "cpSpaceFree")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and space)
+
+define cpSpaceStep with space as Int and dt as Int returning Int:
+    # dt is float passed as float/int
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_bridge_init()
+    set fn to ep_dlsym(CHIPMUNK_HANDLE and "cpSpaceStep")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and space and dt)
+
+define cpBodyNew with mass as Int and moment as Int returning Int:
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_bridge_init()
+    set fn to ep_dlsym(CHIPMUNK_HANDLE and "cpBodyNew")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and mass and moment)
+
+define cpSpaceAddBody with space as Int and body as Int returning Int:
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_bridge_init()
+    set fn to ep_dlsym(CHIPMUNK_HANDLE and "cpSpaceAddBody")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and space and body)
+
+define cpSpaceAddShape with space as Int and shape as Int returning Int:
+    if CHIPMUNK_HANDLE equals 0:
+        set ok to chipmunk_bridge_init()
+    set fn to ep_dlsym(CHIPMUNK_HANDLE and "cpSpaceAddShape")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and space and shape)

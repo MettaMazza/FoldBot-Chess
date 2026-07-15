@@ -1,0 +1,50 @@
+# Test: verify ep_str_equals handles integer comparisons correctly
+# This tests the sql.ep pattern where sqlite3_open returns an Int
+# and we compare it with == 0
+
+define main:
+    # Simulate sqlite3_open returning 0 (success)
+    set res to 0
+    if res == 0:
+        display "SUCCESS: res == 0 works when res is 0"
+    else:
+        display "FAIL: res == 0 should be true"
+
+    # Simulate sqlite3_open returning error code 14
+    set err to 14
+    if err == 0:
+        display "FAIL: err == 0 should be false"
+    else:
+        display "SUCCESS: err == 0 correctly false when err is 14"
+
+    # Test other integer comparisons
+    set a to 42
+    set b to 42
+    if a == b:
+        display "SUCCESS: 42 == 42"
+    else:
+        display "FAIL: 42 == 42 should be true"
+
+    set c to 100
+    set d to 200
+    if c == d:
+        display "FAIL: 100 == 200 should be false"
+    else:
+        display "SUCCESS: 100 != 200"
+
+    # Edge case: small integers near the 4096 boundary
+    set e to 4095
+    set f to 4095
+    if e == f:
+        display "SUCCESS: 4095 == 4095"
+    else:
+        display "FAIL: 4095 == 4095 should be true"
+
+    set g to 4096
+    set h to 4096
+    if g == h:
+        display "SUCCESS: 4096 == 4096"
+    else:
+        display "FAIL: 4096 == 4096 should be true"
+
+    return 0

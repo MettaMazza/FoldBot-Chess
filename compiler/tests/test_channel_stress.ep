@@ -1,0 +1,29 @@
+# Test: Channel stress — 1000+ operations across 2 workers
+define producer with ch and count:
+    set i to 0
+    repeat while i < count:
+        send i to ch
+        set i to i + 1
+    return 0
+
+define main:
+    set ch1 to create_channel()
+    set ch2 to create_channel()
+
+    # Two producers, each sending 500 values
+    spawn producer(ch1 and 500)
+    spawn producer(ch2 and 500)
+
+    # Receive all 1000 values
+    set total to 0
+    set i to 0
+    repeat while i < 500:
+        set v1 to receive from ch1
+        set total to total + v1
+        set v2 to receive from ch2
+        set total to total + v2
+        set i to i + 1
+
+    # Sum of 0..499 = 124750, times 2 = 249500
+    display total
+    return 0

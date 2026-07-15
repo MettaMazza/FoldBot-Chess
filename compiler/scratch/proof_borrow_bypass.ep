@@ -1,0 +1,6 @@
+define main:
+    set a to 5
+    set b to borrow a
+    set a to 10
+    display b
+    return 0

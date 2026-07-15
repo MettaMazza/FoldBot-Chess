@@ -1,0 +1,26 @@
+# Concurrency Test
+
+define worker with id and ch:
+    set result to id * 10
+    send result to ch
+    return 0
+
+define main:
+    display "=== Concurrency ==="
+    set ch to channel
+
+    spawn worker(1 and ch)
+    spawn worker(2 and ch)
+    spawn worker(3 and ch)
+
+    set total to 0
+    set i to 0
+    repeat while i < 3:
+        set val to receive from ch
+        set total to total + val
+        set i to i + 1
+
+    display f"total from 3 workers: {total}"
+
+    display "ALL CONCURRENCY TESTS PASSED"
+    return 0

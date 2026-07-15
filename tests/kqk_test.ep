@@ -1,0 +1,32 @@
+# Does the exact fold search convert King+Queen vs King? Set up a KQK position
+# (white Ke1, Qd1; black Ke8) and play the strong side against the weakest
+# defence (black always plays its first legal move), counting plies to mate.
+import "../constants/fold_chess_bot.ep"
+define kqk_position:
+    set s to empty_state()
+    set ok to set_list(s and 4 and 6)
+    set ok to set_list(s and 3 and 5)
+    set ok to set_list(s and 60 and 12)
+    set ok to set_list(s and 64 and 0)
+    return s
+define main:
+    set state to kqk_position()
+    set ply to 0
+    set mated to 0
+    repeat while ply < 120:
+        set answer to search_best(state and 8)
+        set best to get_list(answer and 0)
+        if best < 0:
+            set checked to side_in_check(state)
+            if checked:
+                display concat("MATE reached at ply " and int_to_string(ply))
+            else:
+                display concat("STALEMATE (draw) at ply " and int_to_string(ply))
+            set mated to 1
+            set ply to 120
+        else:
+            set state to make_move(state and best)
+            set ply to ply + 1
+    if mated == 0:
+        display "NO MATE within 120 plies -- conversion FAILS"
+    return 0

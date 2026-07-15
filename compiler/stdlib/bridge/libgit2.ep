@@ -1,0 +1,182 @@
+# ============================================================
+# libgit2 Bridge for ErnosPlain
+# Git repository operations from ErnosPlain
+# ============================================================
+# Usage: import "stdlib/bridge/libgit2"
+# Requires: libgit2 installed (brew install libgit2 / apt install libgit2-dev)
+# ============================================================
+
+set LIBGIT2_HANDLE to 0
+
+# ---- Error codes ----
+set GIT_OK to 0
+set GIT_ERROR to -1
+set GIT_ENOTFOUND to -3
+set GIT_EEXISTS to -4
+set GIT_EAMBIGUOUS to -5
+set GIT_EBUFS to -6
+set GIT_EBAREREPO to -8
+set GIT_EUNMERGED to -10
+set GIT_ECONFLICT to -13
+
+# ---- Status flags ----
+set GIT_STATUS_CURRENT to 0
+set GIT_STATUS_INDEX_NEW to 1
+set GIT_STATUS_INDEX_MODIFIED to 2
+set GIT_STATUS_INDEX_DELETED to 4
+set GIT_STATUS_WT_NEW to 128
+set GIT_STATUS_WT_MODIFIED to 256
+set GIT_STATUS_WT_DELETED to 512
+set GIT_STATUS_IGNORED to 16384
+set GIT_STATUS_CONFLICTED to 32768
+
+# ---- Object types ----
+set GIT_OBJECT_COMMIT to 1
+set GIT_OBJECT_TREE to 2
+set GIT_OBJECT_BLOB to 3
+set GIT_OBJECT_TAG to 4
+
+# ---- Sort flags ----
+set GIT_SORT_NONE to 0
+set GIT_SORT_TOPOLOGICAL to 1
+set GIT_SORT_TIME to 2
+set GIT_SORT_REVERSE to 4
+
+# ============================================================
+# Library loading
+# ============================================================
+define libgit2_load:
+    set LIBGIT2_HANDLE to ep_dlopen("libgit2.dylib")
+    if LIBGIT2_HANDLE equals 0:
+        set LIBGIT2_HANDLE to ep_dlopen("/opt/homebrew/lib/libgit2.dylib")
+    if LIBGIT2_HANDLE equals 0:
+        set LIBGIT2_HANDLE to ep_dlopen("/usr/local/lib/libgit2.dylib")
+    if LIBGIT2_HANDLE equals 0:
+        set LIBGIT2_HANDLE to ep_dlopen("libgit2.so")
+    if LIBGIT2_HANDLE equals 0:
+        set LIBGIT2_HANDLE to ep_dlopen("libgit2.so.1.7")
+    if LIBGIT2_HANDLE equals 0:
+        set LIBGIT2_HANDLE to ep_dlopen("libgit2.so.1.8")
+    if LIBGIT2_HANDLE equals 0:
+        set LIBGIT2_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libgit2.so")
+    return LIBGIT2_HANDLE
+
+# ============================================================
+# Init / Shutdown
+# ============================================================
+define git_lib_init returning Int:
+    if LIBGIT2_HANDLE equals 0:
+        set ok to libgit2_load()
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_libgit2_init")
+    return ep_dlcall0(fn)
+
+define git_lib_shutdown returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_libgit2_shutdown")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Repository
+# ============================================================
+define git_repo_open with out_ptr as Int and path as Str returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_open")
+    return ep_dlcall2(fn and out_ptr and path)
+
+define git_repo_init with out_ptr as Int and path as Str and is_bare as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_init")
+    return ep_dlcall3(fn and out_ptr and path and is_bare)
+
+define git_repo_free with repo as Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_free")
+    return ep_dlcall1(fn and repo)
+
+define git_repo_clone with out_ptr as Int and url as Str and path as Str and opts as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_clone")
+    return ep_dlcall4(fn and out_ptr and url and path and opts)
+
+define git_repo_head with out_ptr as Int and repo as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_head")
+    return ep_dlcall2(fn and out_ptr and repo)
+
+define git_repo_path with repo as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_path")
+    return ep_dlcall1(fn and repo)
+
+define git_repo_is_bare with repo as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_is_bare")
+    return ep_dlcall1(fn and repo)
+
+define git_repo_is_empty with repo as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_is_empty")
+    return ep_dlcall1(fn and repo)
+
+define git_repo_workdir with repo as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_workdir")
+    return ep_dlcall1(fn and repo)
+
+# ============================================================
+# Status
+# ============================================================
+define git_status_list_new with out_ptr as Int and repo as Int and opts as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_status_list_new")
+    return ep_dlcall3(fn and out_ptr and repo and opts)
+
+define git_status_list_entrycount with list as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_status_list_entrycount")
+    return ep_dlcall1(fn and list)
+
+define git_status_list_free with list as Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_status_list_free")
+    return ep_dlcall1(fn and list)
+
+define git_status_file with status_out as Int and repo as Int and path as Str returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_status_file")
+    return ep_dlcall3(fn and status_out and repo and path)
+
+# ============================================================
+# Index
+# ============================================================
+define git_repo_index with out_ptr as Int and repo as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_repository_index")
+    return ep_dlcall2(fn and out_ptr and repo)
+
+define git_index_add_bypath with index as Int and path as Str returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_index_add_bypath")
+    return ep_dlcall2(fn and index and path)
+
+define git_index_write with index as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_index_write")
+    return ep_dlcall1(fn and index)
+
+define git_index_write_tree with out_ptr as Int and index as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_index_write_tree")
+    return ep_dlcall2(fn and out_ptr and index)
+
+define git_index_free with index as Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_index_free")
+    return ep_dlcall1(fn and index)
+
+define git_index_entrycount with index as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_index_entrycount")
+    return ep_dlcall1(fn and index)
+
+# ============================================================
+# References
+# ============================================================
+define git_reference_name with ref_v as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_reference_name")
+    return ep_dlcall1(fn and ref_v)
+
+define git_reference_free with ref_v as Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_reference_free")
+    return ep_dlcall1(fn and ref_v)
+
+define git_reference_target with ref_v as Int returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_reference_target")
+    return ep_dlcall1(fn and ref_v)
+
+# ============================================================
+# Errors
+# ============================================================
+define git_error_last returning Int:
+    set fn to ep_dlsym(LIBGIT2_HANDLE and "git_error_last")
+    return ep_dlcall0(fn)

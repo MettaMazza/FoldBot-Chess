@@ -1,0 +1,118 @@
+# demos/concurrency_chat.ep
+# A multi-threaded chat server/client simulation showcasing ErnosPlain's concurrency model:
+# - spawn: Spawns background client workers and async tasks.
+# - channels: Broker and client channels for messaging.
+# - async/await: Asynchronous message archiving simulation.
+
+external define ep_sleep_ms with ms
+external define ep_random_int with min and max returning Int
+
+# Central broker and message state
+set GLOBAL_MESSAGES to create_list()
+set CLIENT_CHANNELS to create_list()
+set BROKER_CHAN to create_channel()
+set ACTIVE_CLIENTS to 3
+
+# Simulated async message archiving service
+async define archive_message with msg_idx as Int returning Str:
+    set dummy to ep_sleep_ms(150)
+    set msg_text to get_list(GLOBAL_MESSAGES and msg_idx)
+    return f"Archived: '{msg_text}'"
+
+define client_reader with client_id as Int and client_chan as Int:
+    display f"Client Reader {client_id} started."
+    repeat while true:
+        set msg_idx to receive from client_chan
+        set msg_text to get_list(GLOBAL_MESSAGES and msg_idx)
+        display f"[Client {client_id} Screen] RECEIVED BROADCAST: {msg_text}"
+    return 0
+
+define client_worker with client_id as Int and client_chan as Int:
+    display f"Client {client_id} worker started."
+    
+    # 1. Join chat
+    set join_msg to f"*** Client {client_id} joined the chat ***"
+    set msg_idx to length_list(GLOBAL_MESSAGES)
+    set ok1 to append_list(GLOBAL_MESSAGES and join_msg)
+    send msg_idx to BROKER_CHAN
+    
+    # 2. Simulate conversation
+    set count to 1
+    repeat while count <= 3:
+        set delay to ep_random_int(200 and 800)
+        set dummy to ep_sleep_ms(delay)
+        
+        set chat_msg to f"Client {client_id} says: Hello message {count}!"
+        set m_idx to length_list(GLOBAL_MESSAGES)
+        set ok2 to append_list(GLOBAL_MESSAGES and chat_msg)
+        send m_idx to BROKER_CHAN
+        set count to count + 1
+        
+    set dummy to ep_sleep_ms(500)
+    
+    # 3. Leave chat
+    set leave_msg to f"*** Client {client_id} left the chat ***"
+    set ml_idx to length_list(GLOBAL_MESSAGES)
+    set ok3 to append_list(GLOBAL_MESSAGES and leave_msg)
+    send ml_idx to BROKER_CHAN
+    
+    # Send -1 to signal broker that this client is done
+    send -1 to BROKER_CHAN
+    return 0
+
+define broker_loop:
+    display "Broker: Chat Broker started."
+    set active_count to ACTIVE_CLIENTS
+    
+    repeat while active_count > 0:
+        set msg_idx to receive from BROKER_CHAN
+        if msg_idx == -1:
+            set active_count to active_count - 1
+            display f"Broker: Client finished. Remaining clients: {active_count}"
+        else:
+            set msg_text to get_list(GLOBAL_MESSAGES and msg_idx)
+            display f"Broker: Broadcasting msg index {msg_idx}: '{msg_text}'"
+            
+            # Run async archiving
+            set fut to archive_message(msg_idx)
+            set arch_res to await fut
+            display f"Broker Logging: {arch_res}"
+            
+            # Broadcast to all clients
+            set num_clients to length_list(CLIENT_CHANNELS)
+            set i to 0
+            repeat while i < num_clients:
+                set client_chan to get_list(CLIENT_CHANNELS and i)
+                send msg_idx to client_chan
+                set i to i + 1
+                
+    display "Broker: All clients finished. Broker shutting down."
+    return 0
+
+define main:
+    display "=== ErnosPlain Concurrency Chat Simulation ==="
+    
+    # Pre-populate global data
+    set c1_chan to create_channel()
+    set c2_chan to create_channel()
+    set c3_chan to create_channel()
+    
+    set ok to append_list(CLIENT_CHANNELS and c1_chan)
+    set ok to append_list(CLIENT_CHANNELS and c2_chan)
+    set ok to append_list(CLIENT_CHANNELS and c3_chan)
+    
+    # Spawn client readers to listen to broadcasts
+    spawn client_reader(1 and c1_chan)
+    spawn client_reader(2 and c2_chan)
+    spawn client_reader(3 and c3_chan)
+    
+    # Spawn client workers that send messages
+    spawn client_worker(1 and c1_chan)
+    spawn client_worker(2 and c2_chan)
+    spawn client_worker(3 and c3_chan)
+    
+    # Run the broker loop on the main thread (blocking until all clients finish)
+    set ok to broker_loop()
+    
+    display "=== Simulation Finished ==="
+    return 0

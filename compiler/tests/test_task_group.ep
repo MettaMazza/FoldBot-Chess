@@ -1,0 +1,58 @@
+import "../stdlib/structured" as s
+
+async define worker_success with id as Int and val as Int returning Int:
+    set dummy to await sleep_ms(50)
+    display f"Worker {id} done with {val}"
+    return val
+
+async define worker_failure with id as Int returning Int:
+    set dummy to await sleep_ms(10)
+    display f"Worker {id} failing"
+    return -1
+
+async define worker_sleeps with id as Int and ms as Int returning Int:
+    set dummy to await sleep_ms(ms)
+    display f"Worker {id} woke up"
+    return id
+
+define main:
+    display "=== Task Group Success ==="
+    set group to s_create_group()
+    
+    # Start tasks
+    set fut1 to worker_success(1 and 100)
+    set fut2 to worker_success(2 and 200)
+    
+    s_add_task(group and fut1)
+    s_add_task(group and fut2)
+    
+    # Wait for all
+    set results to s_wait_group(group)
+    display f"Results count: {length_list(results)}"
+    display f"Result 1: {get_list(results and 0)}"
+    display f"Result 2: {get_list(results and 1)}"
+    
+    display "=== Task Group Cancel/Failure ==="
+    set group2 to s_create_group()
+    set fut3 to worker_success(3 and 300)
+    set fut4 to worker_failure(4)
+    
+    s_add_task(group2 and fut3)
+    s_add_task(group2 and fut4)
+    
+    set results2 to s_wait_group(group2)
+    # Since worker 4 failed, worker 3 should have been cancelled or both completed
+    display f"Result 3: {get_list(results2 and 0)}"
+    display f"Result 4: {get_list(results2 and 1)}"
+
+    display "=== Timeout Failure ==="
+    set fut5 to worker_sleeps(5 and 200)
+    set res5 to s_timeout(50 and fut5)
+    display f"Timeout result: {res5}"
+    
+    display "=== Timeout Success ==="
+    set fut6 to worker_sleeps(6 and 20)
+    set res6 to s_timeout(150 and fut6)
+    display f"Timeout success result: {res6}"
+    
+    return 0

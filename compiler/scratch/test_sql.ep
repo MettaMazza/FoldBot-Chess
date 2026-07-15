@@ -1,0 +1,12 @@
+import "../stdlib/sql"
+
+define main:
+    set db to sql_open("test.db")
+    if db == 0:
+        display "Failed to open database"
+        return 1
+    set ok to sql_execute(db and "CREATE TABLE IF NOT EXISTS test (id INTEGER, name TEXT)")
+    display f"Created table, result: {ok}"
+    set ok to sql_close(db)
+    display "PASS: sql.ep works"
+    return 0

@@ -1,0 +1,94 @@
+# ErnosPlain Bridge: OpenSSL (Cryptography)
+# Auto-generated bindings for libssl/libcrypto
+# Usage: import "stdlib/bridge/openssl"
+# Link: ernos program.ep (requires openssl installed)
+
+# ========== Constants ==========
+set EVP_MAX_MD_SIZE to 64
+set SHA256_DIGEST_LENGTH to 32
+set SHA512_DIGEST_LENGTH to 64
+set MD5_DIGEST_LENGTH to 16
+
+# ========== Library Loading ==========
+
+define openssl_load_crypto returning Int:
+    # Load libcrypto. Returns handle (0 on failure).
+    set lib to ep_dlopen("libcrypto.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libcrypto.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libcrypto.so.3")
+    if lib equals 0:
+        set lib to ep_dlopen("libcrypto.so.1.1")
+    return lib
+
+define openssl_load_ssl returning Int:
+    # Load libssl. Returns handle (0 on failure).
+    set lib to ep_dlopen("libssl.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libssl.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libssl.so.3")
+    return lib
+
+# ========== Version ==========
+
+define openssl_version returning Str:
+    set lib to openssl_load_crypto()
+    if lib equals 0:
+        return "unknown"
+    set fn_ver to ep_dlsym(lib and "OpenSSL_version")
+    if fn_ver equals 0:
+        return "unknown"
+    return ep_dlcall1(fn_ver and 0)
+
+# ========== Hashing ==========
+
+define openssl_md5 with data as Str and len as Int and out as Int returning Int:
+    # Compute MD5 hash. Returns pointer to digest.
+    set lib to openssl_load_crypto()
+    if lib equals 0:
+        return 0
+    set fn_md5 to ep_dlsym(lib and "MD5")
+    if fn_md5 equals 0:
+        return 0
+    return ep_dlcall3(fn_md5 and data and len and out)
+
+define openssl_sha256 with data as Str and len as Int and out as Int returning Int:
+    # Compute SHA-256 hash. Returns pointer to digest.
+    set lib to openssl_load_crypto()
+    if lib equals 0:
+        return 0
+    set fn_sha to ep_dlsym(lib and "SHA256")
+    if fn_sha equals 0:
+        return 0
+    return ep_dlcall3(fn_sha and data and len and out)
+
+define openssl_sha512 with data as Str and len as Int and out as Int returning Int:
+    # Compute SHA-512 hash. Returns pointer to digest.
+    set lib to openssl_load_crypto()
+    if lib equals 0:
+        return 0
+    set fn_sha to ep_dlsym(lib and "SHA512")
+    if fn_sha equals 0:
+        return 0
+    return ep_dlcall3(fn_sha and data and len and out)
+
+# ========== Random ==========
+
+define openssl_rand_bytes with buf as Int and num as Int returning Int:
+    # Fill buffer with cryptographically secure random bytes.
+    # Returns 1 on success, 0 on failure.
+    set lib to openssl_load_crypto()
+    if lib equals 0:
+        return 0
+    set fn_rand to ep_dlsym(lib and "RAND_bytes")
+    if fn_rand equals 0:
+        return 0
+    return ep_dlcall2(fn_rand and buf and num)
+
+# ========== Base64 ==========
+
+define openssl_base64_encode_len with len as Int returning Int:
+    # Calculate the length needed for base64 encoding.
+    return ((len + 2) / 3) * 4 + 1

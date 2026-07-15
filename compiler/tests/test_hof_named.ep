@@ -1,0 +1,33 @@
+# Test: Higher-Order Functions with named functions
+define double with x as Int returning Int:
+    return x * 2
+
+define add_ten with x as Int returning Int:
+    return x + 10
+
+define apply with f and x as Int returning Int:
+    return f(x)
+
+define apply_twice with f and x as Int returning Int:
+    set first to f(x)
+    return f(first)
+
+define main:
+    # Pass named function as argument
+    set result1 to apply(double and 5)
+    display result1
+
+    set result2 to apply(add_ten and 5)
+    display result2
+
+    # Apply twice: double(double(3)) = 12
+    set result3 to apply_twice(double and 3)
+    display result3
+
+    # Closure should still work too
+    set triple to given x:
+        return x * 3
+    set result4 to apply(triple and 7)
+    display result4
+
+    return 0

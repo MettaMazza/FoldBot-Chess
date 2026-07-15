@@ -1,0 +1,80 @@
+# ============================================================
+# FreeType Bridge for ErnosPlain
+# Font Rendering
+# ============================================================
+# Usage: import "stdlib/bridge/freetype"
+# ============================================================
+
+set FREETYPE_HANDLE to 0
+
+# ---- Library loading ----
+define freetype_load:
+    set FREETYPE_HANDLE to ep_dlopen("libfreetype.dylib")
+    if FREETYPE_HANDLE equals 0:
+        set FREETYPE_HANDLE to ep_dlopen("/opt/homebrew/lib/libfreetype.dylib")
+    if FREETYPE_HANDLE equals 0:
+        set FREETYPE_HANDLE to ep_dlopen("/usr/local/lib/libfreetype.dylib")
+    if FREETYPE_HANDLE equals 0:
+        set FREETYPE_HANDLE to ep_dlopen("libfreetype.so.6")
+    if FREETYPE_HANDLE equals 0:
+        set FREETYPE_HANDLE to ep_dlopen("libfreetype.so")
+    if FREETYPE_HANDLE equals 0:
+        set FREETYPE_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libfreetype.so.6")
+    return FREETYPE_HANDLE
+
+# ---- Init / Cleanup ----
+define freetype_init returning Int:
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_load()
+    return FREETYPE_HANDLE
+
+# ---- Core Functions ----
+define FT_Init_FreeType with alibrary as Int returning Int:
+    # Expects pointer to FT_Library (allocated bytes/list pointer)
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_init()
+    set fn to ep_dlsym(FREETYPE_HANDLE and "FT_Init_FreeType")
+    if fn equals 0:
+        return 1
+    return ep_dlcall1(fn and alibrary)
+
+define FT_New_Face with library as Int and filepathname as Str and face_index as Int and aface as Int returning Int:
+    # Expects library pointer, path string, face_index, and pointer to face_out
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_init()
+    set fn to ep_dlsym(FREETYPE_HANDLE and "FT_New_Face")
+    if fn equals 0:
+        return 1
+    return ep_dlcall4(fn and library and filepathname and face_index and aface)
+
+define FT_Set_Pixel_Sizes with face as Int and pixel_width as Int and pixel_height as Int returning Int:
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_init()
+    set fn to ep_dlsym(FREETYPE_HANDLE and "FT_Set_Pixel_Sizes")
+    if fn equals 0:
+        return 1
+    return ep_dlcall3(fn and face and pixel_width and pixel_height)
+
+define FT_Load_Char with face as Int and char_code as Int and load_flags as Int returning Int:
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_init()
+    set fn to ep_dlsym(FREETYPE_HANDLE and "FT_Load_Char")
+    if fn equals 0:
+        return 1
+    return ep_dlcall3(fn and face and char_code and load_flags)
+
+define FT_Done_Face with face as Int returning Int:
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_init()
+    set fn to ep_dlsym(FREETYPE_HANDLE and "FT_Done_Face")
+    if fn equals 0:
+        return 1
+    return ep_dlcall1(fn and face)
+
+define FT_Done_FreeType with library as Int returning Int:
+    if FREETYPE_HANDLE equals 0:
+        set ok to freetype_init()
+    set fn to ep_dlsym(FREETYPE_HANDLE and "FT_Done_FreeType")
+    if fn equals 0:
+        return 1
+    return ep_dlcall1(fn and library)

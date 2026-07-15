@@ -1,0 +1,8 @@
+define get_ref with borrow lst:
+    return lst # should succeed because lst is borrowed parameter reference
+
+define main:
+    set a to create_list()
+    set b to get_ref(borrow a)
+    display "Valid borrow parameter and return succeeded!"
+    return 0

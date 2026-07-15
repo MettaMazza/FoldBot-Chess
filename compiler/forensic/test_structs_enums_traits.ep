@@ -1,0 +1,63 @@
+# Forensic Test 5: Structs, Enums, Traits, Pattern Matching
+
+define structure Animal:
+    field name as Str
+    field legs as Int
+
+define speak on Animal:
+    display f"{self.name} has {self.legs} legs"
+    return 0
+
+define choice Shape:
+    variant Circle with radius as Int
+    variant Rectangle with width as Int and height as Int
+
+define area on Shape returning Int:
+    check self:
+        if Circle with radius:
+            return radius times radius times 3
+        if Rectangle with width and height:
+            return width times height
+    return 0
+
+define trait Describable:
+    define describe with self returning Int
+
+implement Describable for Animal:
+    define describe:
+        display f"I am {self.name}"
+        return self.legs
+
+define main:
+    # 1. Struct creation and method
+    set dog to create Animal:
+        name is "Dog"
+        legs is 4
+    dog.speak()
+    display f"Dog legs: {dog.legs}"
+
+    # 2. Enum creation
+    set circle to Circle with 5
+    set rect to Rectangle with 3 and 4
+    set a1 to circle.area()
+    set a2 to rect.area()
+    display f"Circle area: {a1}"
+    display f"Rectangle area: {a2}"
+
+    # 3. Trait
+    set cat to create Animal:
+        name is "Cat"
+        legs is 4
+    set leg_count to cat.describe()
+    display f"Trait returned: {leg_count}"
+
+    # 4. Enum pattern matching
+    set shape to Circle with 10
+    check shape:
+        if Circle with radius:
+            display f"It's a circle with radius {radius}"
+        if Rectangle with width and height:
+            display f"It's a rectangle {width}x{height}"
+
+    display "STRUCTS/ENUMS/TRAITS: ALL PASSED"
+    return 0

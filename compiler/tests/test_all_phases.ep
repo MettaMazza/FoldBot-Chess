@@ -1,0 +1,52 @@
+define main:
+    display "=== Phase 2: List int support ==="
+    set scores to create_list()
+    append_list(scores and 100)
+    append_list(scores and 85)
+    append_list(scores and 42)
+    display f"Scores: {get_list(scores and 0)}, {get_list(scores and 1)}, {get_list(scores and 2)}"
+
+    display ""
+    display "=== Phase 3: Map string values ==="
+    set config to create_map()
+    map_set_str(config and "model" and "llama3.2")
+    map_insert(config and "port" and 11434)
+    set m to map_get_str(config and "model")
+    set p to map_get_val(config and "port")
+    display f"Model: {m}"
+    display f"Port: {p}"
+
+    display ""
+    display "=== Phase 4: String check/match ==="
+    set ability to "Flame Breath"
+    check ability:
+        if "Ember Spark":
+            display "  -> Ember Spark: 5 damage"
+        if "Flame Breath":
+            display "  -> Flame Breath: 15 damage"
+        if "Dragon Fire":
+            display "  -> Dragon Fire: 30 damage"
+
+    display ""
+    display "=== Phase 5: F-string nesting ==="
+    display f"Model from map: {map_get_str(config and "model")}"
+
+    display ""
+    display "=== Phase 6: List literals ==="
+    set fruits to ["apple", "banana", "cherry"]
+    for each fruit in fruits:
+        display f"  Fruit: {fruit}"
+    display f"  Count: {length_list(fruits)}"
+
+    set nums to [10, 20, 30, 40]
+    set total to 0
+    for each n in nums:
+        set total to total + n
+    display f"  Sum: {total}"
+
+    set empty to []
+    display f"  Empty list length: {length_list(empty)}"
+
+    display ""
+    display "All phases working!"
+    return 0

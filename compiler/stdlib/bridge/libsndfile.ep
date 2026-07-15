@@ -1,0 +1,105 @@
+# ============================================================
+# libsndfile Bridge for ErnosPlain
+# Audio file I/O — read/write WAV, FLAC, OGG, AIFF
+# ============================================================
+# Usage: import "stdlib/bridge/libsndfile"
+# Requires: libsndfile installed (brew install libsndfile / apt install libsndfile1-dev)
+# ============================================================
+
+set SNDFILE_HANDLE to 0
+
+# ---- Open modes ----
+set SFM_READ to 16
+set SFM_WRITE to 32
+set SFM_RDWR to 48
+
+# ---- Major format types (ORed with subtype) ----
+set SF_FORMAT_WAV to 65536
+set SF_FORMAT_AIFF to 131072
+set SF_FORMAT_AU to 196608
+set SF_FORMAT_FLAC to 1507328
+set SF_FORMAT_OGG to 2097152
+set SF_FORMAT_RAW to 393216
+
+# ---- Subtype formats ----
+set SF_FORMAT_PCM_S8 to 1
+set SF_FORMAT_PCM_16 to 2
+set SF_FORMAT_PCM_24 to 3
+set SF_FORMAT_PCM_32 to 4
+set SF_FORMAT_PCM_U8 to 5
+set SF_FORMAT_FLOAT to 6
+set SF_FORMAT_DOUBLE to 7
+set SF_FORMAT_VORBIS to 96
+
+# ---- Seek modes ----
+set SF_SEEK_SET to 0
+set SF_SEEK_CUR to 1
+set SF_SEEK_END to 2
+
+# ============================================================
+# Library loading
+# ============================================================
+define libsndfile_load:
+    set SNDFILE_HANDLE to ep_dlopen("libsndfile.dylib")
+    if SNDFILE_HANDLE equals 0:
+        set SNDFILE_HANDLE to ep_dlopen("libsndfile.1.dylib")
+    if SNDFILE_HANDLE equals 0:
+        set SNDFILE_HANDLE to ep_dlopen("/opt/homebrew/lib/libsndfile.1.dylib")
+    if SNDFILE_HANDLE equals 0:
+        set SNDFILE_HANDLE to ep_dlopen("/usr/local/lib/libsndfile.dylib")
+    if SNDFILE_HANDLE equals 0:
+        set SNDFILE_HANDLE to ep_dlopen("libsndfile.so")
+    if SNDFILE_HANDLE equals 0:
+        set SNDFILE_HANDLE to ep_dlopen("libsndfile.so.1")
+    if SNDFILE_HANDLE equals 0:
+        set SNDFILE_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libsndfile.so.1")
+    return SNDFILE_HANDLE
+
+# ============================================================
+# Core functions
+# ============================================================
+define sf_open with path as Str and mode as Int and sfinfo as Int returning Int:
+    if SNDFILE_HANDLE equals 0:
+        set ok to libsndfile_load()
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_open")
+    return ep_dlcall3(fn and path and mode and sfinfo)
+
+define sf_close with handle as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_close")
+    return ep_dlcall1(fn and handle)
+
+define sf_read_short with handle as Int and buf as Int and count as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_read_short")
+    return ep_dlcall3(fn and handle and buf and count)
+
+define sf_read_int with handle as Int and buf as Int and count as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_read_int")
+    return ep_dlcall3(fn and handle and buf and count)
+
+define sf_read_float with handle as Int and buf as Int and count as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_read_float")
+    return ep_dlcall3(fn and handle and buf and count)
+
+define sf_write_short with handle as Int and buf as Int and count as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_write_short")
+    return ep_dlcall3(fn and handle and buf and count)
+
+define sf_write_int with handle as Int and buf as Int and count as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_write_int")
+    return ep_dlcall3(fn and handle and buf and count)
+
+define sf_write_float with handle as Int and buf as Int and count as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_write_float")
+    return ep_dlcall3(fn and handle and buf and count)
+
+define sf_seek with handle as Int and frames as Int and whence as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_seek")
+    return ep_dlcall3(fn and handle and frames and whence)
+
+define sf_strerror with handle as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_strerror")
+    return ep_dlcall1(fn and handle)
+
+define sf_format_check with sfinfo as Int returning Int:
+    set fn to ep_dlsym(SNDFILE_HANDLE and "sf_format_check")
+    return ep_dlcall1(fn and sfinfo)

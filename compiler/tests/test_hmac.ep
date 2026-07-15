@@ -1,0 +1,5 @@
+# RFC 4231 Test Case 2 for HMAC-SHA256.
+import "crypto"
+define main:
+    display hmac_sha256("Jefe" and "what do ya want for nothing?")
+    return 0

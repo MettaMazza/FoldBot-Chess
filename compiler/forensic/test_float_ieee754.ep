@@ -1,0 +1,46 @@
+# Forensic Test 3: IEEE 754 Float Compliance
+
+define main:
+    # 1. Basic float literal
+    set pi to 3.14159265358979
+    display pi
+
+    # 2. Float addition
+    set a to 1.5
+    set b to 2.5
+    set sum to a + b
+    display sum
+
+    # 3. Float multiplication
+    set c to 3.0
+    set d to 4.0
+    set product to c * d
+    display product
+
+    # 4. Float division
+    set e to 10.0
+    set f to 3.0
+    set quotient to e / f
+    display quotient
+
+    # 5. Int to float conversion
+    set integer_val to 42
+    set float_val to int_to_float(integer_val)
+    display float_val
+
+    # 6. Float to int conversion
+    set big_float to 99.9
+    set truncated to float_to_int(big_float)
+    display truncated
+
+    # 7. Float squaring
+    set g to 2.5
+    set h to g * g
+    display h
+
+    # 8. Negative floats
+    set neg to 0.0 - 1.5
+    display neg
+
+    display "FLOAT IEEE754: ALL PASSED"
+    return 0

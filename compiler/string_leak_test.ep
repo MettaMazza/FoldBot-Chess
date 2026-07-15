@@ -1,0 +1,11 @@
+define main:
+    display "Starting string leak test..."
+    set i to 0
+    repeat while i is less than 5000000:
+        set content to read_file_content("hello.ep")
+        # Do not display it inside the loop to avoid flooding stdout,
+        # but let's do a dummy check on length to ensure it's not optimized away.
+        set len to string_length(content)
+        set i to i plus 1
+    display "Completed 5,000,000 file reads!"
+    return 0

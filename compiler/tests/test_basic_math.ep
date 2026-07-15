@@ -1,0 +1,11 @@
+# Basic arithmetic and function call test
+define add with a and b:
+    return a + b
+
+define main:
+    set x to 10
+    set y to 20
+    set result to add(x and y)
+    display result
+    display "Basic math test passed"
+    return 0

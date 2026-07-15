@@ -1,0 +1,8 @@
+=== Testing Async Loop Event loop ===
+Worker A starting with delay 60 ms
+Worker B starting with delay 20 ms
+Worker C starting with delay 40 ms
+Worker B woke up
+Worker C woke up
+Worker A woke up
+Woke workers: A, B, C

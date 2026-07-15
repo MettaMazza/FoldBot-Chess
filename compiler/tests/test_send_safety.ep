@@ -1,0 +1,11 @@
+# expected_compile_error
+# Test: Send safety — cannot send borrowed references to spawn
+# This test should produce a compile error because 'borrow x' creates a Ref type
+# which is not Send (E0036)
+
+define worker with data:
+    display data
+
+define main:
+    set x to 42
+    spawn worker(borrow x)

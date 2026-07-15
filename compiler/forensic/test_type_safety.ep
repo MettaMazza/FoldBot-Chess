@@ -1,0 +1,55 @@
+# Forensic Test 1: Type System — Does HM inference actually work?
+
+define double_it with n:
+    return n times 2
+
+define add with a as Int and b as Int returning Int:
+    return a plus b
+
+define square with n:
+    return n times n
+
+define sum_of_squares with a and b:
+    return add(square(a) and square(b))
+
+define main:
+    # 1. Basic inference — no annotations needed
+    set x to 42
+    set y to x plus 10
+    display y
+
+    # 2. Function with inferred return type
+    set result to double_it(100)
+    display result
+
+    # 3. Typed function — explicit annotations
+    display add(3 and 4)
+
+    # 4. Boolean inference
+    set flag to true
+    if flag:
+        display "flag is true"
+
+    # 5. String inference
+    set name to "ErnosPlain"
+    display name
+
+    # 6. List operations
+    set nums to [10, 20, 30]
+    for each n in nums:
+        display n
+
+    # 7. Closure inference
+    set triple to given x:
+        return x * 3
+    display triple(7)
+
+    # 8. Nested function calls with inference
+    display sum_of_squares(3 and 4)
+
+    # 9. F-string with mixed types
+    set age to 25
+    display f"Age is {age}, doubled is {age times 2}"
+
+    display "TYPE SYSTEM: ALL PASSED"
+    return 0

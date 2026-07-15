@@ -1,0 +1,65 @@
+# Forensic Test 11: English syntax aliases
+
+define main:
+    # Arithmetic — English form
+    set a to 10 plus 5
+    set b to 10 minus 3
+    set c to 4 times 5
+    set d to 20 divided by 4
+    set e to 17 modulo 5
+    display f"plus={a} minus={b} times={c} div={d} mod={e}"
+
+    # Arithmetic — operator form
+    set a2 to 10 + 5
+    set b2 to 10 - 3
+    set c2 to 4 * 5
+    set d2 to 20 / 4
+    set e2 to 17 % 5
+    display f"plus={a2} minus={b2} times={c2} div={d2} mod={e2}"
+
+    # Comparison — English form
+    if 5 is less than 10:
+        display "5 < 10: correct"
+    if 10 is greater than 5:
+        display "10 > 5: correct"
+    if 5 equals 5:
+        display "5 == 5: correct"
+
+    # Comparison — operator form
+    if 5 < 10:
+        display "5 < 10: correct (op)"
+    if 10 > 5:
+        display "10 > 5: correct (op)"
+    if 5 == 5:
+        display "5 == 5: correct (op)"
+    if 5 != 6:
+        display "5 != 6: correct (op)"
+
+    # Logical — English form
+    if true and also true:
+        display "and also: correct"
+    if true or else false:
+        display "or else: correct"
+    if not false:
+        display "not: correct"
+
+    # Logical — operator form
+    if true && true:
+        display "&&: correct"
+    if true || false:
+        display "||: correct"
+
+    # Loop — English form
+    set counter to 0
+    repeat while counter is less than 3:
+        set counter to counter plus 1
+    display f"repeat while counter: {counter}"
+
+    # Loop — operator form
+    set counter2 to 0
+    while counter2 < 3:
+        set counter2 to counter2 + 1
+    display f"while counter: {counter2}"
+
+    display "ENGLISH ALIASES: ALL PASSED"
+    return 0

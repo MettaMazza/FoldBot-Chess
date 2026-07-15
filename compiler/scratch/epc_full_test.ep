@@ -1,0 +1,117 @@
+# EPC Full Feature Test — ALL features
+# Tests: structs, enums, methods, pattern matching, for-each, 
+# booleans, break, continue, unary not, modulo, 
+# else-if, field access/set, expression statements, set in match arm
+
+define structure Point:
+    field x as Int
+    field y as Int
+
+define structure Counter:
+    field count as Int
+
+define choice Shape:
+    variant Circle with radius as Int
+    variant Rectangle with width as Int and height as Int
+
+define distance on Point with other:
+    set dx to self.x - other.x
+    set dy to self.y - other.y
+    return dx * dx + dy * dy
+
+define increment on Counter:
+    set self.count to self.count + 1
+    return self.count
+
+define describe_shape with shape:
+    check shape:
+        if Circle with r:
+            display r
+        if Rectangle with w and h:
+            set area to w * h
+            display area
+
+define main:
+    # Test booleans
+    set flag to true
+    if flag:
+        display 1
+
+    set neg to false
+    if not neg:
+        display 2
+
+    # Test struct create + field access
+    set p1 to create Point:
+        x is 10
+        y is 20
+    display p1.x
+    display p1.y
+
+    # Test method call
+    set p2 to create Point:
+        x is 30
+        y is 40
+    set dist to p1.distance(p2)
+    display dist
+
+    # Test field set
+    set c to create Counter:
+        count is 0
+    set c.count to 5
+    display c.count
+
+    # Test method that mutates
+    set new_count to c.increment()
+    display new_count
+
+    # Test enum create + pattern match (with set in arm body)
+    set s1 to Circle with 42
+    describe_shape(s1)
+
+    set s2 to Rectangle with 3 and 4
+    describe_shape(s2)
+
+    # Test for-each with list
+    set items to create_list()
+    set ok to append_list(items and 100)
+    set ok to append_list(items and 200)
+    set ok to append_list(items and 300)
+    set total to 0
+    for each item in items:
+        set total to total + item
+    display total
+
+    # Test modulo
+    display 17 modulo 5
+
+    # Test break
+    set i to 0
+    repeat while i < 100:
+        if i == 3:
+            break
+        set i to i + 1
+    display i
+
+    # Test continue
+    set sum to 0
+    set j to 0
+    repeat while j < 10:
+        set j to j + 1
+        if j modulo 2 == 0:
+            continue
+        set sum to sum + j
+    display sum
+
+    # Test else-if chaining
+    set val to 42
+    if val < 10:
+        display 0
+    else if val < 50:
+        display 1
+    else:
+        display 2
+
+    display 999
+
+    return 0

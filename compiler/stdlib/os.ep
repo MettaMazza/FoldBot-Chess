@@ -1,0 +1,55 @@
+# ErnosPlain OS & System Standard Library
+
+# ---- External C Runtime Functions ----
+external define ep_getenv with name:
+external define ep_setenv with name and value:
+external define ep_get_args:
+external define ep_get_cwd:
+external define ep_os_name:
+external define ep_arch_name:
+external define ep_exit with code:
+external define ep_sleep_ms with ms:
+external define ep_run_command with cmd:
+external define ep_get_pid:
+external define ep_get_home_dir:
+
+# ---- Environment ----
+
+define get_env with name:
+    return ep_getenv(name)
+
+define set_env with name and value:
+    return ep_setenv(name and value)
+
+# ---- Process Info ----
+
+define get_args:
+    return ep_get_args()
+
+define get_cwd:
+    return ep_get_cwd()
+
+define get_home_dir:
+    return ep_get_home_dir()
+
+define get_pid:
+    return ep_get_pid()
+
+# ---- System Info ----
+
+define os_name:
+    return ep_os_name()
+
+define arch_name:
+    return ep_arch_name()
+
+# ---- Process Control ----
+
+define exit_program with code:
+    return ep_exit(code)
+
+define sleep_ms with ms:
+    return ep_sleep_ms(ms)
+
+define run_command with cmd:
+    return ep_run_command(cmd)

@@ -1,0 +1,6 @@
+define main:
+    set a to create_list()
+    set b to a
+    set ok to append_list(a and 42)
+    display get_list(a and 0)
+    return 0

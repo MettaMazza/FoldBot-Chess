@@ -1,0 +1,92 @@
+# ============================================================================
+#  ENFORCEMENT  --  nothing fitted may survive.
+# ============================================================================
+#
+#  WHY THIS EXISTS
+#  ---------------
+#  The law of this work is absolute: every number is forced from the One, never
+#  fitted and never chosen. This module makes that law enforce itself. A value
+#  is only allowed to stand if it equals an INDEPENDENT forced derivation of the
+#  same thing. If a value and its independent derivation ever disagree -- which
+#  is exactly what happens if someone writes in a fitted number, or tampers with
+#  a count -- the engine does not quietly carry on with a wrong result. It
+#  reports the violation and HALTS. A broken forcing chain stops the machine.
+#
+#  HOW TO USE IT
+#  -------------
+#  Wherever a structural number is produced one way, cross-check it against a
+#  second, independent way it is forced, by passing both through forced_to_be.
+#  As long as they agree, the value passes through unchanged. The moment they do
+#  not, the engine stops -- so no un-forced value can reach a result.
+# ============================================================================
+
+external define ep_exit with code:
+
+
+# Stop the engine with a stated reason. Used when a law of the theory is broken
+# and no result may stand -- a fitted value, or a value outside the domain.
+define halt_violation with reason as Str returning Int:
+    display "============================================================"
+    display "LAW VIOLATION -- the engine is invalid and is stopping."
+    display concat("  reason: " and reason)
+    display "============================================================"
+    set discard to ep_exit(1)
+    return 0
+
+
+# Stop the engine on any SELECTION, SEARCH, or FIT -- choosing a value instead
+# of forcing it. There is no legitimate place in this theory to pick a number, a
+# bracket, a probe, or a starting guess; every value is forced from the One. Call
+# this at any point where a value would be chosen, so the engine screams rather
+# than carry a chosen value.
+define forbid_selection with reason as Str returning Int:
+    return halt_violation(concat("SELECTION is forbidden -- a value was chosen, not forced: " and reason))
+
+
+# Stop the engine if a MEASURED (target) value ever reaches the derivation side.
+# The law is that experimental numbers appear ONLY on the comparison side; a value
+# forced from the One may be CHECKED against a measurement, but a measurement may
+# never be an INPUT to a forcing. This is the runtime guard for that law: pass
+# value_is_measured = true at any point a value known to carry measured provenance is
+# about to feed a derivation, and the engine screams and halts rather than let a
+# target quietly forge its own agreement. (The primary guard is structural: measured
+# values are the separate Measured type in measured_values.ep, which the Fraction-only
+# derivation primitives cannot consume -- the compiler rejects it before this ever
+# runs. This primitive makes the same law explicit and catches it at runtime too.)
+define forbid_target_input with label as Str and value_is_measured as Bool returning Int:
+    if value_is_measured:
+        return halt_violation(concat("TARGET INPUT detected -- a measured value reached a derivation; measurements are comparison-only, never forcing inputs: " and label))
+    return 1
+
+
+# Enforce that a value is FORCED, not selected from among alternatives. The
+# forced candidate must satisfy its structural condition, and NONE of the
+# alternatives may also satisfy it -- otherwise the value was picked from a set
+# of equals (a selection) rather than forced, and the engine screams and halts.
+#   forced_satisfies          : 1 if the forced candidate meets its condition
+#   alternatives_that_satisfy : how many OTHER candidates also meet it
+define forced_unique with label as Str and forced_satisfies as Int and alternatives_that_satisfy as Int returning Int:
+    if forced_satisfies != 1:
+        return halt_violation(concat("not forced -- the claimed value fails its own structural condition: " and label))
+    if alternatives_that_satisfy != 0:
+        return halt_violation(concat("SELECTION detected -- more than one candidate lands, so the value was chosen, not forced: " and label))
+    return 1
+
+
+# Let a value stand only if it equals its independent forced derivation.
+# Returns the value when the two agree; otherwise reports the violation and
+# halts the engine (a non-zero exit, so the failure cannot be missed).
+define forced_to_be with label as Str and derived as Int and independently_forced as Int returning Int:
+    if derived == independently_forced:
+        return derived
+    display "============================================================"
+    display "FORCING VIOLATION -- the engine is invalid and is stopping."
+    display concat("  what: " and label)
+    display concat("  derived one way:        " and int_to_string(derived))
+    display concat("  forced independently:   " and int_to_string(independently_forced))
+    display "A value did not match its independent forced derivation. Nothing"
+    display "in this theory may be fitted or chosen; a value that is not forced"
+    display "from the One is not allowed to stand."
+    display "============================================================"
+    set discard to ep_exit(1)
+    return derived

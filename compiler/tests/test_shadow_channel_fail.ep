@@ -1,0 +1,6 @@
+# expected_compile_error
+# Verify that shadowing 'channel' keyword is flagged as compilation error
+
+define main:
+    set channel to 42
+    return 0

@@ -1,0 +1,91 @@
+# ErnosPlain Date/Time Standard Library
+
+# ---- External C Runtime Functions ----
+external define ep_time_now_ms:
+external define ep_time_now_sec:
+external define ep_sleep_ms with ms:
+external define ep_time_year with timestamp:
+external define ep_time_month with timestamp:
+external define ep_time_day with timestamp:
+external define ep_time_hour with timestamp:
+external define ep_time_minute with timestamp:
+external define ep_time_second with timestamp:
+external define ep_time_weekday with timestamp:
+external define ep_format_time with timestamp and format:
+
+# ---- Time Functions ----
+
+define now_ms:
+    return ep_time_now_ms()
+
+define now_seconds:
+    return ep_time_now_sec()
+
+define sleep_ms with ms:
+    return ep_sleep_ms(ms)
+
+# ---- Time Components ----
+
+define time_year with timestamp:
+    return ep_time_year(timestamp)
+
+define time_month with timestamp:
+    return ep_time_month(timestamp)
+
+define time_day with timestamp:
+    return ep_time_day(timestamp)
+
+define time_hour with timestamp:
+    return ep_time_hour(timestamp)
+
+define time_minute with timestamp:
+    return ep_time_minute(timestamp)
+
+define time_second with timestamp:
+    return ep_time_second(timestamp)
+
+define time_weekday with timestamp:
+    return ep_time_weekday(timestamp)
+
+# ---- Time Formatting ----
+
+define format_time with timestamp and format:
+    return ep_format_time(timestamp and format)
+
+# ---- Time Arithmetic ----
+
+define time_diff with a and b:
+    return a - b
+
+define time_add_seconds with timestamp and seconds:
+    return timestamp + seconds
+
+define time_add_minutes with timestamp and minutes:
+    return timestamp + minutes * 60
+
+define time_add_hours with timestamp and hours:
+    return timestamp + hours * 3600
+
+define time_add_days with timestamp and days:
+    return timestamp + days * 86400
+
+# ---- Stopwatch ----
+
+define create_stopwatch:
+    set sw to create_list()
+    set ok to append_list(sw and 0)
+    set ok to append_list(sw and 0)
+    return sw
+
+define start_stopwatch with sw:
+    set ok to set_list(sw and 0 and ep_time_now_ms())
+    return sw
+
+define stop_stopwatch with sw:
+    set start_time to get_list(sw and 0)
+    set elapsed to ep_time_now_ms() - start_time
+    set ok to set_list(sw and 1 and elapsed)
+    return elapsed
+
+define stopwatch_elapsed with sw:
+    return get_list(sw and 1)

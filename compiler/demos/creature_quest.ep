@@ -1,0 +1,974 @@
+# ═══════════════════════════════════════════════════════════════
+#  🐾 CREATURE QUEST — An Ernos Demo Game
+# ═══════════════════════════════════════════════════════════════
+#  A text-based roguelite RPG with a Tamagotchi-style companion.
+#  Demonstrates: structs, enums, methods, pattern matching,
+#  lists, closures, recursion, async, channels, try, floats,
+#  loops, break/continue, unary minus, modulo, and more.
+# ═══════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────
+#  DATA STRUCTURES
+# ─────────────────────────────────────────
+
+define structure Companion:
+    field name as Str
+    field health as Int
+    field max_health as Int
+    field hunger as Int
+    field happiness as Int
+    field bond as Int
+    field stage as Int
+    field xp as Int
+    field level as Int
+
+define structure Player:
+    field name as Str
+    field health as Int
+    field max_health as Int
+    field attack as Int
+    field defense as Int
+    field gold as Int
+    field floor as Int
+    field turns as Int
+    field potions as Int
+    field keys as Int
+    field weapon_name as Str
+    field weapon_damage as Int
+
+define structure Monster:
+    field name as Str
+    field health as Int
+    field max_health as Int
+    field attack as Int
+    field defense as Int
+    field xp_reward as Int
+    field gold_reward as Int
+    field is_boss as Int
+
+# ─────────────────────────────────────────
+#  COMPANION SYSTEM
+# ─────────────────────────────────────────
+
+define get_stage_name with stage as Int returning Str:
+    if stage == 0:
+        return "Egg"
+    if stage == 1:
+        return "Hatchling"
+    if stage == 2:
+        return "Juvenile"
+    if stage == 3:
+        return "Adult"
+    return "Elder"
+
+define get_stage_emoji with stage as Int returning Str:
+    if stage == 0:
+        return "🥚"
+    if stage == 1:
+        return "🐣"
+    if stage == 2:
+        return "🐾"
+    if stage == 3:
+        return "🦊"
+    return "🐉"
+
+define get_mood with happiness as Int returning Str:
+    if happiness > 80:
+        return "ecstatic 🥰"
+    if happiness > 60:
+        return "happy 😊"
+    if happiness > 40:
+        return "content 😐"
+    if happiness > 20:
+        return "sad 😢"
+    return "miserable 😭"
+
+define show_companion with c as Companion:
+    display ""
+    display concat("══════ " and concat(c.name and " ══════"))
+    display concat(get_stage_emoji(c.stage) and concat(" Stage: " and get_stage_name(c.stage)))
+    display concat("  ❤️  Health:    " and concat(int_to_string(c.health) and concat("/" and int_to_string(c.max_health))))
+    display concat("  🍖 Hunger:    " and concat(int_to_string(c.hunger) and "/100"))
+    display concat("  😊 Happiness: " and concat(int_to_string(c.happiness) and concat(" — " and get_mood(c.happiness))))
+    display concat("  💕 Bond:      " and int_to_string(c.bond))
+    display concat("  ⭐ Level:     " and concat(int_to_string(c.level) and concat(" (XP: " and concat(int_to_string(c.xp) and ")"))))
+    return 0
+
+define companion_bonus_damage with c as Companion returning Int:
+    set base to c.bond / 5
+    if c.stage == 1:
+        return base + 1
+    if c.stage == 2:
+        return base + 3
+    if c.stage == 3:
+        return base + 6
+    if c.stage == 4:
+        return base + 10
+    return 0
+
+define check_evolution with c as Companion returning Int:
+    if c.stage == 0 && c.level > 0:
+        display ""
+        display "✨ ═══════════════════════════════════ ✨"
+        display concat("   Your egg is hatching! " and c.name)
+        display "   has become a Hatchling! 🐣"
+        display "✨ ═══════════════════════════════════ ✨"
+        set c.stage to 1
+        set c.max_health to 30
+        set c.health to 30
+        return 1
+    if c.stage == 1 && c.level >= 5:
+        display ""
+        display "✨ ═══════════════════════════════════ ✨"
+        display concat("   " and concat(c.name and " evolved into a Juvenile! 🐾"))
+        display "✨ ═══════════════════════════════════ ✨"
+        set c.stage to 2
+        set c.max_health to 50
+        set c.health to 50
+        return 1
+    if c.stage == 2 && c.level >= 12:
+        display ""
+        display "✨ ═══════════════════════════════════ ✨"
+        display concat("   " and concat(c.name and " evolved into an Adult! 🦊"))
+        display "✨ ═══════════════════════════════════ ✨"
+        set c.stage to 3
+        set c.max_health to 80
+        set c.health to 80
+        return 1
+    if c.stage == 3 && c.level >= 25:
+        display ""
+        display "✨ ═══════════════════════════════════ ✨"
+        display concat("   " and concat(c.name and " has become an ELDER! 🐉"))
+        display "   The legendary form... incredible!"
+        display "✨ ═══════════════════════════════════ ✨"
+        set c.stage to 4
+        set c.max_health to 120
+        set c.health to 120
+        return 1
+    return 0
+
+# ─────────────────────────────────────────
+#  WORLD GENERATION
+# ─────────────────────────────────────────
+
+define get_biome with floor as Int returning Str:
+    set b to floor % 6
+    if b == 0:
+        return "🌲 Whispering Forest"
+    if b == 1:
+        return "🕳️ Crystal Caverns"
+    if b == 2:
+        return "🌿 Murky Swamp"
+    if b == 3:
+        return "🏛️ Ancient Ruins"
+    if b == 4:
+        return "⛰️ Frozen Peaks"
+    return "🏜️ Scorched Desert"
+
+define generate_room_text with floor as Int returning Str:
+    set r to ep_random_int(1 and 8)
+    set biome to get_biome(floor)
+    if r == 1:
+        return concat(biome and " — You push through thick undergrowth into a quiet clearing.")
+    if r == 2:
+        return concat(biome and " — A narrow path winds between towering stone walls.")
+    if r == 3:
+        return concat(biome and " — You hear dripping water echoing in the darkness ahead.")
+    if r == 4:
+        return concat(biome and " — Faded carvings on the walls tell stories of ancient battles.")
+    if r == 5:
+        return concat(biome and " — The air shimmers with strange energy. Something feels off.")
+    if r == 6:
+        return concat(biome and " — Mushrooms glow softly, lighting your way forward.")
+    if r == 7:
+        return concat(biome and " — Bones crunch underfoot. Something was here before you.")
+    return concat(biome and " — A peaceful stream cuts across the path. Your companion relaxes.")
+
+# ─────────────────────────────────────────
+#  MONSTER GENERATION
+# ─────────────────────────────────────────
+
+define create_monster with floor as Int returning Monster:
+    set scale to 1 + floor / 3
+    set r to ep_random_int(1 and 8)
+    set m to create Monster:
+        name is "Slime"
+        health is 20
+        max_health is 20
+        attack is 4
+        defense is 1
+        xp_reward is 10
+        gold_reward is 5
+        is_boss is 0
+
+    if r == 1:
+        set m.name to "🟢 Goblin Scout"
+        set m.health to 15 + scale * 5
+        set m.attack to 3 + scale * 2
+        set m.defense to 1 + scale
+        set m.xp_reward to 8 + scale * 3
+        set m.gold_reward to 3 + scale * 2
+    if r == 2:
+        set m.name to "🦇 Shadow Bat"
+        set m.health to 12 + scale * 4
+        set m.attack to 5 + scale * 2
+        set m.defense to 0
+        set m.xp_reward to 6 + scale * 2
+        set m.gold_reward to 2 + scale
+    if r == 3:
+        set m.name to "🕷️ Venom Spider"
+        set m.health to 18 + scale * 5
+        set m.attack to 4 + scale * 2
+        set m.defense to 2 + scale
+        set m.xp_reward to 10 + scale * 3
+        set m.gold_reward to 4 + scale * 2
+    if r == 4:
+        set m.name to "💀 Skeleton Warrior"
+        set m.health to 25 + scale * 6
+        set m.attack to 5 + scale * 3
+        set m.defense to 3 + scale
+        set m.xp_reward to 12 + scale * 4
+        set m.gold_reward to 6 + scale * 3
+    if r == 5:
+        set m.name to "🐺 Dire Wolf"
+        set m.health to 20 + scale * 5
+        set m.attack to 6 + scale * 2
+        set m.defense to 2 + scale
+        set m.xp_reward to 9 + scale * 3
+        set m.gold_reward to 3 + scale * 2
+    if r == 6:
+        set m.name to "🧟 Cursed Wraith"
+        set m.health to 22 + scale * 6
+        set m.attack to 7 + scale * 2
+        set m.defense to 1
+        set m.xp_reward to 14 + scale * 4
+        set m.gold_reward to 8 + scale * 3
+    if r == 7:
+        set m.name to "🪨 Stone Golem"
+        set m.health to 35 + scale * 8
+        set m.attack to 4 + scale * 2
+        set m.defense to 5 + scale * 2
+        set m.xp_reward to 15 + scale * 5
+        set m.gold_reward to 10 + scale * 3
+    if r == 8:
+        set m.name to "🐍 Basilisk"
+        set m.health to 28 + scale * 6
+        set m.attack to 6 + scale * 3
+        set m.defense to 3 + scale
+        set m.xp_reward to 13 + scale * 4
+        set m.gold_reward to 7 + scale * 3
+
+    set m.max_health to m.health
+    return m
+
+define create_boss with floor as Int returning Monster:
+    set scale to 1 + floor / 3
+    set r to ep_random_int(1 and 4)
+    set boss to create Monster:
+        name is "Boss"
+        health is 80
+        max_health is 80
+        attack is 10
+        defense is 5
+        xp_reward is 50
+        gold_reward is 30
+        is_boss is 1
+
+    if r == 1:
+        set boss.name to "🐲 Crimson Drake"
+        set boss.health to 80 + scale * 20
+        set boss.attack to 10 + scale * 4
+        set boss.defense to 5 + scale * 2
+        set boss.xp_reward to 50 + scale * 15
+        set boss.gold_reward to 30 + scale * 10
+    if r == 2:
+        set boss.name to "👹 Orcish Warlord"
+        set boss.health to 70 + scale * 18
+        set boss.attack to 12 + scale * 4
+        set boss.defense to 4 + scale * 2
+        set boss.xp_reward to 45 + scale * 12
+        set boss.gold_reward to 25 + scale * 8
+    if r == 3:
+        set boss.name to "🧙 Dark Sorcerer"
+        set boss.health to 60 + scale * 15
+        set boss.attack to 15 + scale * 5
+        set boss.defense to 2 + scale
+        set boss.xp_reward to 55 + scale * 15
+        set boss.gold_reward to 35 + scale * 12
+    if r == 4:
+        set boss.name to "🕸️ Spider Queen"
+        set boss.health to 90 + scale * 22
+        set boss.attack to 9 + scale * 3
+        set boss.defense to 6 + scale * 3
+        set boss.xp_reward to 60 + scale * 18
+        set boss.gold_reward to 40 + scale * 15
+
+    set boss.max_health to boss.health
+    return boss
+
+# ─────────────────────────────────────────
+#  COMBAT ENGINE
+# ─────────────────────────────────────────
+
+define show_health_bar with current as Int and max as Int returning Str:
+    set filled to current * 10 / max
+    set bar to "["
+    set i to 0
+    repeat while i < 10:
+        if i < filled:
+            set bar to concat(bar and "█")
+        else:
+            set bar to concat(bar and "░")
+        set i to i + 1
+    set bar to concat(bar and concat("] " and concat(int_to_string(current) and concat("/" and int_to_string(max)))))
+    return bar
+
+define run_combat with p as Player and c as Companion and m as Monster returning Int:
+    display ""
+    display "⚔️ ════════════════════════════════════"
+    if m.is_boss == 1:
+        display concat("  🔥 BOSS BATTLE: " and concat(m.name and " 🔥"))
+    else:
+        display concat("  A wild " and concat(m.name and " appears!"))
+    display "⚔️ ════════════════════════════════════"
+    display ""
+
+    set defending to 0
+    set turn to 0
+
+    repeat while m.health > 0 && p.health > 0:
+        set turn to turn + 1
+        display concat("─── Turn " and concat(int_to_string(turn) and " ───"))
+        display concat("  You:     " and show_health_bar(p.health and p.max_health))
+        display concat("  " and concat(c.name and concat(":  " and show_health_bar(c.health and c.max_health))))
+        display concat("  Enemy:   " and show_health_bar(m.health and m.max_health))
+        display ""
+        display "  1) ⚔️  Attack"
+        display "  2) 🛡️  Defend"
+        display "  3) 🧪 Use Potion"
+        display concat("  4) " and concat(get_stage_emoji(c.stage) and concat(" " and concat(c.name and "'s Ability"))))
+
+        display ""
+        display "Your move: "
+        set input to read_line()
+        set pick to string_to_int(input)
+
+        set defending to 0
+        set player_dmg to 0
+
+        if pick == 1:
+            # Attack
+            set crit_roll to ep_random_int(1 and 10)
+            set player_dmg to p.attack + p.weapon_damage - m.defense + ep_random_int(0 and 3)
+            if crit_roll >= 9:
+                set player_dmg to player_dmg * 2
+                display "  💥 CRITICAL HIT!"
+            if player_dmg < 1:
+                set player_dmg to 1
+            set m.health to m.health - player_dmg
+            display concat("  You slash with your " and concat(p.weapon_name and concat(" for " and concat(int_to_string(player_dmg) and " damage!"))))
+
+        if pick == 2:
+            # Defend
+            set defending to 1
+            display "  🛡️  You raise your guard!"
+
+        if pick == 3:
+            # Potion
+            if p.potions > 0:
+                set heal_amt to 20 + ep_random_int(5 and 15)
+                set p.health to p.health + heal_amt
+                if p.health > p.max_health:
+                    set p.health to p.max_health
+                set p.potions to p.potions - 1
+                display concat("  🧪 Healed for " and concat(int_to_string(heal_amt) and concat("! (Potions left: " and concat(int_to_string(p.potions) and ")"))))
+            else:
+                display "  ❌ No potions left! Turn wasted..."
+
+        if pick == 4:
+            # Companion ability
+            if c.stage >= 1 && c.health > 0:
+                set comp_dmg to companion_bonus_damage(c)
+                set ability_roll to ep_random_int(1 and 3)
+                if ability_roll == 1:
+                    # Damage
+                    set comp_dmg to comp_dmg + ep_random_int(3 and 8)
+                    if comp_dmg < 1:
+                        set comp_dmg to 1
+                    set m.health to m.health - comp_dmg
+                    display concat("  " and concat(get_stage_emoji(c.stage) and concat(" " and concat(c.name and concat(" pounces for " and concat(int_to_string(comp_dmg) and " damage!"))))))
+                if ability_roll == 2:
+                    # Heal player
+                    set heal to 10 + c.bond / 3
+                    set p.health to p.health + heal
+                    if p.health > p.max_health:
+                        set p.health to p.max_health
+                    display concat("  " and concat(get_stage_emoji(c.stage) and concat(" " and concat(c.name and concat(" nuzzles you, healing " and concat(int_to_string(heal) and " HP! 💕"))))))
+                if ability_roll == 3:
+                    # Weaken enemy
+                    set weak to 1 + c.level / 4
+                    set m.attack to m.attack - weak
+                    if m.attack < 1:
+                        set m.attack to 1
+                    display concat("  " and concat(get_stage_emoji(c.stage) and concat(" " and concat(c.name and " lets out a fierce growl! Enemy attack reduced!"))))
+                set c.xp to c.xp + 2
+            else:
+                if c.stage == 0:
+                    display "  🥚 The egg wobbles encouragingly... but can't help yet!"
+                else:
+                    display concat("  " and concat(c.name and " is knocked out and can't help! 😢"))
+
+        # Enemy turn
+        if m.health > 0:
+            set enemy_dmg to m.attack + ep_random_int(0 and 4) - p.defense
+            if defending == 1:
+                set enemy_dmg to enemy_dmg / 2
+            if enemy_dmg < 1:
+                set enemy_dmg to 1
+            set p.health to p.health - enemy_dmg
+            display concat("  " and concat(m.name and concat(" attacks you for " and concat(int_to_string(enemy_dmg) and " damage!"))))
+
+            # Companion takes splash damage sometimes
+            if c.health > 0 && c.stage >= 1:
+                set splash to ep_random_int(1 and 4)
+                if splash == 1:
+                    set comp_hit to m.attack / 3
+                    if comp_hit < 1:
+                        set comp_hit to 1
+                    set c.health to c.health - comp_hit
+                    display concat("  " and concat(m.name and concat(" lashes at " and concat(c.name and concat(" for " and concat(int_to_string(comp_hit) and "!"))))))
+                    if c.health <= 0:
+                        set c.health to 0
+                        display concat("  😢 " and concat(c.name and " collapses! They need rest!"))
+
+        display ""
+
+    # Combat result
+    if p.health <= 0:
+        set p.health to 0
+        return 0
+
+    # Victory!
+    display "🎉 ════════════════════════════════════"
+    display concat("  Victory! You defeated " and concat(m.name and "!"))
+    display concat("  ⭐ +" and concat(int_to_string(m.xp_reward) and " XP"))
+    display concat("  💰 +" and concat(int_to_string(m.gold_reward) and " Gold"))
+    display "🎉 ════════════════════════════════════"
+
+    set p.gold to p.gold + m.gold_reward
+
+    # XP and level up
+    set c.xp to c.xp + m.xp_reward
+    set xp_needed to c.level * 20 + 20
+    if c.xp >= xp_needed:
+        set c.level to c.level + 1
+        set c.xp to c.xp - xp_needed
+        display ""
+        display concat("  🌟 " and concat(c.name and concat(" levelled up to " and concat(int_to_string(c.level) and "!"))))
+        set c.max_health to c.max_health + 5
+        set c.health to c.max_health
+        set ok to check_evolution(c)
+    
+    # Companion bond and happiness from victory
+    set c.bond to c.bond + 2
+    set c.happiness to c.happiness + 5
+    if c.happiness > 100:
+        set c.happiness to 100
+
+    return 1
+
+# ─────────────────────────────────────────
+#  ENCOUNTERS
+# ─────────────────────────────────────────
+
+define encounter_treasure with p as Player and c as Companion:
+    display ""
+    display "✨ You found a treasure chest! ✨"
+    set loot to ep_random_int(1 and 5)
+    if loot == 1:
+        set gold to 10 + ep_random_int(5 and 20) + p.floor * 3
+        set p.gold to p.gold + gold
+        display concat("  💰 " and concat(int_to_string(gold) and " Gold!"))
+    if loot == 2:
+        set p.potions to p.potions + 1
+        display "  🧪 A healing potion!"
+    if loot == 3:
+        set food to ep_random_int(1 and 3)
+        if food == 1:
+            display concat("  🍖 Tasty meat! " and concat(c.name and " eats happily!"))
+        if food == 2:
+            display concat("  🐟 Fresh fish! " and concat(c.name and " loves it!"))
+        if food == 3:
+            display concat("  🍎 Sweet berries! " and concat(c.name and " munches away!"))
+        set c.hunger to c.hunger + 30
+        if c.hunger > 100:
+            set c.hunger to 100
+        set c.happiness to c.happiness + 10
+        if c.happiness > 100:
+            set c.happiness to 100
+    if loot == 4:
+        set dmg_bonus to ep_random_int(2 and 5) + p.floor / 2
+        set weapon_type to ep_random_int(1 and 4)
+        if weapon_type == 1:
+            set p.weapon_name to "Sharp Dagger"
+        if weapon_type == 2:
+            set p.weapon_name to "Iron Sword"
+        if weapon_type == 3:
+            set p.weapon_name to "Battle Axe"
+        if weapon_type == 4:
+            set p.weapon_name to "Crystal Blade"
+        set p.weapon_damage to dmg_bonus
+        display concat("  ⚔️  Found: " and concat(p.weapon_name and concat(" (+" and concat(int_to_string(dmg_bonus) and " damage)"))))
+    if loot == 5:
+        set p.keys to p.keys + 1
+        display "  🔑 A mysterious key!"
+    return 0
+
+define encounter_rest with p as Player and c as Companion:
+    display ""
+    display "🏕️ You find a peaceful campsite."
+    display "  You rest by a warm fire..."
+    set heal to 15 + ep_random_int(5 and 10)
+    set p.health to p.health + heal
+    if p.health > p.max_health:
+        set p.health to p.max_health
+    display concat("  ❤️  Recovered " and concat(int_to_string(heal) and " HP"))
+
+    if c.health < c.max_health:
+        set comp_heal to 10 + ep_random_int(3 and 8)
+        set c.health to c.health + comp_heal
+        if c.health > c.max_health:
+            set c.health to c.max_health
+        display concat("  " and concat(c.name and " rests and recovers too! 💤"))
+
+    set c.happiness to c.happiness + 5
+    if c.happiness > 100:
+        set c.happiness to 100
+    return 0
+
+define encounter_npc with p as Player and c as Companion:
+    display ""
+    set npc to ep_random_int(1 and 4)
+    if npc == 1:
+        display "🧝 A wandering elf offers you advice:"
+        display "  \"Keep your companion well-fed. A happy friend fights harder.\""
+        set c.happiness to c.happiness + 5
+        if c.happiness > 100:
+            set c.happiness to 100
+    if npc == 2:
+        display "🧙 An old wizard blocks your path."
+        display "  \"I'll heal you... for a price.\""
+        if p.gold >= 10:
+            display "  💰 Paid 10 gold. Fully healed!"
+            set p.gold to p.gold - 10
+            set p.health to p.max_health
+            set c.health to c.max_health
+        else:
+            display "  You don't have enough gold. He waves you away."
+    if npc == 3:
+        display "🤡 A travelling merchant appears!"
+        display "  \"Potion for 15 gold?\""
+        if p.gold >= 15:
+            set p.gold to p.gold - 15
+            set p.potions to p.potions + 2
+            display "  💰 Bought 2 potions!"
+        else:
+            display "  Not enough gold. Maybe next time."
+    if npc == 4:
+        display concat("🐕 A stray animal approaches " and concat(c.name and "!"))
+        display "  They play together! Bond deepens."
+        set c.bond to c.bond + 5
+        set c.happiness to c.happiness + 15
+        if c.happiness > 100:
+            set c.happiness to 100
+    return 0
+
+define encounter_trap with p as Player and c as Companion:
+    display ""
+    set trap_type to ep_random_int(1 and 3)
+    if trap_type == 1:
+        set dmg to 5 + ep_random_int(3 and 8)
+        display "💥 You step on a spike trap!"
+        set p.health to p.health - dmg
+        display concat("  Took " and concat(int_to_string(dmg) and " damage!"))
+    if trap_type == 2:
+        set lost to ep_random_int(3 and 10)
+        if p.gold >= lost:
+            set p.gold to p.gold - lost
+            display concat("🕳️ You fall into a pit! Lost " and concat(int_to_string(lost) and " gold!"))
+        else:
+            display "🕳️ You fall into a pit! Luckily you're broke."
+    if trap_type == 3:
+        display "☁️ A cloud of sleeping gas!"
+        if c.stage >= 2:
+            display concat("  " and concat(c.name and " alerts you just in time! Dodged!"))
+            set c.bond to c.bond + 3
+        else:
+            set dmg to 8
+            set p.health to p.health - dmg
+            display concat("  You inhale the gas... lost " and concat(int_to_string(dmg) and " HP"))
+    return 0
+
+define encounter_mystery with p as Player and c as Companion:
+    display ""
+    set event to ep_random_int(1 and 4)
+    if event == 1:
+        display "🌟 A shooting star streaks across the sky!"
+        display concat("  " and concat(c.name and " gazes in wonder. You feel stronger."))
+        set p.max_health to p.max_health + 5
+        set p.health to p.health + 5
+        set p.attack to p.attack + 1
+    if event == 2:
+        display "🎵 You hear a beautiful melody on the wind."
+        display "  All your worries fade away..."
+        set c.happiness to 100
+        set c.hunger to 100
+        set p.health to p.max_health
+    if event == 3:
+        display "📜 You find ancient runes carved into stone."
+        display "  Knowledge flows through you..."
+        set c.xp to c.xp + 15
+        display concat("  " and concat(c.name and " gained 15 bonus XP!"))
+    if event == 4:
+        display "🌸 A garden of magical flowers!"
+        display concat("  " and concat(c.name and " rolls around joyfully!"))
+        set c.happiness to c.happiness + 20
+        if c.happiness > 100:
+            set c.happiness to 100
+        set c.bond to c.bond + 5
+    return 0
+
+# ─────────────────────────────────────────
+#  CAMP PHASE — CARE FOR COMPANION
+# ─────────────────────────────────────────
+
+define camp_phase with p as Player and c as Companion:
+    display ""
+    display "🏕️ ════════════════════════════════════"
+    display "  Time to rest and care for your companion!"
+    display "🏕️ ════════════════════════════════════"
+
+    set camping to 1
+    repeat while camping == 1:
+        display ""
+        set ok to show_companion(c)
+        display ""
+        display "  1) 🍖 Feed"
+        display "  2) 🎾 Play"
+        display "  3) 💤 Let them rest"
+        display "  4) 🤗 Pet / Cuddle"
+        display "  5) 📊 Check your stats"
+        display "  6) ➡️  Continue adventure"
+        display ""
+        display "What do you do? "
+
+        set input to read_line()
+        set pick to string_to_int(input)
+
+        if pick == 1:
+            if c.hunger < 100:
+                set feed_amt to 25 + ep_random_int(5 and 15)
+                set c.hunger to c.hunger + feed_amt
+                if c.hunger > 100:
+                    set c.hunger to 100
+                set c.happiness to c.happiness + 8
+                if c.happiness > 100:
+                    set c.happiness to 100
+                set c.bond to c.bond + 1
+                display concat("  🍖 " and concat(c.name and " eats happily! Nom nom nom!"))
+            else:
+                display concat("  " and concat(c.name and " is already full! 😋"))
+
+        if pick == 2:
+            set c.happiness to c.happiness + 15
+            if c.happiness > 100:
+                set c.happiness to 100
+            set c.bond to c.bond + 3
+            set c.hunger to c.hunger - 5
+            if c.hunger < 0:
+                set c.hunger to 0
+            set play to ep_random_int(1 and 3)
+            if play == 1:
+                display concat("  🎾 " and concat(c.name and " chases a stick! So fast! 🏃"))
+            if play == 2:
+                display concat("  🎾 " and concat(c.name and " does a backflip! Adorable! 🤸"))
+            if play == 3:
+                display concat("  🎾 You and " and concat(c.name and " play tug-of-war! 💪"))
+
+        if pick == 3:
+            set heal to 15 + ep_random_int(5 and 10)
+            set c.health to c.health + heal
+            if c.health > c.max_health:
+                set c.health to c.max_health
+            display concat("  💤 " and concat(c.name and concat(" sleeps peacefully... recovered " and concat(int_to_string(heal) and " HP"))))
+
+        if pick == 4:
+            set c.happiness to c.happiness + 10
+            if c.happiness > 100:
+                set c.happiness to 100
+            set c.bond to c.bond + 2
+            set cuddle to ep_random_int(1 and 3)
+            if cuddle == 1:
+                display concat("  🤗 " and concat(c.name and " purrs softly against you 💕"))
+            if cuddle == 2:
+                display concat("  🤗 " and concat(c.name and " licks your face! 😆"))
+            if cuddle == 3:
+                display concat("  🤗 " and concat(c.name and " curls up in your lap 🥰"))
+
+        if pick == 5:
+            display ""
+            display "📊 ═══ YOUR STATS ═══"
+            display concat("  ❤️  Health:  " and concat(int_to_string(p.health) and concat("/" and int_to_string(p.max_health))))
+            display concat("  ⚔️  Attack:  " and int_to_string(p.attack))
+            display concat("  🛡️  Defense: " and int_to_string(p.defense))
+            display concat("  💰 Gold:    " and int_to_string(p.gold))
+            display concat("  🧪 Potions: " and int_to_string(p.potions))
+            display concat("  🔑 Keys:    " and int_to_string(p.keys))
+            display concat("  ⚔️  Weapon:  " and concat(p.weapon_name and concat(" (+" and concat(int_to_string(p.weapon_damage) and ")"))))
+            display concat("  📍 Floor:   " and int_to_string(p.floor))
+
+        if pick == 6:
+            set camping to 0
+
+    return 0
+
+# ─────────────────────────────────────────
+#  MAIN GAME
+# ─────────────────────────────────────────
+
+define main:
+    display ""
+    display "🐾 ═══════════════════════════════════════ 🐾"
+    display "       C R E A T U R E   Q U E S T"
+    display "    A Roguelite RPG with a Heart"
+    display "🐾 ═══════════════════════════════════════ 🐾"
+    display ""
+    display "  You awaken in a strange land."
+    display "  Beside you, a glowing egg pulses gently."
+    display "  It seems to respond to your warmth..."
+    display ""
+    display "  What will you name your companion? "
+
+    set name to read_line()
+    display ""
+    display concat("  You whisper \"" and concat(name and "\" to the egg. It glows brighter."))
+    display "  Together, you'll face whatever lies ahead."
+
+    # Create companion
+    set pet to create Companion:
+        name is name
+        health is 10
+        max_health is 10
+        hunger is 80
+        happiness is 70
+        bond is 0
+        stage is 0
+        xp is 0
+        level is 0
+
+    # Create player
+    set hero to create Player:
+        name is "Adventurer"
+        health is 50
+        max_health is 50
+        attack is 5
+        defense is 2
+        gold is 20
+        floor is 1
+        turns is 0
+        potions is 2
+        keys is 0
+        weapon_name is "Rusty Sword"
+        weapon_damage is 2
+
+    set legacy_runs to 0
+    set total_gold_earned to 0
+    set game_running to 1
+
+    repeat while game_running == 1:
+        # Drain hunger over time
+        set pet.hunger to pet.hunger - 3
+        if pet.hunger < 0:
+            set pet.hunger to 0
+        # Hunger affects happiness
+        if pet.hunger < 20:
+            set pet.happiness to pet.happiness - 5
+            if pet.happiness < 0:
+                set pet.happiness to 0
+
+        set hero.turns to hero.turns + 1
+
+        # Room description
+        display ""
+        display concat("📍 Floor " and concat(int_to_string(hero.floor) and concat(" — Turn " and int_to_string(hero.turns))))
+        display generate_room_text(hero.floor)
+
+        # Companion comment
+        if pet.hunger < 20 && pet.stage >= 1:
+            display concat("  " and concat(get_stage_emoji(pet.stage) and concat(" " and concat(pet.name and " whimpers... they're hungry 🍖"))))
+        if pet.happiness > 80 && pet.stage >= 1:
+            display concat("  " and concat(get_stage_emoji(pet.stage) and concat(" " and concat(pet.name and " bounces along happily!"))))
+
+        display ""
+        display "  1) ⚔️  Explore deeper"
+        display "  2) 🏕️  Make camp"
+        display "  3) 📊 Check stats"
+        display "  4) 🚪 Exit game"
+        display ""
+        display "What do you do? "
+
+        set input to read_line()
+        set pick to string_to_int(input)
+
+        if pick == 1:
+            # Boss check
+            if hero.floor % 5 == 0:
+                display ""
+                display "🔥 ════════════════════════════════════"
+                display "  THE GROUND TREMBLES..."
+                display "  A BOSS GUARDS THIS FLOOR!"
+                display "🔥 ════════════════════════════════════"
+                set boss to create_boss(hero.floor)
+                set result to run_combat(hero and pet and boss)
+
+                if result == 0:
+                    # Death
+                    display ""
+                    display "💀 ════════════════════════════════════"
+                    display "  You have fallen..."
+                    if pet.stage >= 1:
+                        display concat("  " and concat(pet.name and " nudges you gently, tears in their eyes."))
+                    display ""
+                    set legacy_runs to legacy_runs + 1
+                    set total_gold_earned to total_gold_earned + hero.gold
+                    display concat("  Runs completed: " and int_to_string(legacy_runs))
+                    display concat("  Total gold earned: " and int_to_string(total_gold_earned))
+                    display concat("  " and concat(pet.name and concat("'s bond persists: " and int_to_string(pet.bond))))
+                    display ""
+                    display "  But your companion remembers..."
+                    display "  Press ENTER to begin a new run."
+                    display "💀 ════════════════════════════════════"
+                    set wait to read_line()
+
+                    # Reset player, keep companion progress
+                    set hero.health to 50
+                    set hero.max_health to 50
+                    set hero.attack to 5
+                    set hero.defense to 2
+                    set hero.gold to 10
+                    set hero.floor to 1
+                    set hero.turns to 0
+                    set hero.potions to 1
+                    set hero.keys to 0
+                    set hero.weapon_name to "Rusty Sword"
+                    set hero.weapon_damage to 2
+
+                    # Companion keeps level, bond, stage
+                    set pet.health to pet.max_health
+                    set pet.hunger to 80
+                    set pet.happiness to 60
+
+                    display ""
+                    display "🌅 A new dawn. A new adventure."
+                    display concat("  " and concat(pet.name and " is by your side, as always."))
+                else:
+                    display ""
+                    display "🏆 The boss crumbles! The path forward opens!"
+                    set hero.floor to hero.floor + 1
+            else:
+                # Normal encounter
+                set encounter to ep_random_int(1 and 10)
+                if encounter <= 4:
+                    # Combat (40%)
+                    set monster to create_monster(hero.floor)
+                    set result to run_combat(hero and pet and monster)
+                    if result == 0:
+                        # Death
+                        display ""
+                        display "💀 ════════════════════════════════════"
+                        display "  You have fallen..."
+                        if pet.stage >= 1:
+                            display concat("  " and concat(pet.name and " nudges you gently..."))
+                        display ""
+                        set legacy_runs to legacy_runs + 1
+                        set total_gold_earned to total_gold_earned + hero.gold
+                        display concat("  Runs: " and int_to_string(legacy_runs))
+                        display concat("  Total gold: " and int_to_string(total_gold_earned))
+                        display "  Press ENTER for a new run."
+                        display "💀 ════════════════════════════════════"
+                        set wait to read_line()
+
+                        set hero.health to 50
+                        set hero.max_health to 50
+                        set hero.attack to 5
+                        set hero.defense to 2
+                        set hero.gold to 10
+                        set hero.floor to 1
+                        set hero.turns to 0
+                        set hero.potions to 1
+                        set hero.keys to 0
+                        set hero.weapon_name to "Rusty Sword"
+                        set hero.weapon_damage to 2
+                        set pet.health to pet.max_health
+                        set pet.hunger to 80
+                        set pet.happiness to 60
+
+                        display ""
+                        display "🌅 A new dawn begins..."
+                        display concat("  " and concat(pet.name and " stays by your side."))
+                    else:
+                        set hero.floor to hero.floor + 1
+
+                if encounter == 5 || encounter == 6:
+                    # Treasure (20%)
+                    set ok to encounter_treasure(hero and pet)
+                    set hero.floor to hero.floor + 1
+
+                if encounter == 7:
+                    # Rest (10%)
+                    set ok to encounter_rest(hero and pet)
+                    set hero.floor to hero.floor + 1
+
+                if encounter == 8:
+                    # NPC (10%)
+                    set ok to encounter_npc(hero and pet)
+                    set hero.floor to hero.floor + 1
+
+                if encounter == 9:
+                    # Trap (10%)
+                    set ok to encounter_trap(hero and pet)
+                    set hero.floor to hero.floor + 1
+                    if hero.health <= 0:
+                        set hero.health to 1
+                        display "  You barely survive..."
+
+                if encounter == 10:
+                    # Mystery (10%)
+                    set ok to encounter_mystery(hero and pet)
+                    set hero.floor to hero.floor + 1
+
+        if pick == 2:
+            set ok to camp_phase(hero and pet)
+
+        if pick == 3:
+            display ""
+            display "📊 ═══ YOUR STATS ═══"
+            display concat("  ❤️  Health:  " and concat(int_to_string(hero.health) and concat("/" and int_to_string(hero.max_health))))
+            display concat("  ⚔️  Attack:  " and int_to_string(hero.attack))
+            display concat("  🛡️  Defense: " and int_to_string(hero.defense))
+            display concat("  💰 Gold:    " and int_to_string(hero.gold))
+            display concat("  🧪 Potions: " and int_to_string(hero.potions))
+            display concat("  ⚔️  Weapon:  " and concat(hero.weapon_name and concat(" (+" and concat(int_to_string(hero.weapon_damage) and ")"))))
+            display concat("  📍 Floor:   " and int_to_string(hero.floor))
+            set ok to show_companion(pet)
+
+        if pick == 4:
+            display ""
+            display "👋 Thanks for playing Creature Quest!"
+            display concat("  " and concat(pet.name and " waves goodbye! 🐾"))
+            display concat("  Final bond level: " and int_to_string(pet.bond))
+            display concat("  Floors explored: " and int_to_string(hero.floor))
+            display concat("  Total runs: " and int_to_string(legacy_runs + 1))
+            set game_running to 0
+
+    return 0

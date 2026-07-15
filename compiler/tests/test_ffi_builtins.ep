@@ -1,0 +1,63 @@
+# Test: FFI pointer/byte builtins
+# Exercises: str_to_ptr, ptr_to_str, peek_byte, poke_byte,
+#            alloc_bytes, free_bytes, list_to_bytes, bytes_to_list,
+#            ep_int_to_str
+
+define main:
+    display "=== FFI Builtin Tests ==="
+
+    # Test 1: str_to_ptr / ptr_to_str round-trip
+    set original to "hello world"
+    set ptr to str_to_ptr(original)
+    set recovered to ptr_to_str(ptr)
+    display recovered
+
+    # Test 2: alloc_bytes + peek_byte + poke_byte
+    set buf to alloc_bytes(4)
+    set ok to poke_byte(buf and 0 and 72)
+    set ok to poke_byte(buf and 1 and 105)
+    set ok to poke_byte(buf and 2 and 33)
+    set ok to poke_byte(buf and 3 and 0)
+
+    set b0 to peek_byte(buf and 0)
+    set b1 to peek_byte(buf and 1)
+    set b2 to peek_byte(buf and 2)
+
+    # H=72, i=105, !=33
+    display f"bytes: {b0} {b1} {b2}"
+
+    # Read the buffer as a string via ptr_to_str
+    set msg to ptr_to_str(buf)
+    display msg
+    set ok to free_bytes(buf)
+
+    # Test 3: list_to_bytes / bytes_to_list round-trip
+    set byte_list to create_list()
+    set ok to append_list(byte_list and 65)
+    set ok to append_list(byte_list and 66)
+    set ok to append_list(byte_list and 67)
+    set ok to append_list(byte_list and 0)
+
+    set packed to list_to_bytes(byte_list)
+    set abc to ptr_to_str(packed)
+    display abc
+
+    # bytes_to_list: read back 3 bytes
+    set round_trip to bytes_to_list(packed and 3)
+    set v0 to get_list(round_trip and 0)
+    set v1 to get_list(round_trip and 1)
+    set v2 to get_list(round_trip and 2)
+    display f"round-trip: {v0} {v1} {v2}"
+    set ok to free_bytes(packed)
+
+    # Test 4: ep_int_to_str
+    set num to 42
+    set s to ep_int_to_str(num)
+    display f"ep_int_to_str(42) = {s}"
+
+    # Test 5: ptr_to_str with null returns empty string
+    set empty to ptr_to_str(0)
+    display f"ptr_to_str(0) = [{empty}]"
+
+    display "all FFI builtins working"
+    return 0

@@ -1,0 +1,64 @@
+# ErnosPlain Bridge: SQLite3
+# Auto-generated bindings for libsqlite3
+# Usage: import "stdlib/bridge/sqlite"
+# Link: ernos program.ep (auto-detects -lsqlite3)
+
+# ========== Constants ==========
+set SQLITE_OK to 0
+set SQLITE_ERROR to 1
+set SQLITE_BUSY to 5
+set SQLITE_ROW to 100
+set SQLITE_DONE to 101
+set SQLITE_INTEGER to 1
+set SQLITE_FLOAT to 2
+set SQLITE_TEXT to 3
+set SQLITE_BLOB to 4
+set SQLITE_NULL to 5
+
+# ========== Core Functions ==========
+# These use ep_dlopen/ep_dlsym/ep_dlcall for runtime binding
+
+define sqlite_open with path as Str returning Int:
+    # Opens a SQLite database. Returns handle (0 on failure).
+    set lib to ep_dlopen("libsqlite3.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libsqlite3.so")
+    if lib equals 0:
+        return 0
+    set fn_open to ep_dlsym(lib and "sqlite3_open")
+    if fn_open equals 0:
+        return 0
+    # sqlite3_open(filename, &db) — we pass filename, get db handle back
+    set db to ep_dlcall1(fn_open and path)
+    return db
+
+define sqlite_close with db as Int returning Int:
+    set lib to ep_dlopen("libsqlite3.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libsqlite3.so")
+    if lib equals 0:
+        return 1
+    set fn_close to ep_dlsym(lib and "sqlite3_close")
+    return ep_dlcall1(fn_close and db)
+
+define sqlite_exec with db as Int and sql as Str returning Int:
+    # Execute SQL statement. Returns SQLITE_OK (0) on success.
+    set lib to ep_dlopen("libsqlite3.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libsqlite3.so")
+    if lib equals 0:
+        return 1
+    set fn_exec to ep_dlsym(lib and "sqlite3_exec")
+    if fn_exec equals 0:
+        return 1
+    return ep_dlcall5(fn_exec and db and sql and 0 and 0 and 0)
+
+# ========== Convenience Functions ==========
+
+define sqlite_create_table with db as Int and table_name as Str and columns as Str returning Int:
+    set sql to concat("CREATE TABLE IF NOT EXISTS " and concat(table_name and concat(" (" and concat(columns and ");"))))
+    return sqlite_exec(db and sql)
+
+define sqlite_insert with db as Int and table_name as Str and values as Str returning Int:
+    set sql to concat("INSERT INTO " and concat(table_name and concat(" VALUES (" and concat(values and ");"))))
+    return sqlite_exec(db and sql)

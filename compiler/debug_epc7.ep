@@ -1,0 +1,11 @@
+import "ep_lexer"
+import "ep_parser"
+import "ep_codegen"
+
+define main:
+    display "A"
+    set path to get_argument(1)
+    display "B"
+    display_string(path)
+    display "C"
+    return 0

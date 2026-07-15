@@ -1,0 +1,203 @@
+# ============================================================
+# libuv Bridge for ErnosPlain
+# Async I/O, event loop, timers, TCP, filesystem
+# ============================================================
+# Usage: import "stdlib/bridge/libuv"
+# Requires: libuv installed (brew install libuv / apt install libuv1-dev)
+# ============================================================
+
+set LIBUV_HANDLE to 0
+
+# ---- Run modes ----
+set UV_RUN_DEFAULT to 0
+set UV_RUN_ONCE to 1
+set UV_RUN_NOWAIT to 2
+
+# ---- File flags ----
+set UV_FS_O_RDONLY to 0
+set UV_FS_O_WRONLY to 1
+set UV_FS_O_RDWR to 2
+set UV_FS_O_CREAT to 64
+set UV_FS_O_TRUNC to 512
+set UV_FS_O_APPEND to 1024
+
+# ---- Handle types ----
+set UV_TCP to 12
+set UV_TIMER to 13
+set UV_UDP to 15
+set UV_PIPE to 7
+
+# ============================================================
+# Library loading
+# ============================================================
+define libuv_load:
+    set LIBUV_HANDLE to ep_dlopen("libuv.dylib")
+    if LIBUV_HANDLE equals 0:
+        set LIBUV_HANDLE to ep_dlopen("libuv.1.dylib")
+    if LIBUV_HANDLE equals 0:
+        set LIBUV_HANDLE to ep_dlopen("/opt/homebrew/lib/libuv.1.dylib")
+    if LIBUV_HANDLE equals 0:
+        set LIBUV_HANDLE to ep_dlopen("/usr/local/lib/libuv.dylib")
+    if LIBUV_HANDLE equals 0:
+        set LIBUV_HANDLE to ep_dlopen("libuv.so")
+    if LIBUV_HANDLE equals 0:
+        set LIBUV_HANDLE to ep_dlopen("libuv.so.1")
+    if LIBUV_HANDLE equals 0:
+        set LIBUV_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libuv.so.1")
+    return LIBUV_HANDLE
+
+# ============================================================
+# Event Loop
+# ============================================================
+define uv_default_loop returning Int:
+    if LIBUV_HANDLE equals 0:
+        set ok to libuv_load()
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_default_loop")
+    return ep_dlcall0(fn)
+
+define uv_run with loop_v as Int and mode as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_run")
+    return ep_dlcall2(fn and loop_v and mode)
+
+define uv_loop_close with loop_v as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_loop_close")
+    return ep_dlcall1(fn and loop_v)
+
+define uv_stop with loop_v as Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_stop")
+    return ep_dlcall1(fn and loop_v)
+
+define uv_loop_alive with loop_v as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_loop_alive")
+    return ep_dlcall1(fn and loop_v)
+
+# ============================================================
+# Timer
+# ============================================================
+define uv_timer_init with loop_v as Int and timer as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_timer_init")
+    return ep_dlcall2(fn and loop_v and timer)
+
+define uv_timer_start with timer as Int and cb as Int and timeout_ms as Int and repeat_ms as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_timer_start")
+    return ep_dlcall4(fn and timer and cb and timeout_ms and repeat_ms)
+
+define uv_timer_stop with timer as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_timer_stop")
+    return ep_dlcall1(fn and timer)
+
+define uv_timer_again with timer as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_timer_again")
+    return ep_dlcall1(fn and timer)
+
+define uv_timer_set_repeat with timer as Int and repeat_ms as Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_timer_set_repeat")
+    return ep_dlcall2(fn and timer and repeat_ms)
+
+# ============================================================
+# TCP
+# ============================================================
+define uv_tcp_init with loop_v as Int and tcp as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_tcp_init")
+    return ep_dlcall2(fn and loop_v and tcp)
+
+define uv_tcp_bind with tcp as Int and addr as Int and flags as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_tcp_bind")
+    return ep_dlcall3(fn and tcp and addr and flags)
+
+define uv_listen with stream as Int and backlog as Int and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_listen")
+    return ep_dlcall3(fn and stream and backlog and cb)
+
+define uv_accept with server as Int and client as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_accept")
+    return ep_dlcall2(fn and server and client)
+
+define uv_read_start with stream as Int and alloc_cb as Int and read_cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_read_start")
+    return ep_dlcall3(fn and stream and alloc_cb and read_cb)
+
+define uv_read_stop with stream as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_read_stop")
+    return ep_dlcall1(fn and stream)
+
+define uv_close with handle as Int and close_cb as Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_close")
+    return ep_dlcall2(fn and handle and close_cb)
+
+# ============================================================
+# Filesystem (synchronous)
+# ============================================================
+define uv_fs_open with loop_v as Int and req as Int and path as Str and flags as Int and mode as Int and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_open")
+    return ep_dlcall6(fn and loop_v and req and path and flags and mode and cb)
+
+define uv_fs_close with loop_v as Int and req as Int and fd as Int and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_close")
+    return ep_dlcall4(fn and loop_v and req and fd and cb)
+
+define uv_fs_read with loop_v as Int and req as Int and fd as Int and bufs as Int and nbufs as Int and offset as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_read")
+    return ep_dlcall6(fn and loop_v and req and fd and bufs and nbufs and offset)
+
+define uv_fs_write with loop_v as Int and req as Int and fd as Int and bufs as Int and nbufs as Int and offset as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_write")
+    return ep_dlcall6(fn and loop_v and req and fd and bufs and nbufs and offset)
+
+define uv_fs_stat with loop_v as Int and req as Int and path as Str and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_stat")
+    return ep_dlcall4(fn and loop_v and req and path and cb)
+
+define uv_fs_unlink with loop_v as Int and req as Int and path as Str and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_unlink")
+    return ep_dlcall4(fn and loop_v and req and path and cb)
+
+define uv_fs_mkdir with loop_v as Int and req as Int and path as Str and mode as Int and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_mkdir")
+    return ep_dlcall5(fn and loop_v and req and path and mode and cb)
+
+define uv_fs_rmdir with loop_v as Int and req as Int and path as Str and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_rmdir")
+    return ep_dlcall4(fn and loop_v and req and path and cb)
+
+define uv_fs_rename with loop_v as Int and req as Int and path as Str and new_path as Str and cb as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_rename")
+    return ep_dlcall5(fn and loop_v and req and path and new_path and cb)
+
+define uv_fs_req_cleanup with req as Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_fs_req_cleanup")
+    return ep_dlcall1(fn and req)
+
+# ============================================================
+# Networking helpers
+# ============================================================
+define uv_ip4_addr with ip as Str and port as Int and addr as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_ip4_addr")
+    return ep_dlcall3(fn and ip and port and addr)
+
+define uv_ip6_addr with ip as Str and port as Int and addr as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_ip6_addr")
+    return ep_dlcall3(fn and ip and port and addr)
+
+define uv_strerror with err as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_strerror")
+    return ep_dlcall1(fn and err)
+
+define uv_err_name with err as Int returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_err_name")
+    return ep_dlcall1(fn and err)
+
+# ============================================================
+# Miscellaneous
+# ============================================================
+define uv_hrtime returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_hrtime")
+    return ep_dlcall0(fn)
+
+define uv_version returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_version")
+    return ep_dlcall0(fn)
+
+define uv_version_string returning Int:
+    set fn to ep_dlsym(LIBUV_HANDLE and "uv_version_string")
+    return ep_dlcall0(fn)

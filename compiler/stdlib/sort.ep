@@ -1,0 +1,125 @@
+# Ernos Sorting Standard Library
+
+# ---- Insertion Sort (stable, in-place) ----
+
+define insertion_sort with lst:
+    set len to length_list(lst)
+    set i to 1
+    repeat while i < len:
+        set key to get_list(lst and i)
+        set j to i - 1
+        repeat while j > 0 - 1:
+            set jval to get_list(lst and j)
+            if jval > key:
+                set ok to set_list(lst and j + 1 and jval)
+                set j to j - 1
+            else:
+                set j to 0 - 2
+            set j to j
+        set ok to set_list(lst and j + 1 and key)
+        set i to i + 1
+    return lst
+
+# ---- Bubble Sort ----
+
+define bubble_sort with lst:
+    set len to length_list(lst)
+    set i to 0
+    repeat while i < len:
+        set j to 0
+        set swapped to 0
+        repeat while j < len - i - 1:
+            set a to get_list(lst and j)
+            set b to get_list(lst and j + 1)
+            if a > b:
+                set ok to set_list(lst and j and b)
+                set ok to set_list(lst and j + 1 and a)
+                set swapped to 1
+            set j to j + 1
+        if swapped == 0:
+            return lst
+        set i to i + 1
+    return lst
+
+# ---- List Utilities ----
+
+define list_contains with lst and value:
+    set len to length_list(lst)
+    set i to 0
+    repeat while i < len:
+        set item to get_list(lst and i)
+        if item == value:
+            return 1
+        set i to i + 1
+    return 0
+
+define list_index_of with lst and value:
+    set len to length_list(lst)
+    set i to 0
+    repeat while i < len:
+        set item to get_list(lst and i)
+        if item == value:
+            return i
+        set i to i + 1
+    return 0 - 1
+
+define list_sum with lst:
+    set total to 0
+    set len to length_list(lst)
+    set i to 0
+    repeat while i < len:
+        set total to total + get_list(lst and i)
+        set i to i + 1
+    return total
+
+define list_max with lst:
+    set len to length_list(lst)
+    if len == 0:
+        return 0
+    set mx to get_list(lst and 0)
+    set i to 1
+    repeat while i < len:
+        set val to get_list(lst and i)
+        if val > mx:
+            set mx to val
+        set i to i + 1
+    return mx
+
+define list_min with lst:
+    set len to length_list(lst)
+    if len == 0:
+        return 0
+    set mn to get_list(lst and 0)
+    set i to 1
+    repeat while i < len:
+        set val to get_list(lst and i)
+        if val < mn:
+            set mn to val
+        set i to i + 1
+    return mn
+
+define list_reverse with lst:
+    set result to create_list()
+    set len to length_list(lst)
+    set i to len - 1
+    repeat while i > 0 - 1:
+        set ok to append_list(result and get_list(lst and i))
+        set i to i - 1
+    return result
+
+define list_copy with lst:
+    set result to create_list()
+    set len to length_list(lst)
+    set i to 0
+    repeat while i < len:
+        set ok to append_list(result and get_list(lst and i))
+        set i to i + 1
+    return result
+
+define list_slice with lst and start and end_idx:
+    set result to create_list()
+    set i to start
+    repeat while i < end_idx:
+        set ok to append_list(result and get_list(lst and i))
+        set i to i + 1
+    return result

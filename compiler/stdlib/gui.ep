@@ -1,0 +1,57 @@
+# ErnosPlain Raylib Wrapper Standard Library
+
+external define InitWindow with width and height and title
+external define WindowShouldClose
+external define BeginDrawing
+external define EndDrawing
+external define ClearBackground with color
+external define CloseWindow
+external define SetTargetFPS with fps
+external define DrawCircle with centerX and centerY and radius and color
+external define DrawText with text and posX and posY and fontSize and color
+external define DrawRectangle with posX and posY and width and height and color
+
+define gui_init_window with width and height and title:
+    return InitWindow(width and height and title)
+
+define gui_window_should_close:
+    return WindowShouldClose()
+
+define gui_begin_drawing:
+    return BeginDrawing()
+
+define gui_end_drawing:
+    return EndDrawing()
+
+define gui_clear_background with color:
+    return ClearBackground(color)
+
+define gui_close_window:
+    return CloseWindow()
+
+define gui_set_target_fps with fps:
+    return SetTargetFPS(fps)
+
+define gui_draw_circle with centerX and centerY and radius and color:
+    return DrawCircle(centerX and centerY and radius and color)
+
+define gui_draw_text with text and posX and posY and fontSize and color:
+    return DrawText(text and posX and posY and fontSize and color)
+
+define gui_draw_rectangle with posX and posY and width and height and color:
+    return DrawRectangle(posX and posY and width and height and color)
+
+define gui_color with r and g and b and a:
+    return r + (g * 256) + (b * 65536) + (a * 16777216)
+
+define gui_white:
+    return gui_color(255 and 255 and 255 and 255)
+
+define gui_black:
+    return gui_color(0 and 0 and 0 and 255)
+
+define gui_red:
+    return gui_color(230 and 41 and 55 and 255)
+
+define gui_blue:
+    return gui_color(0 and 121 and 241 and 255)

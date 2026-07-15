@@ -1,0 +1,34 @@
+# ============================================================
+# stb_truetype Bridge for ErnosPlain
+# Font Rasterization
+# ============================================================
+# Usage: import "stdlib/bridge/stb_truetype"
+# ============================================================
+
+set STB_TRUETYPE_HANDLE to 0
+
+# ---- Library loading ----
+define stb_truetype_load:
+    set STB_TRUETYPE_HANDLE to ep_dlopen("libstb_truetype.dylib")
+    if STB_TRUETYPE_HANDLE equals 0:
+        set STB_TRUETYPE_HANDLE to ep_dlopen("/usr/local/lib/libstb_truetype.dylib")
+    if STB_TRUETYPE_HANDLE equals 0:
+        set STB_TRUETYPE_HANDLE to ep_dlopen("libstb_truetype.so")
+    if STB_TRUETYPE_HANDLE equals 0:
+        set STB_TRUETYPE_HANDLE to ep_dlopen("/usr/lib/libstb_truetype.so")
+    return STB_TRUETYPE_HANDLE
+
+# ---- Init / Cleanup ----
+define stb_truetype_bridge_init returning Int:
+    if STB_TRUETYPE_HANDLE equals 0:
+        set ok to stb_truetype_load()
+    return STB_TRUETYPE_HANDLE
+
+# ---- Core Functions ----
+define stbtt_BakeFontBitmap with data as Int and offset as Int and pixel_height as Int and pixels as Int and pw as Int and ph as Int and first_char as Int and num_chars as Int and chardata as Int returning Int:
+    if STB_TRUETYPE_HANDLE equals 0:
+        set ok to stb_truetype_bridge_init()
+    set fn to ep_dlsym(STB_TRUETYPE_HANDLE and "stbtt_BakeFontBitmap")
+    if fn equals 0:
+        return 0
+    return ep_dlcall9(fn and data and offset and pixel_height and pixels and pw and ph and first_char and num_chars and chardata)

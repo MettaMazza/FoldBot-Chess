@@ -1,0 +1,243 @@
+# ============================================================================
+#  THE ONE AND THE FOLD  --  the whole theory's single axiom and two moves.
+# ============================================================================
+#
+#  WHAT THIS IS
+#  ------------
+#  The Smithian Fold Theory begins from one thing only -- the One -- and two
+#  permitted moves upon it. Everything else in the theory is built from these
+#  with nothing added. This module is that beginning, written out plainly.
+#
+#  THE DOMAIN
+#  ----------
+#  Every value in the theory lives strictly between zero and the One: it is
+#  greater than zero and at most one. Zero is not a value, and nothing ever
+#  exceeds the One -- when a calculation would push past the One, the whole
+#  Ones are cast out and only the part within the One remains.
+#
+#  THE ONE
+#  -------
+#  The One is the single axiom: the value one. It is the only thing assumed.
+#
+#  THE TWO MOVES
+#  -------------
+#     fold(value)            -- double the value and cast out the whole Ones.
+#                               This is the engine of the theory; repeating it
+#                               makes every rhythm and every count.
+#     take(larger, smaller)  -- the difference larger minus smaller. This is
+#                               the ONLY subtraction the theory permits, and
+#                               only when the larger really is the larger.
+#
+#  THE DERIVATION TRACE
+#  --------------------
+#  Every value carries, as readable text, the exact record of how it was made
+#  from the One: "ONE", or "fold(...)", or "take(..., ...)". Because a value
+#  can only be made by these moves, every value traces back to the One with
+#  nothing smuggled in. The trace can be re-checked independently -- see the
+#  module derivation_check.
+#
+#  HOW A VALUE IS STORED
+#  ---------------------
+#  A FoldValue keeps its size as an exact fraction (numerator over a positive
+#  denominator, always between zero and one) together with its derivation
+#  text. The parts are kept flat -- plain numbers and text -- because a
+#  structure cannot safely hold another structure in this language. The exact
+#  fraction is rebuilt from the parts whenever a calculation needs it.
+# ============================================================================
+
+import "exact_fractions.ep"
+import "enforcement.ep"
+
+define structure FoldValue:
+    field numerator_digits as Str
+    field denominator_digits as Str
+    field derivation as Str
+
+
+# ----------------------------------------------------------------------------
+#  The domain law
+# ----------------------------------------------------------------------------
+#  Every value of the theory lies strictly between zero and the One: greater
+#  than zero, and at most one. There is no zero, no negative value, no value
+#  that exceeds the One, and -- because every value is an exact fraction of
+#  whole numbers -- no irrational and no imaginary value can ever arise. A value
+#  that breaks the domain is not a value of the theory at all, so the engine
+#  halts rather than carry it. This guard runs on every value as it is made.
+define require_in_domain with size as Fraction returning Int:
+    if size.numerator_sign == 0:
+        return halt_violation("a value was zero; the domain has no zero")
+    if size.numerator_sign < 0:
+        return halt_violation("a value was negative; the domain is the One's interval, greater than zero and at most one")
+    set one to fraction_from_whole_number(1)
+    set order to fraction_compare(size and one)
+    if order > 0:
+        return halt_violation("a value exceeded the One; the domain is greater than zero and at most one")
+    return 1
+
+
+# ----------------------------------------------------------------------------
+#  Moving between a FoldValue and its exact fraction
+# ----------------------------------------------------------------------------
+
+# The size of a FoldValue as an exact Fraction (always positive in this domain).
+define fold_value_size with value as FoldValue returning Fraction:
+    set numerator to exact_integer_from_sign_and_digits(1 and value.numerator_digits)
+    set denominator to exact_integer_from_sign_and_digits(1 and value.denominator_digits)
+    return fraction_make(numerator and denominator)
+
+
+# Wrap an exact fraction together with its derivation text into a FoldValue,
+# enforcing the domain law: no zero, no negative, nothing past the One.
+define fold_value_from_size with size as Fraction and derivation as Str returning FoldValue:
+    set checked to require_in_domain(size)
+    set value to create FoldValue:
+        numerator_digits is size.numerator_digits
+        denominator_digits is size.denominator_digits
+        derivation is derivation
+    return value
+
+
+# ----------------------------------------------------------------------------
+#  The One, and injected starting values
+# ----------------------------------------------------------------------------
+
+# The One: the single axiom of the theory, the value one, deriving from itself.
+define the_one returning FoldValue:
+    set one_size to fraction_from_whole_number(1)
+    return fold_value_from_size(one_size and "ONE")
+
+
+# A starting value offered to the theory as a question, written top over
+# bottom, for studying how the fold carries it. Its derivation records that it
+# was supposed rather than derived, so a checker can hold it to the orbit test.
+define supposed_value with top as Int and bottom as Int returning FoldValue:
+    set size to fraction_from_ratio(top and bottom)
+    set label to concat(concat("supposed(" and fraction_to_text(size)) and ")")
+    return fold_value_from_size(size and label)
+
+
+# ----------------------------------------------------------------------------
+#  Casting out the whole Ones
+# ----------------------------------------------------------------------------
+
+# Bring a positive size back inside the domain by removing whole Ones:
+# the part left after taking away as many whole Ones as possible, except that
+# a result of exactly zero is reported as the One itself (the domain has no
+# zero, and a full turn returns to the One).
+define cast_out_whole_ones with size as Fraction returning Fraction:
+    set numerator to fraction_numerator(size)
+    set denominator to fraction_denominator(size)
+    set whole_count to exact_integer_divide(numerator and denominator)
+    set whole_integer to exact_integer_from_sign_and_digits(1 and whole_count.quotient_digits)
+    set one_integer to exact_integer_one()
+    set whole_part to fraction_make(whole_integer and one_integer)
+    set remainder to fraction_subtract(size and whole_part)
+    if remainder.numerator_sign == 0:
+        return fraction_from_whole_number(1)
+    return remainder
+
+
+# ----------------------------------------------------------------------------
+#  The two permitted moves
+# ----------------------------------------------------------------------------
+
+# fold: double the value and cast out the whole Ones. The engine of the theory.
+define fold with value as FoldValue returning FoldValue:
+    set size to fold_value_size(value)
+    set size_again to fold_value_size(value)
+    set doubled to fraction_add(size and size_again)
+    set folded_size to cast_out_whole_ones(doubled)
+    set trace to concat(concat("fold(" and value.derivation) and ")")
+    return fold_value_from_size(folded_size and trace)
+
+
+# Whether a take is permitted: the larger must be strictly greater.
+define can_take with larger as FoldValue and smaller as FoldValue returning Bool:
+    set larger_size to fold_value_size(larger)
+    set smaller_size to fold_value_size(smaller)
+    return fraction_compare(larger_size and smaller_size) > 0
+
+
+# take: the difference larger minus smaller. The only permitted subtraction,
+# and only when the larger is strictly greater (the checker re-enforces this).
+define take with larger as FoldValue and smaller as FoldValue returning FoldValue:
+    set larger_size to fold_value_size(larger)
+    set smaller_size to fold_value_size(smaller)
+    set difference to fraction_subtract(larger_size and smaller_size)
+    set trace to concat(concat(concat(concat("take(" and larger.derivation) and ", ") and smaller.derivation) and ")")
+    return fold_value_from_size(difference and trace)
+
+
+# ----------------------------------------------------------------------------
+#  Comparing values
+# ----------------------------------------------------------------------------
+
+define fold_value_compare with first as FoldValue and second as FoldValue returning Int:
+    set first_size to fold_value_size(first)
+    set second_size to fold_value_size(second)
+    return fraction_compare(first_size and second_size)
+
+define fold_value_is_equal with first as FoldValue and second as FoldValue returning Bool:
+    return fold_value_compare(first and second) == 0
+
+# The size of a FoldValue as readable text, top over bottom.
+define fold_value_to_text with value as FoldValue returning Str:
+    return fraction_to_text(fold_value_size(value))
+
+
+# ----------------------------------------------------------------------------
+#  Rhythms made by the fold
+# ----------------------------------------------------------------------------
+
+# The period of a value under the fold: how many folds it takes to return to
+# itself. Returns zero if it has not returned within the given limit (such a
+# value is pre-periodic rather than periodic).
+define fold_period with start as FoldValue and limit as Int returning Int:
+    set current to fold(start)
+    set count to 1
+    repeat while count <= limit:
+        if fold_value_is_equal(current and start):
+            return count
+        set current to fold(current)
+        set count to count + 1
+    return 0
+
+
+# ----------------------------------------------------------------------------
+#  Turning on the circle of the One
+# ----------------------------------------------------------------------------
+
+# Advance a phase by a fixed step around the circle of the One: add the step
+# and cast out any whole One that completing a turn would produce.
+define rotate with phase as FoldValue and step as FoldValue returning FoldValue:
+    set phase_size to fold_value_size(phase)
+    set step_size to fold_value_size(step)
+    set sum to fraction_add(phase_size and step_size)
+    set advanced to cast_out_whole_ones(sum)
+    set trace to concat(concat(concat(concat("rotate(" and phase.derivation) and ", ") and step.derivation) and ")")
+    return fold_value_from_size(advanced and trace)
+
+
+# The phase of one value seen from another on the circle of the One. Seen from
+# the One itself, a phase is unchanged; otherwise it is turned by the gap
+# between the One and the vantage point.
+define relative_phase with seen as FoldValue and vantage as FoldValue returning FoldValue:
+    set vantage_size to fold_value_size(vantage)
+    set one to fraction_from_whole_number(1)
+    if fraction_is_equal(vantage_size and one):
+        return seen
+    set the_one_value to the_one()
+    set gap to take(the_one_value and vantage)
+    return rotate(seen and gap)
+
+
+# The beat between two rhythms: the size of the gap between them, taken in the
+# right order so the subtraction is always permitted. Two identical rhythms
+# beat at the One (a full, silent period).
+define beat_between with first as FoldValue and second as FoldValue returning FoldValue:
+    set order to fold_value_compare(first and second)
+    if order == 0:
+        return the_one()
+    if order > 0:
+        return take(first and second)
+    return take(second and first)

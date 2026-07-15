@@ -1,0 +1,22 @@
+=== Phase 2: List int support ===
+Scores: 100, 85, 42
+
+=== Phase 3: Map string values ===
+Model: llama3.2
+Port: 11434
+
+=== Phase 4: String check/match ===
+  -> Flame Breath: 15 damage
+
+=== Phase 5: F-string nesting ===
+Model from map: llama3.2
+
+=== Phase 6: List literals ===
+  Fruit: apple
+  Fruit: banana
+  Fruit: cherry
+  Count: 3
+  Sum: 100
+  Empty list length: 0
+
+All phases working!

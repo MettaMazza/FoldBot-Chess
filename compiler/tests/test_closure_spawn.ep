@@ -1,0 +1,14 @@
+define producer with ch:
+    send 1 to ch
+    return 0
+
+define main:
+    set quad to given x:
+        return x * 4
+    display quad(5)
+
+    set ch to create_channel()
+    spawn producer(ch)
+    set v to receive from ch
+    display v
+    return 0

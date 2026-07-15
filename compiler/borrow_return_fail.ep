@@ -1,0 +1,6 @@
+define get_ref:
+    set a to create_list()
+    return borrow a # should fail because reference target is local
+
+define main:
+    return 0

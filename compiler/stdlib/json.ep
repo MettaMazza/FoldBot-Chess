@@ -1,0 +1,471 @@
+import "string"
+
+# ErnosPlain JSON Standard Library
+
+# JSON Node representation:
+# Integer: list [1, value]
+# String: list [2, value]
+# List: list [3, list_of_nodes]
+# Object: list [4, keys_list, values_list]
+
+define create_json_int with val:
+    set node to create_list()
+    set ok to append_list(node and 1)
+    set ok to append_list(node and val)
+    return node
+
+define create_json_string with val:
+    set node to create_list()
+    set ok to append_list(node and 2)
+    set ok to append_list(node and val)
+    return node
+
+define create_json_list with val:
+    set node to create_list()
+    set ok to append_list(node and 3)
+    set ok to append_list(node and val)
+    return node
+
+define create_json_object with keys and values:
+    set node to create_list()
+    set ok to append_list(node and 4)
+    set ok to append_list(node and keys)
+    set ok to append_list(node and values)
+    return node
+
+define get_json_type with node:
+    if node == 0:
+        return 0
+    return get_list(node and 0)
+
+define get_json_value with node:
+    if node == 0:
+        return 0
+    return get_list(node and 1)
+
+define get_json_object_value with node and key:
+    if node == 0:
+        return 0
+    set t to get_json_type(node)
+    if t != 4:
+        return 0
+    set keys to get_list(node and 1)
+    set values to get_list(node and 2)
+    set len to length_list(keys)
+    set idx to 0
+    repeat while idx < len:
+        set k to get_list(keys and idx)
+        if concat(key and "") equals k:
+            return get_list(values and idx)
+        set idx to idx + 1
+    return 0
+
+# Escape a raw string for embedding in JSON output (quotes, backslash, control chars).
+define json_escape_string with str_val:
+    set out to create_builder()
+    set len to string_length(str_val)
+    set i to 0
+    repeat while i < len:
+        set ch to get_character(str_val and i)
+        if ch == 34:
+            set ok to builder_append(out and "\\\"")
+        else if ch == 92:
+            set ok to builder_append(out and "\\\\")
+        else if ch == 10:
+            set ok to builder_append(out and "\\n")
+        else if ch == 13:
+            set ok to builder_append(out and "\\r")
+        else if ch == 9:
+            set ok to builder_append(out and "\\t")
+        else:
+            set ok to builder_append(out and substring(str_val and i and 1))
+        set i to i + 1
+    return builder_to_string(out)
+
+define json_stringify with node:
+    set type to get_json_type(node)
+    if type == 1:
+        # Integer
+        set int_val to get_list(node and 1)
+        return int_to_string(int_val)
+    if type == 2:
+        # String
+        set str_val to get_list(node and 1)
+        set escaped to json_escape_string(str_val)
+        set s1 to concat("\"" and escaped)
+        return concat(s1 and "\"")
+    if type == 3:
+        # List
+        set list_items to get_list(node and 1)
+        set len to length_list(list_items)
+        set res to "["
+        set idx to 0
+        repeat while idx < len:
+            set item to get_list(list_items and idx)
+            set item_str to json_stringify(item)
+            set res to concat(res and item_str)
+            if idx is less than (len - 1):
+                set res to concat(res and ",")
+            set idx to idx + 1
+        return concat(res and "]")
+    if type == 4:
+        # Object
+        set keys to get_list(node and 1)
+        set values to get_list(node and 2)
+        set len to length_list(keys)
+        set res to "{"
+        set idx to 0
+        repeat while idx < len:
+            set k to get_list(keys and idx)
+            set v to get_list(values and idx)
+            set v_str to json_stringify(v)
+            set k_esc to json_escape_string(k)
+            set k_quoted to concat("\"" and k_esc)
+            set k_quoted to concat(k_quoted and "\":")
+            set res to concat(res and k_quoted)
+            set res to concat(res and v_str)
+            if idx is less than (len - 1):
+                set res to concat(res and ",")
+            set idx to idx + 1
+        return concat(res and "}")
+    return "null"
+
+define json_skip_whitespace with state:
+    set s to get_list(state and 0)
+    set len to get_list(state and 1)
+    set pos to get_list(state and 2)
+    set loop to 1
+    repeat while pos is less than len && loop == 1:
+        set ch to get_character(s and pos)
+        if ch == 32 || ch == 9 || ch == 10 || ch == 13:
+            set pos to pos + 1
+        else:
+            set loop to 0
+    set ok to set_list(state and 2 and pos)
+    return 0
+
+# Hex digit -> value (0..15), or -1 if not a hex digit.
+define json_hex_val with c:
+    if c >= 48 and also c <= 57:
+        return c - 48
+    if c >= 97 and also c <= 102:
+        return c - 87
+    if c >= 65 and also c <= 70:
+        return c - 55
+    return -1
+
+# Decode exactly 4 hex digits at s[p..p+3] into a 16-bit value, or -1 if any are
+# missing/invalid.
+define json_parse_hex4 with s and p and len:
+    if p + 3 >= len:
+        return -1
+    set h0 to json_hex_val(get_character(s and p))
+    set h1 to json_hex_val(get_character(s and p + 1))
+    set h2 to json_hex_val(get_character(s and p + 2))
+    set h3 to json_hex_val(get_character(s and p + 3))
+    if h0 < 0 or else h1 < 0 or else h2 < 0 or else h3 < 0:
+        return -1
+    return ((h0 * 4096) + (h1 * 256)) + ((h2 * 16) + h3)
+
+# Append a Unicode code point to the byte list as UTF-8 (1..4 bytes). Uses integer
+# division for the shifts/masks (no % operator in EP).
+define json_append_utf8 with lst and cp:
+    if cp < 128:
+        set ok to append_list(lst and cp)
+    else if cp < 2048:
+        set ok to append_list(lst and (192 + (cp / 64)))
+        set ok to append_list(lst and (128 + (cp - ((cp / 64) * 64))))
+    else if cp < 65536:
+        set ok to append_list(lst and (224 + (cp / 4096)))
+        set r2 to cp - ((cp / 4096) * 4096)
+        set ok to append_list(lst and (128 + (r2 / 64)))
+        set ok to append_list(lst and (128 + (r2 - ((r2 / 64) * 64))))
+    else:
+        set ok to append_list(lst and (240 + (cp / 262144)))
+        set r3 to cp - ((cp / 262144) * 262144)
+        set ok to append_list(lst and (128 + (r3 / 4096)))
+        set r3 to r3 - ((r3 / 4096) * 4096)
+        set ok to append_list(lst and (128 + (r3 / 64)))
+        set ok to append_list(lst and (128 + (r3 - ((r3 / 64) * 64))))
+    return 0
+
+define json_parse_string with state:
+    set s to get_list(state and 0)
+    set len to get_list(state and 1)
+    set pos to get_list(state and 2)
+    set pos to pos + 1
+    set lst to create_list()
+    set loop to 1
+    repeat while pos is less than len && loop == 1:
+        set ch to get_character(s and pos)
+        if ch == 34:
+            set pos to pos + 1
+            set loop to 0
+        else:
+            if ch == 92:
+                set pos to pos + 1
+                if pos is less than len:
+                    set esc to get_character(s and pos)
+                    if esc == 110:
+                        set ok to append_list(lst and 10)
+                        set pos to pos + 1
+                    else if esc == 116:
+                        set ok to append_list(lst and 9)
+                        set pos to pos + 1
+                    else if esc == 114:
+                        set ok to append_list(lst and 13)
+                        set pos to pos + 1
+                    else if esc == 98:
+                        set ok to append_list(lst and 8)
+                        set pos to pos + 1
+                    else if esc == 102:
+                        set ok to append_list(lst and 12)
+                        set pos to pos + 1
+                    else if esc == 117:
+                        # \uXXXX — decode the 4 hex digits to a code point. Without
+                        # this, e.g. "&" (&) and ">" (>) leak through as the
+                        # literal text "u0026"/"u003e", corrupting any decoded command.
+                        set cp to json_parse_hex4(s and pos + 1 and len)
+                        if cp < 0:
+                            # Malformed escape — keep the 'u' literally, lose nothing.
+                            set ok to append_list(lst and esc)
+                            set pos to pos + 1
+                        else:
+                            set pos to pos + 5
+                            # UTF-16 surrogate pair: high (D800..DBFF) + low (DC00..DFFF).
+                            if cp >= 55296 and also cp <= 56319:
+                                if pos + 1 < len:
+                                    if get_character(s and pos) == 92 and also get_character(s and pos + 1) == 117:
+                                        set lo to json_parse_hex4(s and pos + 2 and len)
+                                        if lo >= 56320 and also lo <= 57343:
+                                            set cp to 65536 + (((cp - 55296) * 1024) + (lo - 56320))
+                                            set pos to pos + 6
+                            set ok to json_append_utf8(lst and cp)
+                    else:
+                        set ok to append_list(lst and esc)
+                        set pos to pos + 1
+            else:
+                set ok to append_list(lst and ch)
+                set pos to pos + 1
+    set ok to set_list(state and 2 and pos)
+    set val to string_from_list(lst)
+    return create_json_string(val)
+
+define json_parse_number with state:
+    set s to get_list(state and 0)
+    set len to get_list(state and 1)
+    set pos to get_list(state and 2)
+    if pos >= len:
+        return create_json_int(0)
+    set is_neg to 0
+    set ch to get_character(s and pos)
+    if ch == 45:
+        set is_neg to 1
+        set pos to pos + 1
+    set val to 0
+    set loop to 1
+    repeat while pos is less than len && loop == 1:
+        set ch to get_character(s and pos)
+        if ch > 47 && ch < 58:
+            # Clamp accumulation to avoid signed 64-bit overflow/wraparound on
+            # absurdly long numbers (922337203685477580 = INT64_MAX / 10). Extra
+            # digits are still consumed so the cursor advances past the token.
+            if val < 922337203685477580:
+                set val to val * 10
+                set val to val + (ch - 48)
+            set pos to pos + 1
+        else:
+            set loop to 0
+    if is_neg == 1:
+        set val to 0 - val
+    # Skip decimal fraction part if present
+    if pos is less than len:
+        set ch to get_character(s and pos)
+        if ch == 46:
+            set pos to pos + 1
+            set loop to 1
+            repeat while pos is less than len && loop == 1:
+                set ch to get_character(s and pos)
+                if ch > 47 && ch < 58:
+                    set pos to pos + 1
+                else:
+                    set loop to 0
+    # Skip exponent part if present (e.g. 1.5e3, 2E-4) so the cursor advances
+    # past the whole number token even though the value stays integer.
+    if pos is less than len:
+        set ch to get_character(s and pos)
+        if ch == 101 || ch == 69:
+            set pos to pos + 1
+            if pos is less than len:
+                set ch to get_character(s and pos)
+                if ch == 43 || ch == 45:
+                    set pos to pos + 1
+            set loop to 1
+            repeat while pos is less than len && loop == 1:
+                set ch to get_character(s and pos)
+                if ch > 47 && ch < 58:
+                    set pos to pos + 1
+                else:
+                    set loop to 0
+    set ok to set_list(state and 2 and pos)
+    return create_json_int(val)
+
+define json_parse_value with state:
+    set ok to json_skip_whitespace(state)
+    set s to get_list(state and 0)
+    set len to get_list(state and 1)
+    set pos to get_list(state and 2)
+    if pos > len - 1:
+        return 0
+
+    # Recursion depth check
+    set depth to get_list(state and 3)
+    if depth > 100:
+        return 0
+    set ok to set_list(state and 3 and depth + 1)
+
+    set ch to get_character(s and pos)
+    set ret_node to 0
+    if ch == 123:
+        set ret_node to json_parse_object(state)
+    else if ch == 91:
+        set ret_node to json_parse_list(state)
+    else if ch == 34:
+        set ret_node to json_parse_string(state)
+    else if (ch > 47 && ch < 58) || ch == 45:
+        set ret_node to json_parse_number(state)
+    else if ch == 110: # 'n' for null
+        if pos + 4 <= len:
+            set lit to substring(s and pos and 4)
+            if string_equals(lit and "null"):
+                set pos to pos + 4
+                set ok to set_list(state and 2 and pos)
+        set ret_node to 0
+    else if ch == 116: # 't' for true
+        if pos + 4 <= len:
+            set lit to substring(s and pos and 4)
+            if string_equals(lit and "true"):
+                set pos to pos + 4
+                set ok to set_list(state and 2 and pos)
+                set ret_node to create_json_int(1)
+    else if ch == 102: # 'f' for false
+        if pos + 5 <= len:
+            set lit to substring(s and pos and 5)
+            if string_equals(lit and "false"):
+                set pos to pos + 5
+                set ok to set_list(state and 2 and pos)
+                set ret_node to create_json_int(0)
+
+    set ok to set_list(state and 3 and depth)
+    return ret_node
+
+define json_parse_object with state:
+    set s to get_list(state and 0)
+    set len to get_list(state and 1)
+    set pos to get_list(state and 2)
+    set pos to pos + 1
+    set ok to set_list(state and 2 and pos)
+    set keys to create_list()
+    set values to create_list()
+    set count to 0
+    set loop to 1
+    repeat while loop == 1:
+        set ok to json_skip_whitespace(state)
+        set pos to get_list(state and 2)
+        if pos > len - 1:
+            set loop to 0
+        else:
+            set ch to get_character(s and pos)
+            if ch == 125:
+                set pos to pos + 1
+                set ok to set_list(state and 2 and pos)
+                set loop to 0
+            else:
+                set key_node to json_parse_string(state)
+                set key_val to get_json_value(key_node)
+                set ok to json_skip_whitespace(state)
+                set pos to get_list(state and 2)
+                if pos > len - 1:
+                    set loop to 0
+                else:
+                    set ch to get_character(s and pos)
+                    if ch == 58:
+                        set pos to pos + 1
+                        set ok to set_list(state and 2 and pos)
+                    set val_node to json_parse_value(state)
+                    set ok to append_list(keys and key_val)
+                    set ok to append_list(values and val_node)
+                    # Cap object size to bound memory on hostile input.
+                    set count to count + 1
+                    if count >= 1000000:
+                        set loop to 0
+                    set ok to json_skip_whitespace(state)
+                    set pos to get_list(state and 2)
+                    if pos > len - 1:
+                        set loop to 0
+                    else:
+                        set ch to get_character(s and pos)
+                        if ch == 44:
+                            set pos to pos + 1
+                            set ok to set_list(state and 2 and pos)
+                        else:
+                            if ch == 125:
+                                set pos to pos + 1
+                                set ok to set_list(state and 2 and pos)
+                                set loop to 0
+                            else:
+                                set loop to 0
+    return create_json_object(keys and values)
+
+define json_parse_list with state:
+    set s to get_list(state and 0)
+    set len to get_list(state and 1)
+    set pos to get_list(state and 2)
+    set pos to pos + 1
+    set ok to set_list(state and 2 and pos)
+    set items to create_list()
+    set count to 0
+    set loop to 1
+    repeat while loop == 1:
+        set ok to json_skip_whitespace(state)
+        set pos to get_list(state and 2)
+        if pos > len - 1:
+            set loop to 0
+        else:
+            set ch to get_character(s and pos)
+            if ch == 93:
+                set pos to pos + 1
+                set ok to set_list(state and 2 and pos)
+                set loop to 0
+            else:
+                set item_node to json_parse_value(state)
+                set ok to append_list(items and item_node)
+                # Cap array size to bound memory on hostile input.
+                set count to count + 1
+                if count >= 1000000:
+                    set loop to 0
+                set ok to json_skip_whitespace(state)
+                set pos to get_list(state and 2)
+                if pos > len - 1:
+                    set loop to 0
+                else:
+                    set ch to get_character(s and pos)
+                    if ch == 44:
+                        set pos to pos + 1
+                        set ok to set_list(state and 2 and pos)
+                    else:
+                        if ch == 93:
+                            set pos to pos + 1
+                            set ok to set_list(state and 2 and pos)
+                            set loop to 0
+                        else:
+                            set loop to 0
+    return create_json_list(items)
+
+define json_parse with json_str:
+    set state to create_list()
+    set ok to append_list(state and json_str)
+    set ok to append_list(state and string_length(json_str))
+    set ok to append_list(state and 0)
+    set ok to append_list(state and 0)
+    return json_parse_value(state)

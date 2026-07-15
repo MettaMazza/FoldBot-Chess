@@ -1,0 +1,40 @@
+# Test: Methods on enum types
+define choice Shape:
+    variant Circle with radius as Int
+    variant Square with side as Int
+
+define area on Shape returning Int:
+    check self:
+        if Circle with radius:
+            return radius * radius * 3
+        if Square with side:
+            return side * side
+    return 0
+
+define describe on Shape returning Int:
+    check self:
+        if Circle with radius:
+            display radius
+            return 1
+        if Square with side:
+            display side
+            return 2
+    return 0
+
+define main:
+    set c to Circle with 5
+    set s to Square with 4
+
+    set a1 to c.area()
+    display a1
+
+    set a2 to s.area()
+    display a2
+
+    set d1 to c.describe()
+    display d1
+
+    set d2 to s.describe()
+    display d2
+
+    return 0

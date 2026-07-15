@@ -1,0 +1,28 @@
+import "../stdlib/sql.ep"
+
+define main:
+    set db to sql_open(":memory:")
+    if db == 0:
+        display "FAIL: could not open db"
+        return 1
+
+    display "db_opened"
+
+    set ok to sql_execute(db and "CREATE TABLE test (id INTEGER, name TEXT)")
+    if ok == 0:
+        display "table_created"
+
+    set ok to sql_execute(db and "INSERT INTO test VALUES (1, 'hello')")
+    set ok to sql_execute(db and "INSERT INTO test VALUES (2, 'world')")
+    if ok == 0:
+        display "rows_inserted"
+
+    set rows to sql_query(db and "SELECT * FROM test")
+    set num to length_list(rows)
+    display num
+
+    set ok to sql_close(db)
+    if ok == 0:
+        display "db_closed"
+
+    return 0

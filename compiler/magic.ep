@@ -1,0 +1,36 @@
+define main:
+    display "=== ErnosPlain Magic Score Predictor ==="
+    
+    set initial_value to 20
+    set modifier to 5
+    
+    display "Starting with value:"
+    display initial_value
+    
+    display "Using modifier:"
+    display modifier
+    
+    # Test operator precedence: 20 + 5 * 10 - 30 = 20 + 50 - 30 = 40
+    set predicted_key to initial_value plus modifier multiplied by 10 minus 30
+    
+    display "Math check (should be 40):"
+    display predicted_key
+    
+    # Call a custom function with arguments separated by 'and'
+    set final_score to calculate_score(initial_value and modifier)
+    
+    display "Calculated magic score:"
+    display final_score
+    
+    # Run conditional branches
+    if final_score is greater than 100:
+        display "Result: JACKPOT! You have unlocked the mystery!"
+    else:
+        display "Result: Try again with larger parameters."
+        
+    return 0
+
+define calculate_score with base and factor:
+    set intermediate to base multiplied by factor
+    set result to intermediate plus 50
+    return result

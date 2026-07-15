@@ -1,0 +1,4 @@
+define main:
+    set a to create_list()
+    set b to a
+    display a

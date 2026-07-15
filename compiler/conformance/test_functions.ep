@@ -1,0 +1,35 @@
+# Conformance Test: Functions and Types
+define add with a as Int and b as Int returning Int:
+    return a + b
+
+define greet with name as Str returning Int:
+    display concat("Hello, " and name)
+    return 0
+
+define factorial with n:
+    if n < 2:
+        return 1
+    return n * factorial(n - 1)
+
+define fib with n:
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+define main:
+    # Typed function call
+    set result to add(10 and 20)
+    display result
+    
+    # String function
+    set ok to greet("ErnosPlain")
+    
+    # Recursion
+    set f5 to factorial(5)
+    display f5
+    
+    # Fibonacci
+    set f10 to fib(10)
+    display f10
+    
+    return 0

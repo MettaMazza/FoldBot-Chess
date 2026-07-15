@@ -1,0 +1,120 @@
+# ErnosPlain OpenSSL Cryptography Wrapper Standard Library
+
+import "string"
+
+external define SHA256 with data and len and hash_dest
+external define MD5 with data and len and hash_dest
+external define get_list_data_ptr with list
+
+define byte_to_hex with b:
+    set val to b
+    if val < 0:
+        set val to val + 256
+    set h1 to val / 16
+    set h2 to val - (h1 * 16)
+    set char1 to 0
+    if h1 < 10:
+        set char1 to h1 + 48
+    else:
+        set char1 to h1 + 87
+    set char2 to 0
+    if h2 < 10:
+        set char2 to h2 + 48
+    else:
+        set char2 to h2 + 87
+        
+    set lst to create_list()
+    set ok to append_list(lst and char1)
+    set ok to append_list(lst and char2)
+    return string_from_list(lst)
+
+define get_byte with val and idx:
+    set temp to val
+    set count to idx
+    repeat while count > 0:
+        set temp to temp / 256
+        set count to count - 1
+    return temp - (temp / 256 * 256)
+
+define crypto_sha256 with s:
+    set len to string_length(s)
+    set hash_list to create_list()
+    set ok to append_list(hash_list and 0)
+    set ok to append_list(hash_list and 0)
+    set ok to append_list(hash_list and 0)
+    set ok to append_list(hash_list and 0)
+    
+    set hash_ptr to get_list_data_ptr(hash_list)
+    set dummy to SHA256(str_to_ptr(s) and len and hash_ptr)
+    
+    set hex_res to ""
+    set word_idx to 0
+    repeat while word_idx < 4:
+        set val to get_list(hash_list and word_idx)
+        set byte_idx to 0
+        repeat while byte_idx < 8:
+            set b to get_byte(val and byte_idx)
+            set hex_res to concat(hex_res and byte_to_hex(b))
+            set byte_idx to byte_idx + 1
+        set word_idx to word_idx + 1
+    return hex_res
+
+define crypto_md5 with s:
+    set len to string_length(s)
+    set hash_list to create_list()
+    set ok to append_list(hash_list and 0)
+    set ok to append_list(hash_list and 0)
+    
+    set hash_ptr to get_list_data_ptr(hash_list)
+    set dummy to MD5(str_to_ptr(s) and len and hash_ptr)
+    
+    set hex_res to ""
+    set word_idx to 0
+    repeat while word_idx < 2:
+        set val to get_list(hash_list and word_idx)
+        set byte_idx to 0
+        repeat while byte_idx < 8:
+            set b to get_byte(val and byte_idx)
+            set hex_res to concat(hex_res and byte_to_hex(b))
+            set byte_idx to byte_idx + 1
+        set word_idx to word_idx + 1
+    return hex_res
+
+# ---- Base64 ----
+
+external define ep_base64_encode with data:
+
+define base64_encode with data:
+    return ep_base64_encode(data)
+
+# ---- UUID ----
+
+external define ep_uuid_v4:
+
+define uuid_v4:
+    return ep_uuid_v4()
+
+# ---- Random ----
+
+external define ep_random_int with min and max:
+
+define random_int with min and max:
+    return ep_random_int(min and max)
+
+define random_bytes with count:
+    set result to create_list()
+    set i to 0
+    repeat while i < count:
+        set byte to random_int(0 and 255)
+        set ok to append_list(result and byte)
+        set i to i + 1
+    return result
+
+# ---- HMAC-SHA256 (RFC 2104) ----
+
+external define ep_hmac_sha256 with key_ptr and key_len and msg_ptr and msg_len
+
+# Proper keyed-hash MAC: H((K0 ^ opad) || H((K0 ^ ipad) || message)), computed
+# in the C runtime over raw bytes (binary safe). Returns a 64-char hex string.
+define hmac_sha256 with key and data:
+    return ep_hmac_sha256(str_to_ptr(key) and string_length(key) and str_to_ptr(data) and string_length(data))

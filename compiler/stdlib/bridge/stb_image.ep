@@ -1,0 +1,79 @@
+# ============================================================
+# stb_image Bridge for ErnosPlain
+# Simple image loading/writing (single-header library)
+# ============================================================
+# Usage: import "stdlib/bridge/stb_image"
+# Requires: stb_image compiled as shared library
+# ============================================================
+
+set STB_IMAGE_HANDLE to 0
+
+# ---- Channel constants ----
+set STBI_DEFAULT to 0
+set STBI_GREY to 1
+set STBI_GREY_ALPHA to 2
+set STBI_RGB to 3
+set STBI_RGB_ALPHA to 4
+
+# ============================================================
+# Library loading
+# ============================================================
+define stb_image_load_lib:
+    set STB_IMAGE_HANDLE to ep_dlopen("libstb_image.dylib")
+    if STB_IMAGE_HANDLE equals 0:
+        set STB_IMAGE_HANDLE to ep_dlopen("/usr/local/lib/libstb_image.dylib")
+    if STB_IMAGE_HANDLE equals 0:
+        set STB_IMAGE_HANDLE to ep_dlopen("/opt/homebrew/lib/libstb_image.dylib")
+    if STB_IMAGE_HANDLE equals 0:
+        set STB_IMAGE_HANDLE to ep_dlopen("libstb_image.so")
+    if STB_IMAGE_HANDLE equals 0:
+        set STB_IMAGE_HANDLE to ep_dlopen("/usr/local/lib/libstb_image.so")
+    return STB_IMAGE_HANDLE
+
+# ============================================================
+# Image loading
+# ============================================================
+define stbi_load with path as Str and w_ptr as Int and h_ptr as Int and ch_ptr as Int and desired_ch as Int returning Int:
+    if STB_IMAGE_HANDLE equals 0:
+        set ok to stb_image_load_lib()
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_load")
+    return ep_dlcall5(fn and path and w_ptr and h_ptr and ch_ptr and desired_ch)
+
+define stbi_load_from_memory with data as Int and len as Int and w_ptr as Int and h_ptr as Int and ch_ptr as Int and desired_ch as Int returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_load_from_memory")
+    return ep_dlcall6(fn and data and len and w_ptr and h_ptr and ch_ptr and desired_ch)
+
+define stbi_image_free with data as Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_image_free")
+    return ep_dlcall1(fn and data)
+
+define stbi_info with path as Str and w_ptr as Int and h_ptr as Int and ch_ptr as Int returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_info")
+    return ep_dlcall4(fn and path and w_ptr and h_ptr and ch_ptr)
+
+define stbi_set_flip_vertically_on_load with flag as Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_set_flip_vertically_on_load")
+    return ep_dlcall1(fn and flag)
+
+define stbi_failure_reason returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_failure_reason")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Image writing (stb_image_write)
+# ============================================================
+define stbi_write_png with path as Str and w as Int and h as Int and channels as Int and data as Int and stride as Int returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_write_png")
+    return ep_dlcall6(fn and path and w and h and channels and data and stride)
+
+define stbi_write_jpg with path as Str and w as Int and h as Int and channels as Int and data as Int and quality as Int returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_write_jpg")
+    return ep_dlcall6(fn and path and w and h and channels and data and quality)
+
+define stbi_write_bmp with path as Str and w as Int and h as Int and channels as Int and data as Int returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_write_bmp")
+    return ep_dlcall5(fn and path and w and h and channels and data)
+
+define stbi_write_tga with path as Str and w as Int and h as Int and channels as Int and data as Int returning Int:
+    set fn to ep_dlsym(STB_IMAGE_HANDLE and "stbi_write_tga")
+    return ep_dlcall5(fn and path and w and h and channels and data)

@@ -1,0 +1,43 @@
+# Review Test 1: Recursion, closures, and list operations
+# Tests: recursive functions, higher-order functions, list manipulation
+
+define fibonacci with n as Int returning Int:
+    if n < 2:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+define apply with f and x as Int returning Int:
+    return f(x)
+
+define main:
+    # Test recursive fibonacci
+    display "Fibonacci sequence:"
+    set i to 0
+    while i < 10:
+        display fibonacci(i)
+        set i to i + 1
+
+    # Test closures / higher-order functions
+    set double to given x:
+        return x * 2
+    set result to apply(double and 21)
+    display "Double 21:"
+    display result
+
+    # Test list operations
+    set nums to [10, 20, 30, 40, 50]
+    display "List length:"
+    display length_list(nums)
+    display "First element:"
+    display get_list(nums and 0)
+    display "Last element:"
+    display get_list(nums and 4)
+
+    # Test appending to list
+    set ok to append_list(nums and 60)
+    display "After append, length:"
+    display length_list(nums)
+    display "New last element:"
+    display get_list(nums and 5)
+
+    return 0

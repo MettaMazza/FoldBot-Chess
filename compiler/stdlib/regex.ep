@@ -1,0 +1,88 @@
+# ErnosPlain Regex Standard Library
+# Implements a basic regex engine using Thompson NFA
+# Supports: . * + ? | () [] character classes
+
+external define ep_regex_match with pattern and text:
+external define ep_regex_find with pattern and text:
+external define ep_regex_find_all with pattern and text:
+external define ep_regex_replace with pattern and text and replacement:
+external define ep_regex_split with pattern and text:
+external define string_length with s:
+external define get_character with s and idx:
+external define substring with s and start and len:
+
+# ---- High-Level API ----
+
+define regex_match with pattern and text:
+    return ep_regex_match(pattern and text)
+
+define regex_find with pattern and text:
+    return ep_regex_find(pattern and text)
+
+define regex_find_all with pattern and text:
+    return ep_regex_find_all(pattern and text)
+
+define regex_replace with pattern and text and replacement:
+    return ep_regex_replace(pattern and text and replacement)
+
+define regex_split with pattern and text:
+    return ep_regex_split(pattern and text)
+
+# ---- Simple pattern matching (pure ErnosPlain) ----
+
+define simple_match with pattern and text:
+    # Simple glob-like matching: * matches any sequence, ? matches one char
+    return glob_match_helper(pattern and 0 and text and 0)
+
+define glob_match_helper with pattern and pi and text and ti:
+    set plen to string_length(pattern)
+    set tlen to string_length(text)
+    repeat while pi < plen:
+        if ti > tlen - 1:
+            # Text exhausted — pattern must be all *
+            set pc to get_character(pattern and pi)
+            if pc == 42:
+                set pi to pi + 1
+            else:
+                return 0
+        else:
+            set pc to get_character(pattern and pi)
+            set tc to get_character(text and ti)
+            if pc == 42:
+                # * — try matching zero or more characters
+                set pi to pi + 1
+                repeat while ti < tlen + 1:
+                    if glob_match_helper(pattern and pi and text and ti) == 1:
+                        return 1
+                    set ti to ti + 1
+                return 0
+            else:
+                if pc == 63:
+                    # ? — match exactly one character
+                    set pi to pi + 1
+                    set ti to ti + 1
+                else:
+                    if pc == tc:
+                        set pi to pi + 1
+                        set ti to ti + 1
+                    else:
+                        return 0
+    if ti < tlen:
+        return 0
+    return 1
+
+# ---- Character Class Helpers ----
+
+define is_word_char with ch:
+    if ch > 47:
+        if ch < 58:
+            return 1
+    if ch > 64:
+        if ch < 91:
+            return 1
+    if ch > 96:
+        if ch < 123:
+            return 1
+    if ch == 95:
+        return 1
+    return 0

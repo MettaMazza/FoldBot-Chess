@@ -1,0 +1,12 @@
+=== TEST CLOSURES ===
+-- simple closure --
+10
+-- higher-order --
+21
+-- two-param closure --
+30
+-- closure as arg --
+300
+-- closure subtraction --
+20
+=== CLOSURES TESTS COMPLETE ===

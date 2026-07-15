@@ -1,0 +1,10 @@
+define add with a as Int and b as Int returning Int:
+    return a + b
+
+define main:
+    set x to 42
+    set y to add(10 and 20)
+    display x
+    display y
+    display x + y
+    return 0

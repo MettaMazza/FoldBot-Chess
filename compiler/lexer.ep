@@ -1,0 +1,73 @@
+define main:
+    display "--- ErnosPlain Bootstrapped Lexer Prototype ---"
+    
+    set arg_count to get_argument_count()
+    if arg_count < 2:
+        display "Usage: ./lexer <filename.ep>"
+        return 1
+        
+    set filepath to get_argument(1)
+    display "Reading file:"
+    set ok to display_string(filepath)
+    
+    set source to read_file_content(filepath)
+    set source_len to string_length(source)
+    if source_len equals 0:
+        display "Error: File is empty or does not exist."
+        return 1
+        
+    set pos to 0
+    repeat while pos is less than source_len:
+        set c to get_character(source and pos)
+        
+        # Skip whitespace: space (32), tab (9), newline (10), carriage return (13)
+        if c == 32 || c == 9 || c == 10 || c == 13:
+            set pos to pos + 1
+        else:
+            # Handle comments starting with '#' (35)
+            if c == 35:
+                # Loop until newline (10) or end of file
+                repeat while pos < source_len && get_character(source and pos) != 10:
+                    set pos to pos + 1
+            else:
+                # Handle numbers: digits 0 (48) to 9 (57)
+                if c > 47 && c < 58:
+                    set num_val to 0
+                    repeat while pos < source_len && get_character(source and pos) > 47 && get_character(source and pos) < 58:
+                        set digit to get_character(source and pos) - 48
+                        set num_val to num_val * 10 + digit
+                        set pos to pos + 1
+                    display "Token: NUMBER"
+                    display num_val
+                else:
+                    # Handle identifiers/keywords: alphabetic letters a-z (97-122), A-Z (65-90), underscore (95)
+                    set is_alpha to (c > 96 && c < 123) || (c > 64 && c < 91) || c == 95
+                    if is_alpha:
+                        set start_pos to pos
+                        set word_list to create_list()
+                        set loop_active to 1
+                        
+                        repeat while pos < source_len && loop_active == 1:
+                            set ch to get_character(source and pos)
+                            set is_alphanum_or_under to (ch > 96 && ch < 123) || (ch > 64 && ch < 91) || (ch > 47 && ch < 58) || ch == 95
+                            if is_alphanum_or_under:
+                                set ok to append_list(word_list and ch)
+                                set pos to pos + 1
+                            else:
+                                set loop_active to 0
+                                
+                        display "Token: WORD (ASCII codes):"
+                        set idx to 0
+                        set word_len to length_list(word_list)
+                        repeat while idx < word_len:
+                            set char_code to get_list(word_list and idx)
+                            display char_code
+                            set idx to idx + 1
+                    else:
+                        # Handle symbols
+                        display "Token: SYMBOL (ASCII code):"
+                        display c
+                        set pos to pos + 1
+                        
+    display "Lexing completed successfully!"
+    return 0

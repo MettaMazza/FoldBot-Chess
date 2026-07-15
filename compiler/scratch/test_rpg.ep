@@ -1,0 +1,121 @@
+# scratch/test_rpg.ep
+
+define structure Player:
+    field name as Str
+    field hp as Int
+    field max_hp as Int
+    field atk as Int
+
+define structure Monster:
+    field name as Str
+    field hp as Int
+    field max_hp as Int
+    field atk as Int
+
+define choice CombatantObj:
+    variant PlayerType with val as Player
+    variant MonsterType with val as Monster
+
+define trait Combatant:
+    define get_name returning Str
+    define get_hp returning Int
+    define take_damage with damage as Int returning Int
+    define attack_target with target as CombatantObj returning Int
+    define is_alive returning Bool
+
+implement Combatant for Player:
+    define get_name returning Str:
+        return self.name
+    define get_hp returning Int:
+        return self.hp
+    define take_damage with damage as Int returning Int:
+        set self.hp to self.hp - damage
+        if self.hp < 0:
+            set self.hp to 0
+        return self.hp
+    define attack_target with target as CombatantObj returning Int:
+        display f"{self.name} attacks {target.get_name()} for {self.atk} damage!"
+        set new_hp to target.take_damage(self.atk)
+        return new_hp
+    define is_alive returning Bool:
+        return self.hp > 0
+
+implement Combatant for Monster:
+    define get_name returning Str:
+        return self.name
+    define get_hp returning Int:
+        return self.hp
+    define take_damage with damage as Int returning Int:
+        set self.hp to self.hp - damage
+        if self.hp < 0:
+            set self.hp to 0
+        return self.hp
+    define attack_target with target as CombatantObj returning Int:
+        display f"{self.name} attacks {target.get_name()} for {self.atk} damage!"
+        set new_hp to target.take_damage(self.atk)
+        return new_hp
+    define is_alive returning Bool:
+        return self.hp > 0
+
+define get_name on CombatantObj returning Str:
+    check self:
+        if PlayerType with p:
+            return p.get_name()
+        if MonsterType with m:
+            return m.get_name()
+    return ""
+
+define get_hp on CombatantObj returning Int:
+    check self:
+        if PlayerType with p:
+            return p.get_hp()
+        if MonsterType with m:
+            return m.get_hp()
+    return 0
+
+define take_damage on CombatantObj with damage as Int returning Int:
+    check self:
+        if PlayerType with p:
+            return p.take_damage(damage)
+        if MonsterType with m:
+            return m.take_damage(damage)
+    return 0
+
+define attack_target on CombatantObj with target as CombatantObj returning Int:
+    check self:
+        if PlayerType with p:
+            return p.attack_target(target)
+        if MonsterType with m:
+            return m.attack_target(target)
+    return 0
+
+define is_alive on CombatantObj returning Bool:
+    check self:
+        if PlayerType with p:
+            return p.is_alive()
+        if MonsterType with m:
+            return m.is_alive()
+    return false
+
+define main:
+    set p to create Player:
+        name is "Hero"
+        hp is 100
+        max_hp is 100
+        atk is 25
+
+    set m to create Monster:
+        name is "Goblin"
+        hp is 40
+        max_hp is 40
+        atk is 10
+
+    set p_obj to PlayerType with p
+    set m_obj to MonsterType with m
+
+    display f"Battle start: {p_obj.get_name()} (HP: {p_obj.get_hp()}) vs {m_obj.get_name()} (HP: {m_obj.get_hp()})"
+    
+    set r to p_obj.attack_target(m_obj)
+    display f"{m_obj.get_name()} HP is now {m_obj.get_hp()}"
+
+    return 0

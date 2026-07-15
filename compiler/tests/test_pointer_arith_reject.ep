@@ -1,0 +1,10 @@
+# Arithmetic on a non-numeric operand is allowed (e.g. pointer coercion via + 0).
+define main:
+    set xs to create_list()
+    set ok to append_list(xs and 1)
+    set y to xs + 0
+    if y > 0:
+        display "PASS: pointer coerced to positive integer"
+    else:
+        display "FAIL: pointer coercion failed"
+    return 0

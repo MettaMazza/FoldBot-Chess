@@ -1,0 +1,11 @@
+import "../stdlib/string.ep"
+
+define main:
+    set sb to create_builder()
+    set i to 0
+    repeat while i < 100000:
+        set sb to builder_append_int(sb and i)
+        set i to i + 1
+    set result to builder_to_string(sb)
+    display string_length(result)
+    return 0

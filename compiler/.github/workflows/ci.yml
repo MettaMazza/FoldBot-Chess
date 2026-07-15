@@ -1,0 +1,147 @@
+name: ErnosPlain CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Run unit tests
+        run: cargo test --release
+
+      - name: Syntax check — test_core.ep
+        run: cargo run --release -- --check tests/test_core.ep
+
+      - name: Syntax check — test_strings.ep
+        run: cargo run --release -- --check tests/test_strings.ep
+
+      - name: Syntax check — test_math.ep
+        run: cargo run --release -- --check tests/test_math.ep
+
+      - name: Syntax check — test_data.ep
+        run: cargo run --release -- --check tests/test_data.ep
+
+      - name: Compile and run test_core.ep
+        run: |
+          cargo run --release -- tests/test_core.ep
+          ./tests/test_core
+
+      - name: Compile and run test_strings.ep
+        run: |
+          cargo run --release -- tests/test_strings.ep
+          ./tests/test_strings
+
+      - name: Compile and run test_math.ep
+        run: |
+          cargo run --release -- tests/test_math.ep
+          ./tests/test_math
+
+      - name: Compile and run test_float_ffi.ep
+        run: |
+          cargo run --release -- tests/test_float_ffi.ep
+          ./tests/test_float_ffi
+
+      - name: Compile demo — creature_quest_demo5.ep
+        run: cargo run --release -- demos/creature_quest_demo5.ep
+
+      - name: Syntax check — epc.ep (self-hosted compiler)
+        run: cargo run --release -- --check epc.ep
+
+      - name: Run conformance tests
+        run: |
+          for f in conformance/test_*.ep; do
+            echo "Compiling $f..."
+            cargo run --release -- "$f" || continue
+            base=$(basename "$f" .ep)
+            expected="conformance/${base}.expected"
+            if [ -f "$expected" ]; then
+              echo "Running $base..."
+              actual=$(./conformance/"$base" 2>&1)
+              expected_content=$(cat "$expected")
+              if [ "$actual" = "$expected_content" ]; then
+                echo "✓ $base passed"
+              else
+                echo "✗ $base FAILED"
+                echo "Expected: $expected_content"
+                echo "Actual:   $actual"
+                exit 1
+              fi
+            fi
+          done
+
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y gcc
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Run unit tests
+        run: cargo test --release
+
+      - name: Syntax check — test_core.ep
+        run: cargo run --release -- --check tests/test_core.ep
+
+      - name: Compile and run test_core.ep
+        run: |
+          cargo run --release -- tests/test_core.ep
+          ./tests/test_core
+
+      - name: Compile and run test_strings.ep
+        run: |
+          cargo run --release -- tests/test_strings.ep
+          ./tests/test_strings
+
+      - name: Compile and run test_math.ep
+        run: |
+          cargo run --release -- tests/test_math.ep
+          ./tests/test_math
+
+      - name: Compile and run test_float_ffi.ep
+        run: |
+          cargo run --release -- tests/test_float_ffi.ep
+          ./tests/test_float_ffi
+
+      - name: Syntax check — epc.ep (self-hosted compiler)
+        run: cargo run --release -- --check epc.ep
+
+      - name: Run conformance tests
+        run: |
+          for f in conformance/test_*.ep; do
+            echo "Compiling $f..."
+            cargo run --release -- "$f" || continue
+            base=$(basename "$f" .ep)
+            expected="conformance/${base}.expected"
+            if [ -f "$expected" ]; then
+              echo "Running $base..."
+              actual=$(./conformance/"$base" 2>&1)
+              expected_content=$(cat "$expected")
+              if [ "$actual" = "$expected_content" ]; then
+                echo "✓ $base passed"
+              else
+                echo "✗ $base FAILED"
+                echo "Expected: $expected_content"
+                echo "Actual:   $actual"
+                exit 1
+              fi
+            fi
+          done

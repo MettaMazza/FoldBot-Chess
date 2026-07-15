@@ -1,0 +1,30 @@
+# Conformance Test: Control Flow
+define main:
+    # If-else
+    set x to 10
+    if x > 5:
+        display "x is greater than 5"
+    else:
+        display "x is not greater than 5"
+    
+    # Nested if
+    set y to 3
+    if y > 0:
+        if y < 10:
+            display "y is between 0 and 10"
+    
+    # While loop
+    set counter to 0
+    repeat while counter < 5:
+        display counter
+        set counter to counter + 1
+    
+    # Loop with break (if supported)
+    set i to 0
+    repeat while i < 100:
+        if i == 3:
+            break
+        display i
+        set i to i + 1
+    
+    return 0

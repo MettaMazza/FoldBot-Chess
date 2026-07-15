@@ -1,0 +1,11 @@
+# Regression: a constant-bound loop that accumulates must not be miscompiled.
+# Previously the optimizer unrolled the loop and CSE-hoisted `total + 10` into a
+# single cached temp, so `total` stayed at 10 instead of 10, 20, 30.
+define main:
+    set total to 0
+    set i to 0
+    repeat while i < 3:
+        set total to total + 10
+        set i to i + 1
+    display total
+    return 0

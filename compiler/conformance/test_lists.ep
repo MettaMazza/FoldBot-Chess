@@ -1,0 +1,44 @@
+# Conformance Test: Lists and Iteration
+
+define main:
+    # List creation and operations
+    set numbers to create_list()
+    set ok to append_list(numbers and 10)
+    set ok to append_list(numbers and 20)
+    set ok to append_list(numbers and 30)
+    set ok to append_list(numbers and 40)
+    set ok to append_list(numbers and 50)
+    
+    # Length
+    set len to length_list(numbers)
+    display len
+    
+    # Access
+    set first to get_list(numbers and 0)
+    set last to get_list(numbers and 4)
+    display first
+    display last
+    
+    # For-each iteration
+    for each num in numbers:
+        display num
+    
+    # Modify list
+    set ok to set_list(numbers and 2 and 99)
+    display get_list(numbers and 2)
+    
+    # Remove from list
+    set ok to remove_list(numbers and 0)
+    display get_list(numbers and 0)
+    display length_list(numbers)
+    
+    # Strings
+    set msg to "Hello, ErnosPlain!"
+    display msg
+    display string_length(msg)
+    
+    # String concatenation
+    set greeting to concat("Good " and "morning!")
+    display greeting
+    
+    return 0

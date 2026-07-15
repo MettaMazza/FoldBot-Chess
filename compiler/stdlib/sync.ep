@@ -1,0 +1,122 @@
+# ErnosPlain Concurrency Primitives Standard Library
+# Provides mutexes, read-write locks, atomics, barriers, and semaphores
+
+# ---- External C Runtime Functions (pthread wrappers) ----
+external define ep_mutex_create:
+external define ep_mutex_lock_fn with m:
+external define ep_mutex_unlock_fn with m:
+external define ep_mutex_trylock with m:
+external define ep_mutex_destroy with m:
+
+external define ep_rwlock_create:
+external define ep_rwlock_read_lock with rwl:
+external define ep_rwlock_write_lock with rwl:
+external define ep_rwlock_unlock with rwl:
+external define ep_rwlock_destroy with rwl:
+
+external define ep_atomic_create with initial:
+external define ep_atomic_load with a:
+external define ep_atomic_store with a and value:
+external define ep_atomic_add with a and delta:
+external define ep_atomic_sub with a and delta:
+external define ep_atomic_cas with a and expected and desired:
+
+external define ep_barrier_create with count:
+external define ep_barrier_wait with b:
+external define ep_barrier_destroy with b:
+
+external define ep_semaphore_create with initial:
+external define ep_semaphore_wait with s:
+external define ep_semaphore_post with s:
+external define ep_semaphore_trywait with s:
+external define ep_semaphore_destroy with s:
+
+external define ep_condvar_create:
+external define ep_condvar_wait with cv and m:
+external define ep_condvar_signal with cv:
+external define ep_condvar_broadcast with cv:
+external define ep_condvar_destroy with cv:
+
+# ---- Mutex ----
+
+define create_mutex:
+    return ep_mutex_create()
+
+define lock_mutex with m:
+    return ep_mutex_lock_fn(m)
+
+define unlock_mutex with m:
+    return ep_mutex_unlock_fn(m)
+
+define try_lock_mutex with m:
+    return ep_mutex_trylock(m)
+
+# ---- Read-Write Lock ----
+
+define create_rwlock:
+    return ep_rwlock_create()
+
+define read_lock with rwl:
+    return ep_rwlock_read_lock(rwl)
+
+define write_lock with rwl:
+    return ep_rwlock_write_lock(rwl)
+
+define unlock_rwlock with rwl:
+    return ep_rwlock_unlock(rwl)
+
+# ---- Atomic Integer ----
+
+define create_atomic with initial:
+    return ep_atomic_create(initial)
+
+define atomic_load with a:
+    return ep_atomic_load(a)
+
+define atomic_store with a and value:
+    return ep_atomic_store(a and value)
+
+define atomic_add with a and delta:
+    return ep_atomic_add(a and delta)
+
+define atomic_sub with a and delta:
+    return ep_atomic_sub(a and delta)
+
+define atomic_compare_and_swap with a and expected and desired:
+    return ep_atomic_cas(a and expected and desired)
+
+# ---- Barrier ----
+
+define create_barrier with count:
+    return ep_barrier_create(count)
+
+define barrier_wait with b:
+    return ep_barrier_wait(b)
+
+# ---- Semaphore ----
+
+define create_semaphore with initial:
+    return ep_semaphore_create(initial)
+
+define sem_wait with s:
+    return ep_semaphore_wait(s)
+
+define sem_post with s:
+    return ep_semaphore_post(s)
+
+define sem_try_wait with s:
+    return ep_semaphore_trywait(s)
+
+# ---- Condition Variable ----
+
+define create_condvar:
+    return ep_condvar_create()
+
+define condvar_wait with cv and m:
+    return ep_condvar_wait(cv and m)
+
+define condvar_signal with cv:
+    return ep_condvar_signal(cv)
+
+define condvar_broadcast with cv:
+    return ep_condvar_broadcast(cv)

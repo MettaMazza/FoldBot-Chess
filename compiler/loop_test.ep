@@ -1,0 +1,12 @@
+define main:
+    display "--- ErnosPlain Loop Demonstration ---"
+    
+    set i to 1
+    
+    repeat while i is less than 6:
+        display "Iteration number:"
+        display i
+        set i to i plus 1
+        
+    display "Loop finished!"
+    return 0

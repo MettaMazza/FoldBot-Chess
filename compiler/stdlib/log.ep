@@ -1,0 +1,57 @@
+# ErnosPlain Logging Standard Library
+# Provides structured logging with severity levels and timestamps
+
+external define ep_time_now_ms:
+external define ep_int_to_str with n:
+
+# Log levels: 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
+# Global log level (default: INFO)
+
+define create_logger:
+    set logger to create_list()
+    set ok to append_list(logger and 1)
+    set ok to append_list(logger and 0)
+    return logger
+
+define set_log_level with logger and level:
+    set ok to set_list(logger and 0 and level)
+    return logger
+
+define log_message with logger and level and level_name and message:
+    set min_level to get_list(logger and 0)
+    if level < min_level:
+        return 0
+    set timestamp to ep_time_now_ms()
+    set ts_str to ep_int_to_str(timestamp)
+    display concat(concat("[" and concat(ts_str and "] ")) and concat(concat(level_name and ": ") and message))
+    return 1
+
+define log_debug with logger and message:
+    return log_message(logger and 0 and "DEBUG" and message)
+
+define log_info with logger and message:
+    return log_message(logger and 1 and "INFO " and message)
+
+define log_warn with logger and message:
+    return log_message(logger and 2 and "WARN " and message)
+
+define log_error with logger and message:
+    return log_message(logger and 3 and "ERROR" and message)
+
+# ---- Simple logging (no logger object needed) ----
+
+define simple_log_debug with message:
+    display concat("DEBUG: " and message)
+    return 1
+
+define simple_log_info with message:
+    display concat("INFO:  " and message)
+    return 1
+
+define simple_log_warn with message:
+    display concat("WARN:  " and message)
+    return 1
+
+define simple_log_error with message:
+    display concat("ERROR: " and message)
+    return 1

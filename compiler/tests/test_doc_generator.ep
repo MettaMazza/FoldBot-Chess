@@ -1,0 +1,24 @@
+### This is a structure representing a Point in 2D space.
+define structure Point:
+    field x as Int
+    field y as Int
+
+### This is a choice representing a Color variant.
+define choice Color:
+    variant Red
+    variant Green with intensity as Int
+
+### This is a trait for calculating area.
+define trait Area:
+    define get_area with self returning Int
+
+### Calculate distance between two coordinates.
+define get_distance with a as Point and b as Point returning Int:
+    return 0
+
+### Draw a point with a color.
+define draw_point on Point with color as Color returning Int:
+    return 0
+
+define main:
+    return 0

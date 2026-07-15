@@ -1,0 +1,274 @@
+# ErnosPlain Self-Hosted Compiler Driver
+import "ep_lexer"
+import "ep_parser"
+import "ep_codegen"
+
+define get_file_stem with path:
+    set len to string_length(path)
+    set last_slash to 0 - 1
+    set idx to 0
+    repeat while idx < len:
+        set ch to get_character(path and idx)
+        if ch == 47: # '/'
+            set last_slash to idx
+        set idx to idx + 1
+        
+    set start to last_slash + 1
+    
+    set dot_pos to len
+    set idx2 to start
+    repeat while idx2 < len:
+        set ch to get_character(path and idx2)
+        if ch == 46: # '.'
+            set dot_pos to idx2
+        set idx2 to idx2 + 1
+        
+    set stem_len to dot_pos - start
+    set stem to substring(path and start and stem_len)
+    return stem
+
+define get_file_dir with path:
+    set len to string_length(path)
+    set last_slash to 0 - 1
+    set idx to 0
+    repeat while idx < len:
+        set ch to get_character(path and idx)
+        if ch == 47: # '/'
+            set last_slash to idx
+        set idx to idx + 1
+    if last_slash < 0:
+        return "./"
+    return substring(path and 0 and last_slash + 1)
+
+define contains_string with list and s:
+    set len to length_list(list)
+    set idx to 0
+    repeat while idx < len:
+        set item to get_list(list and idx)
+        if string_concat(s and "") equals item:
+            return 1
+        set idx to idx + 1
+    return 0
+
+define resolve_import_path with current_file and import_path:
+    if "math" equals import_path || "hash" equals import_path || "net" equals import_path || "json" equals import_path || "string" equals import_path || "sql" equals import_path || "gui" equals import_path || "crypto" equals import_path || "fs" equals import_path || "http" equals import_path || "collections" equals import_path:
+        set std_path to string_concat("stdlib/" and import_path)
+        set std_path_ep to string_concat(std_path and ".ep")
+        return std_path_ep
+        
+    set dir to get_file_dir(current_file)
+    set resolved to string_concat(dir and import_path)
+    set len to string_length(resolved)
+    if len > 3:
+        set ext to substring(resolved and len - 3 and 3)
+        if ".ep" equals ext:
+            return resolved
+    return string_concat(resolved and ".ep")
+
+define parse_all_modules with current_file and parsed_files and all_functions and all_externals and all_struct_defs and all_enum_defs and all_method_defs and all_trait_defs and all_trait_impls:
+    set has_parsed to contains_string(parsed_files and current_file)
+    if has_parsed == 1:
+        return 0
+        
+    set ok to append_list(parsed_files and current_file)
+    set source to read_file_content(current_file)
+    if string_length(source) == 0:
+        display "Compiler Error: Failed to read file or file is empty:"
+        set ok to display_string(current_file)
+        return 1
+        
+    set tokens to tokenize_source(source)
+    if tokens == 0:
+        display "Compiler Error: Lexing failed (unterminated string or invalid token) in:"
+        set ok to display_string(current_file)
+        return 1
+    set state to create_parser_state(tokens)
+    set program_ast to parse_program(state)
+    if get_parser_error(state) == 1:
+        display "Compiler Error: Parsing failed in:"
+        set ok to display_string(current_file)
+        return 1
+
+    set imports to get_list(program_ast and 1)
+    set externals to get_list(program_ast and 2)
+    set funcs to get_list(program_ast and 3)
+    
+    set externals_len to length_list(externals)
+    set e_idx to 0
+    repeat while e_idx < externals_len:
+        set ext to get_list(externals and e_idx)
+        set ok to append_list(all_externals and ext)
+        set e_idx to e_idx + 1
+        
+    set funcs_len to length_list(funcs)
+    set f_idx to 0
+    repeat while f_idx < funcs_len:
+        set func to get_list(funcs and f_idx)
+        set ok to append_list(all_functions and func)
+        set f_idx to f_idx + 1
+
+    # Collect struct/enum/method/trait/impl defs from expanded program node
+    set prog_len to length_list(program_ast)
+    if prog_len > 4:
+        set sd to get_list(program_ast and 4)
+        set sd_len to length_list(sd)
+        set sd_idx to 0
+        repeat while sd_idx < sd_len:
+            set ok to append_list(all_struct_defs and get_list(sd and sd_idx))
+            set sd_idx to sd_idx + 1
+    if prog_len > 5:
+        set ed to get_list(program_ast and 5)
+        set ed_len to length_list(ed)
+        set ed_idx to 0
+        repeat while ed_idx < ed_len:
+            set ok to append_list(all_enum_defs and get_list(ed and ed_idx))
+            set ed_idx to ed_idx + 1
+    if prog_len > 6:
+        set md to get_list(program_ast and 6)
+        set md_len to length_list(md)
+        set md_idx to 0
+        repeat while md_idx < md_len:
+            set ok to append_list(all_method_defs and get_list(md and md_idx))
+            set md_idx to md_idx + 1
+    if prog_len > 7:
+        set td to get_list(program_ast and 7)
+        set td_len to length_list(td)
+        set td_idx to 0
+        repeat while td_idx < td_len:
+            set ok to append_list(all_trait_defs and get_list(td and td_idx))
+            set td_idx to td_idx + 1
+    if prog_len > 8:
+        set ti to get_list(program_ast and 8)
+        set ti_len to length_list(ti)
+        set ti_idx to 0
+        repeat while ti_idx < ti_len:
+            set ok to append_list(all_trait_impls and get_list(ti and ti_idx))
+            set ti_idx to ti_idx + 1
+        
+    set imp_len to length_list(imports)
+    set i_idx to 0
+    repeat while i_idx < imp_len:
+        set imp to get_list(imports and i_idx)
+        set resolved_path to resolve_import_path(current_file and imp)
+        set status to parse_all_modules(resolved_path and parsed_files and all_functions and all_externals and all_struct_defs and all_enum_defs and all_method_defs and all_trait_defs and all_trait_impls)
+        if status != 0:
+            return status
+        set i_idx to i_idx + 1
+        
+    return 0
+
+define main:
+    set arg_count to get_argument_count()
+    if arg_count < 2:
+        display "Usage: epc <filename.ep> or epc test <filename.ep>"
+        return 1
+        
+    set first_arg to get_argument(1)
+    set is_test_mode to 0
+    set input_path to get_argument(1)
+    
+    if "test" equals first_arg:
+        if arg_count < 3:
+            display "Usage: epc test <filename.ep>"
+            return 1
+        set is_test_mode to 1
+        set input_path to get_argument(2)
+        
+    set stem to get_file_stem(input_path)
+    
+    display "[1/3] Tokenizing and Parsing..."
+    set all_functions to create_list()
+    set all_externals to create_list()
+    set all_struct_defs to create_list()
+    set all_enum_defs to create_list()
+    set all_method_defs to create_list()
+    set all_trait_defs to create_list()
+    set all_trait_impls to create_list()
+    set parsed_files to create_list()
+    set status to parse_all_modules(input_path and parsed_files and all_functions and all_externals and all_struct_defs and all_enum_defs and all_method_defs and all_trait_defs and all_trait_impls)
+    if status != 0:
+        return 1
+        
+    set f_names to create_list()
+    set all_len to length_list(all_functions)
+    set idx to 0
+    set duplicate_found to 0
+    repeat while idx < all_len && duplicate_found == 0:
+        set func to get_list(all_functions and idx)
+        set name to get_list(func and 1)
+        if contains_string(f_names and name) == 1:
+            display "Compiler Error: Function is defined multiple times:"
+            set ok to display_string(name)
+            set duplicate_found to 1
+        else:
+            set ok to append_list(f_names and name)
+        set idx to idx + 1
+        
+    if duplicate_found == 1:
+        return 1
+        
+    set empty_imports to create_list()
+    set program_ast to create_list()
+    set ok to append_list(program_ast and 13)
+    set ok to append_list(program_ast and empty_imports)
+    set ok to append_list(program_ast and all_externals)
+    set ok to append_list(program_ast and all_functions)
+    set ok to append_list(program_ast and all_struct_defs)
+    set ok to append_list(program_ast and all_enum_defs)
+    set ok to append_list(program_ast and all_method_defs)
+    set ok to append_list(program_ast and all_trait_defs)
+    set ok to append_list(program_ast and all_trait_impls)
+    
+    display "[2/3] Generating C Source..."
+    set c_code to generate_c(program_ast and is_test_mode)
+    
+    if string_length(c_code) == 0:
+        display "Compilation failed due to errors."
+        return 1
+        
+    # Write temporary compiled C file
+    set c_path to string_concat(stem and "_compiled.c")
+    set ok to write_file_content(c_path and c_code)
+    
+    display "[3/3] Compiling and Linking via Clang..."
+    set compile_cmd to "clang "
+    set compile_cmd to string_concat(compile_cmd and c_path)
+    set compile_cmd to string_concat(compile_cmd and " -o ")
+    set compile_cmd to string_concat(compile_cmd and stem)
+    set compile_cmd to string_concat(compile_cmd and " -lpthread")
+    
+    set pf_len to length_list(parsed_files)
+    set pf_idx to 0
+    repeat while pf_idx < pf_len:
+        set pf to get_list(parsed_files and pf_idx)
+        set pf_str to string_concat(pf and "")
+        set pf_len_str to string_length(pf_str)
+        
+        # Check for sql.ep
+        if pf_len_str > 5:
+            set ext_sql to substring(pf_str and pf_len_str - 6 and 6)
+            if "sql.ep" equals ext_sql:
+                set compile_cmd to string_concat(compile_cmd and " -lsqlite3")
+        
+        # Check for gui.ep
+        if pf_len_str > 5:
+            set ext_gui to substring(pf_str and pf_len_str - 6 and 6)
+            if "gui.ep" equals ext_gui:
+                set compile_cmd to string_concat(compile_cmd and " -lraylib")
+                
+        # Check for crypto.ep
+        if pf_len_str > 8:
+            set ext_cry to substring(pf_str and pf_len_str - 9 and 9)
+            if "crypto.ep" equals ext_cry:
+                set compile_cmd to string_concat(compile_cmd and " -L/opt/homebrew/opt/openssl/lib -lcrypto")
+                
+        set pf_idx to pf_idx + 1
+        
+    set status to run_command(compile_cmd)
+    
+    if status == 0:
+        display "Self-hosted compilation successful!"
+        return 0
+    else:
+        display "Compilation failed."
+        return 1

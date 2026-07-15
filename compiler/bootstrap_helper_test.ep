@@ -1,0 +1,38 @@
+define main:
+    display "--- ErnosPlain Bootstrapping Extensions Test ---"
+    
+    # 1. Test Command Line Arguments
+    set arg_count to get_argument_count()
+    display "Number of arguments passed:"
+    display arg_count
+    
+    set idx to 0
+    repeat while idx is less than arg_count:
+        set arg to get_argument(idx)
+        display "Argument:"
+        set ok to display_string(arg)
+        
+        # Test string comparison
+        if arg equals "hello":
+            display "Found matching argument: hello!"
+            
+        set idx to idx plus 1
+        
+    # 2. Test File Writing
+    display "Writing hello_bootstrap.txt..."
+    set ok to write_file_content("hello_bootstrap.txt" and "Hello from ErnosPlain bootstrapping extensions!\n")
+    if ok equals 1:
+        display "Successfully wrote file!"
+    else:
+        display "Failed to write file!"
+        
+    # 3. Test Running Command
+    display "Executing 'cat hello_bootstrap.txt'..."
+    set status to run_command("cat hello_bootstrap.txt")
+    display "Exit status:"
+    display status
+    
+    # Clean up the test file
+    set status to run_command("rm hello_bootstrap.txt")
+    
+    return 0

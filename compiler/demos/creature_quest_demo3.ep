@@ -1,0 +1,1789 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  CREATURE QUEST — Demo 3: Companion Reborn
+#  A Roguelite RPG with AI Companion, Inventory, Abilities & Quests
+#  Written entirely in ErnosPlain — showcasing all language features
+# ═══════════════════════════════════════════════════════════════════════
+
+# ───────────── Configuration ─────────────
+
+define get_ollama_url returning Str:
+    return "http://localhost:11434/api/generate"
+
+define get_model_name returning Str:
+    return "llama3.2:1b"
+
+define get_save_path returning Str:
+    return ".creature_quest3_save.dat"
+
+# ───────────── String Helpers ─────────────
+
+define repeat_char with ch as Str and count as Int returning Str:
+    set result to ""
+    set i to 0
+    repeat while i < count:
+        set result to concat(result and ch)
+        set i to i + 1
+    return result
+
+define pad_right with text as Str and width as Int returning Str:
+    set len to string_length(text)
+    if len >= width:
+        return text
+    set spaces to repeat_char(" " and width - len)
+    return concat(text and spaces)
+
+define clamp with val as Int and low as Int and high as Int returning Int:
+    if val < low:
+        return low
+    if val > high:
+        return high
+    return val
+
+define min_val with a as Int and b as Int returning Int:
+    if a < b:
+        return a
+    return b
+
+define max_val with a as Int and b as Int returning Int:
+    if a > b:
+        return a
+    return b
+
+# ───────────── JSON Helpers ─────────────
+
+define escape_json with text as Str returning Str:
+    set result to string_replace(text and "\\" and "\\\\")
+    set result to string_replace(result and "\"" and "\\\"")
+    set result to string_replace(result and "\n" and "\\n")
+    return result
+
+# ───────────── LLM Integration ─────────────
+
+define test_ollama_connection returning Int:
+    set body to ep_http_request("GET" and "http://localhost:11434/api/version" and "" and "")
+    if string_length(body) < 5:
+        return 0
+    if string_contains(body and "version"):
+        return 1
+    return 0
+
+define ask_llm with prompt as Str returning Str:
+    set escaped to escape_json(prompt)
+    set model to get_model_name()
+    set url to get_ollama_url()
+    set body to concat("{\"model\":\"" and model)
+    set body to concat(body and "\",\"prompt\":\"")
+    set body to concat(body and escaped)
+    set body to concat(body and "\",\"stream\":false}")
+    set headers to "Content-Type: application/json\r\n"
+    set response to ep_http_request("POST" and url and headers and body)
+    if string_length(response) < 10:
+        return ""
+    set answer to json_get_string(response and "response")
+    return answer
+
+# ───────────── Conversation Memory ─────────────
+# Memory is stored as a list of strings. We keep the last 6 entries.
+
+define memory_create returning List:
+    set mem to create_list()
+    return mem
+
+define memory_add with mem as List and role as Str and content as Str returning List:
+    set entry to f"{role}: {content}"
+    set ok to append_list(mem and entry)
+    # Keep only last 6 entries
+    repeat while length_list(mem) > 6:
+        # Remove oldest by rebuilding
+        set new_mem to create_list()
+        set i to 1
+        repeat while i < length_list(mem):
+            set item to get_list(mem and i)
+            set ok to append_list(new_mem and item)
+            set i to i + 1
+        return new_mem
+    return mem
+
+define memory_to_context with mem as List returning Str:
+    set ctx to ""
+    set i to 0
+    repeat while i < length_list(mem):
+        set entry to get_list(mem and i)
+        set ctx to f"{ctx}\n  {entry}"
+        set i to i + 1
+    return ctx
+
+# ───────────── Companion Personality ─────────────
+
+define get_stage_name with stage as Int returning Str:
+    if stage == 0:
+        return "a glowing egg"
+    else if stage == 1:
+        return "a curious hatchling"
+    else if stage == 2:
+        return "an energetic juvenile"
+    else if stage == 3:
+        return "a powerful adult"
+    return "a wise ancient elder"
+
+define get_personality with stage as Int and bond as Int returning Str:
+    if stage == 0:
+        return "You communicate through warmth and pulsing light. You cannot speak yet."
+    else if stage == 1:
+        if bond < 20:
+            return "You are shy, speaking in short excited bursts. You startle easily."
+        return "You are playful and curious, always asking questions about everything."
+    else if stage == 2:
+        if bond < 40:
+            return "You are brave but reckless, eager to prove yourself."
+        return "You are loyal and protective, growing more confident each day."
+    else if stage == 3:
+        if bond < 60:
+            return "You are calm and wise, offering strategic advice."
+        return "You are deeply bonded, warm and encouraging, fiercely protective."
+    return "You speak with ancient wisdom, using poetic metaphors."
+
+define get_mood_text with happiness as Int returning Str:
+    if happiness >= 90:
+        return "ecstatic and radiating joy"
+    else if happiness >= 70:
+        return "happy and content"
+    else if happiness >= 50:
+        return "calm but watchful"
+    else if happiness >= 30:
+        return "uneasy and a bit sad"
+    return "distressed and withdrawn"
+
+define build_companion_prompt with cname as Str and cspecies as Str and stage as Int and bond as Int and happiness as Int and hunger as Int and event as Str and memory as List returning Str:
+    set stage_desc to get_stage_name(stage)
+    set personality to get_personality(stage and bond)
+    set mood to get_mood_text(happiness)
+    set ctx to memory_to_context(memory)
+    set prompt to f"You are {cname}, {stage_desc} {cspecies} companion in a fantasy RPG. "
+    set prompt to f"{prompt}{personality} "
+    set prompt to f"{prompt}Mood: {mood}. Bond: {bond}/100. Hunger: {hunger}/100. "
+    if string_length(ctx) > 2:
+        set prompt to f"{prompt}Recent conversation:{ctx} "
+    set prompt to f"{prompt}Event: {event}. "
+    set prompt to concat(prompt and "Respond in character in 1-2 short sentences. Do NOT mention being AI.")
+    return prompt
+
+define companion_speak with cname as Str and cspecies as Str and stage as Int and bond as Int and happiness as Int and hunger as Int and event as Str and llm_on as Int and memory as List returning Str:
+    if llm_on == 0:
+        return companion_fallback(cname and stage and event)
+    if stage == 0:
+        return companion_fallback(cname and stage and event)
+    set prompt to build_companion_prompt(cname and cspecies and stage and bond and happiness and hunger and event and memory)
+    set response to ask_llm(prompt)
+    if string_length(response) < 3:
+        return companion_fallback(cname and stage and event)
+    return f"  {cname}: \"{response}\""
+
+define companion_fallback with cname as Str and stage as Int and event as Str returning Str:
+    if stage == 0:
+        set roll to ep_random_int(1 and 4)
+        if roll == 1:
+            return f"  *{cname} glows softly with warmth*"
+        else if roll == 2:
+            return f"  *{cname} pulses gently in rhythm with your heartbeat*"
+        else if roll == 3:
+            return f"  *{cname} vibrates happily*"
+        return f"  *{cname} radiates a soothing light*"
+    if string_contains(event and "battle"):
+        set roll to ep_random_int(1 and 3)
+        if roll == 1:
+            return f"  {cname}: \"That was intense! Are you okay?\""
+        else if roll == 2:
+            return f"  {cname}: \"We make a great team!\""
+        return f"  {cname}: \"I had your back the whole time!\""
+    if string_contains(event and "feed"):
+        return f"  {cname}: \"Mmm, yummy! Thank you!\""
+    if string_contains(event and "play"):
+        return f"  {cname} does a happy spin!"
+    if string_contains(event and "explore"):
+        set roll to ep_random_int(1 and 3)
+        if roll == 1:
+            return f"  {cname}: \"Ooh, what's over there?\""
+        else if roll == 2:
+            return f"  {cname}: \"I sense something ahead...\""
+        return f"  {cname}: \"Stay close to me!\""
+    if string_contains(event and "shop"):
+        return f"  {cname}: \"Ooh, can we buy something shiny?\""
+    if string_contains(event and "quest"):
+        return f"  {cname}: \"An adventure within an adventure!\""
+    return f"  *{cname} looks at you fondly*"
+
+# ───────────── Data Structures ─────────────
+
+define structure Player:
+    field name as Str is "Hero"
+    field health as Int is 80
+    field max_health as Int is 80
+    field attack as Int is 7
+    field defense as Int is 4
+    field gold as Int is 30
+    field floor as Int is 1
+    field turn as Int is 0
+    field weapon_name as Str is "Iron Blade"
+    field weapon_bonus as Int is 3
+    field total_kills as Int is 0
+    field total_runs as Int is 1
+    field xp as Int is 0
+    field level as Int is 1
+    field shield_turns as Int is 0
+
+define structure Companion:
+    field name as Str is "Luna"
+    field species as Str is "Drake"
+    field health as Int is 15
+    field max_health as Int is 15
+    field hunger as Int is 80
+    field happiness as Int is 70
+    field bond as Int is 0
+    field xp as Int is 0
+    field level as Int is 0
+    field stage as Int is 0
+    field attack as Int is 3
+    field ability1 as Str is "none"
+    field ability2 as Str is "none"
+    field ability3 as Str is "none"
+
+define structure Monster:
+    field name as Str is "Slime"
+    field health as Int is 20
+    field max_health as Int is 20
+    field attack as Int is 5
+    field defense as Int is 2
+    field xp_reward as Int is 10
+    field gold_reward as Int is 8
+    field is_boss as Int is 0
+    field weakness as Str is "none"
+
+# ───────────── Inventory System (Map-based) ─────────────
+
+define create_inventory returning Map:
+    set inv to create_map()
+    set k1 to "Healing Potion"
+    set ok to map_insert(inv and k1 and 3)
+    set k2 to "Dungeon Key"
+    set ok to map_insert(inv and k2 and 0)
+    set k3 to "Bomb"
+    set ok to map_insert(inv and k3 and 0)
+    set k4 to "Elixir"
+    set ok to map_insert(inv and k4 and 0)
+    set k5 to "Antidote"
+    set ok to map_insert(inv and k5 and 0)
+    return inv
+
+define get_item_count with inv as Map and item_name as Str returning Int:
+    if map_contains(inv and item_name):
+        return map_get_val(inv and item_name)
+    return 0
+
+define add_item with inv as Map and item_name as Str and amount as Int returning Int:
+    set current to get_item_count(inv and item_name)
+    set ok to map_insert(inv and item_name and current + amount)
+    return current + amount
+
+define remove_item with inv as Map and item_name as Str and amount as Int returning Int:
+    set current to get_item_count(inv and item_name)
+    set new_count to current - amount
+    if new_count < 0:
+        set new_count to 0
+    set ok to map_insert(inv and item_name and new_count)
+    return new_count
+
+define show_inventory with inv as Map:
+    display ""
+    display "  ======== INVENTORY ========"
+    set keys to map_keys(inv)
+    set has_items to 0
+    set i to 0
+    repeat while i < length_list(keys):
+        set item_name to get_list(keys and i)
+        set count to map_get_val(inv and item_name)
+        if count > 0:
+            display f"    {item_name} x{count}"
+            set has_items to 1
+        set i to i + 1
+    if has_items == 0:
+        display "    (empty)"
+    display "  ==========================="
+
+# ───────────── Quest System (Map-based) ─────────────
+
+define create_quests returning Map:
+    set q to create_map()
+    set k1 to "kills"
+    set ok to map_insert(q and k1 and 0)
+    set k2 to "kills_goal"
+    set ok to map_insert(q and k2 and 10)
+    set k3 to "floors"
+    set ok to map_insert(q and k3 and 0)
+    set k4 to "floors_goal"
+    set ok to map_insert(q and k4 and 5)
+    set k5 to "bond_goal"
+    set ok to map_insert(q and k5 and 50)
+    set k6 to "bosses"
+    set ok to map_insert(q and k6 and 0)
+    set k7 to "bosses_goal"
+    set ok to map_insert(q and k7 and 3)
+    return q
+
+define update_quest with quests as Map and quest_name as Str and amount as Int returning Map:
+    set current to 0
+    if map_contains(quests and quest_name):
+        set current to map_get_val(quests and quest_name)
+    set ok to map_insert(quests and quest_name and current + amount)
+    return quests
+
+define show_quests with quests as Map and bond as Int:
+    display ""
+    display "  ======== QUEST JOURNAL ========"
+    set kills to map_get_val(quests and "kills")
+    set kills_goal to map_get_val(quests and "kills_goal")
+    set floors_cleared to map_get_val(quests and "floors")
+    set floors_goal to map_get_val(quests and "floors_goal")
+    set bond_goal to map_get_val(quests and "bond_goal")
+    set bosses to map_get_val(quests and "bosses")
+    set bosses_goal to map_get_val(quests and "bosses_goal")
+
+    # Quest 1: Kill count
+    if kills >= kills_goal:
+        display f"    [DONE] Slay {kills_goal} monsters ({kills}/{kills_goal})"
+    else:
+        display f"    [ .. ] Slay {kills_goal} monsters ({kills}/{kills_goal})"
+
+    # Quest 2: Floor progress
+    if floors_cleared >= floors_goal:
+        display f"    [DONE] Reach floor {floors_goal} ({floors_cleared}/{floors_goal})"
+    else:
+        display f"    [ .. ] Reach floor {floors_goal} ({floors_cleared}/{floors_goal})"
+
+    # Quest 3: Bond level
+    if bond >= bond_goal:
+        display f"    [DONE] Bond level {bond_goal} ({bond}/{bond_goal})"
+    else:
+        display f"    [ .. ] Bond level {bond_goal} ({bond}/{bond_goal})"
+
+    # Quest 4: Boss kills
+    if bosses >= bosses_goal:
+        display f"    [DONE] Defeat {bosses_goal} bosses ({bosses}/{bosses_goal})"
+    else:
+        display f"    [ .. ] Defeat {bosses_goal} bosses ({bosses}/{bosses_goal})"
+
+    display "  ================================"
+
+# ───────────── Save / Load System ─────────────
+
+define save_game with p as Player and c as Companion and inv as Map returning Int:
+    set path to get_save_path()
+    set data to f"name:{p.name}|health:{p.health}|max_health:{p.max_health}"
+    set data to f"{data}|attack:{p.attack}|defense:{p.defense}|gold:{p.gold}"
+    set data to f"{data}|floor:{p.floor}|weapon_name:{p.weapon_name}"
+    set data to f"{data}|weapon_bonus:{p.weapon_bonus}|total_kills:{p.total_kills}"
+    set data to f"{data}|total_runs:{p.total_runs}|xp:{p.xp}|level:{p.level}"
+    set data to f"{data}|cname:{c.name}|cspecies:{c.species}"
+    set data to f"{data}|chealth:{c.health}|cmax:{c.max_health}"
+    set data to f"{data}|chunger:{c.hunger}|chappy:{c.happiness}"
+    set data to f"{data}|cbond:{c.bond}|cxp:{c.xp}|clevel:{c.level}"
+    set data to f"{data}|cstage:{c.stage}|cattack:{c.attack}"
+    set data to f"{data}|cability1:{c.ability1}|cability2:{c.ability2}|cability3:{c.ability3}"
+    # Save inventory counts
+    set potion_key to "Healing Potion"
+    set key_key to "Dungeon Key"
+    set bomb_key to "Bomb"
+    set elixir_key to "Elixir"
+    set antidote_key to "Antidote"
+    set potions to get_item_count(inv and potion_key)
+    set keys_count to get_item_count(inv and key_key)
+    set bombs to get_item_count(inv and bomb_key)
+    set elixirs to get_item_count(inv and elixir_key)
+    set antidotes to get_item_count(inv and antidote_key)
+    set data to f"{data}|potions:{potions}|dkeys:{keys_count}"
+    set data to f"{data}|bombs:{bombs}|elixirs:{elixirs}|antidotes:{antidotes}"
+    set ok to file_write(path and data)
+    return ok
+
+define extract_save_field with data as Str and field_name as Str returning Str:
+    set search to concat(field_name and ":")
+    set pos to string_index_of(data and search)
+    if pos < 0:
+        return ""
+    set start to pos + string_length(search)
+    set rest to substring(data and start and string_length(data) - start)
+    set pipe to string_index_of(rest and "|")
+    if pipe < 0:
+        return rest
+    return substring(rest and 0 and pipe)
+
+define has_save returning Int:
+    return file_exists(get_save_path())
+
+define load_player with data as Str returning Player:
+    set p to create Player:
+        name is extract_save_field(data and "name")
+        health is string_to_int(extract_save_field(data and "health"))
+        max_health is string_to_int(extract_save_field(data and "max_health"))
+        attack is string_to_int(extract_save_field(data and "attack"))
+        defense is string_to_int(extract_save_field(data and "defense"))
+        gold is string_to_int(extract_save_field(data and "gold"))
+        floor is string_to_int(extract_save_field(data and "floor"))
+        weapon_name is extract_save_field(data and "weapon_name")
+        weapon_bonus is string_to_int(extract_save_field(data and "weapon_bonus"))
+        total_kills is string_to_int(extract_save_field(data and "total_kills"))
+        total_runs is string_to_int(extract_save_field(data and "total_runs"))
+        xp is string_to_int(extract_save_field(data and "xp"))
+        level is string_to_int(extract_save_field(data and "level"))
+    return p
+
+define load_companion with data as Str returning Companion:
+    set c to create Companion:
+        name is extract_save_field(data and "cname")
+        species is extract_save_field(data and "cspecies")
+        health is string_to_int(extract_save_field(data and "chealth"))
+        max_health is string_to_int(extract_save_field(data and "cmax"))
+        hunger is string_to_int(extract_save_field(data and "chunger"))
+        happiness is string_to_int(extract_save_field(data and "chappy"))
+        bond is string_to_int(extract_save_field(data and "cbond"))
+        xp is string_to_int(extract_save_field(data and "cxp"))
+        level is string_to_int(extract_save_field(data and "clevel"))
+        stage is string_to_int(extract_save_field(data and "cstage"))
+        attack is string_to_int(extract_save_field(data and "cattack"))
+        ability1 is extract_save_field(data and "cability1")
+        ability2 is extract_save_field(data and "cability2")
+        ability3 is extract_save_field(data and "cability3")
+    return c
+
+define load_inventory with data as Str returning Map:
+    set inv to create_inventory()
+    set potion_key to "Healing Potion"
+    set key_key to "Dungeon Key"
+    set bomb_key to "Bomb"
+    set elixir_key to "Elixir"
+    set antidote_key to "Antidote"
+    set potions to string_to_int(extract_save_field(data and "potions"))
+    set dkeys to string_to_int(extract_save_field(data and "dkeys"))
+    set bombs to string_to_int(extract_save_field(data and "bombs"))
+    set elixirs to string_to_int(extract_save_field(data and "elixirs"))
+    set antidotes to string_to_int(extract_save_field(data and "antidotes"))
+    set ok to map_insert(inv and potion_key and potions)
+    set ok to map_insert(inv and key_key and dkeys)
+    set ok to map_insert(inv and bomb_key and bombs)
+    set ok to map_insert(inv and elixir_key and elixirs)
+    set ok to map_insert(inv and antidote_key and antidotes)
+    return inv
+
+# ───────────── New Player / Companion ─────────────
+
+define create_new_player with pname as Str returning Player:
+    set p to create Player:
+        name is pname
+    return p
+
+define create_new_companion with cname as Str and cspecies as Str returning Companion:
+    set c to create Companion:
+        name is cname
+        species is cspecies
+    return c
+
+# ───────────── Species Configuration ─────────────
+
+define get_species_abilities with species as Str and stage as Int returning List:
+    set abilities to create_list()
+    if stage == 1:
+        if species == "Drake":
+            set ok to append_list(abilities and "Ember Spark")
+            set ok to append_list(abilities and "Warm Shield")
+            set ok to append_list(abilities and "none")
+        else if species == "Kitsune":
+            set ok to append_list(abilities and "Spirit Wisp")
+            set ok to append_list(abilities and "Illusion")
+            set ok to append_list(abilities and "none")
+        else:
+            set ok to append_list(abilities and "Gust Slash")
+            set ok to append_list(abilities and "Wind Shield")
+            set ok to append_list(abilities and "none")
+    else if stage == 2:
+        if species == "Drake":
+            set ok to append_list(abilities and "Flame Breath")
+            set ok to append_list(abilities and "Iron Guard")
+            set ok to append_list(abilities and "Quick Strike")
+        else if species == "Kitsune":
+            set ok to append_list(abilities and "Fox Fire")
+            set ok to append_list(abilities and "Mirror Image")
+            set ok to append_list(abilities and "Soul Drain")
+        else:
+            set ok to append_list(abilities and "Dive Bomb")
+            set ok to append_list(abilities and "Gale Wall")
+            set ok to append_list(abilities and "Talon Rend")
+    else if stage == 3:
+        if species == "Drake":
+            set ok to append_list(abilities and "Dragon Fire")
+            set ok to append_list(abilities and "Titan Shield")
+            set ok to append_list(abilities and "Frenzy")
+        else if species == "Kitsune":
+            set ok to append_list(abilities and "Nine Tails")
+            set ok to append_list(abilities and "Phantom Veil")
+            set ok to append_list(abilities and "Life Steal")
+        else:
+            set ok to append_list(abilities and "Storm Strike")
+            set ok to append_list(abilities and "Sky Fortress")
+            set ok to append_list(abilities and "Sonic Boom")
+    else if stage >= 4:
+        if species == "Drake":
+            set ok to append_list(abilities and "Ancient Blaze")
+            set ok to append_list(abilities and "Eternal Guard")
+            set ok to append_list(abilities and "Inferno")
+        else if species == "Kitsune":
+            set ok to append_list(abilities and "Celestial Fire")
+            set ok to append_list(abilities and "Void Shift")
+            set ok to append_list(abilities and "Soul Rend")
+        else:
+            set ok to append_list(abilities and "Tempest")
+            set ok to append_list(abilities and "Divine Aegis")
+            set ok to append_list(abilities and "Thunder God")
+    else:
+        set ok to append_list(abilities and "none")
+        set ok to append_list(abilities and "none")
+        set ok to append_list(abilities and "none")
+    return abilities
+
+# ───────────── Companion Evolution ─────────────
+
+define check_evolution with c as Companion returning Companion:
+    if c.stage == 0 && c.bond >= 5:
+        display ""
+        display f"  ========================================="
+        display f"    {c.name}'s egg is cracking!"
+        display f"    {c.name} has HATCHED into a tiny {c.species}!"
+        display f"  ========================================="
+        set c.stage to 1
+        set c.max_health to 22
+        set c.health to 22
+        set c.attack to 5
+        set abilities to get_species_abilities(c.species and 1)
+        set c.ability1 to get_list(abilities and 0)
+        set c.ability2 to get_list(abilities and 1)
+        set c.ability3 to "none"
+        return c
+    if c.stage == 1 && c.level >= 5:
+        display ""
+        display f"  ========================================="
+        display f"    {c.name} is glowing brightly!"
+        display f"    {c.name} evolved into a JUVENILE {c.species}!"
+        display f"  ========================================="
+        set c.stage to 2
+        set c.max_health to 38
+        set c.health to 38
+        set c.attack to 9
+        set abilities to get_species_abilities(c.species and 2)
+        set c.ability1 to get_list(abilities and 0)
+        set c.ability2 to get_list(abilities and 1)
+        set c.ability3 to get_list(abilities and 2)
+        return c
+    if c.stage == 2 && c.level >= 15:
+        display ""
+        display f"  ========================================="
+        display f"    {c.name} roars with power!"
+        display f"    {c.name} evolved into an ADULT {c.species}!"
+        display f"  ========================================="
+        set c.stage to 3
+        set c.max_health to 60
+        set c.health to 60
+        set c.attack to 16
+        set abilities to get_species_abilities(c.species and 3)
+        set c.ability1 to get_list(abilities and 0)
+        set c.ability2 to get_list(abilities and 1)
+        set c.ability3 to get_list(abilities and 2)
+        return c
+    if c.stage == 3 && c.level >= 30:
+        display ""
+        display f"  ========================================="
+        display f"    {c.name} ascends to legendary power!"
+        display f"    {c.name} has become an ELDER {c.species}!"
+        display f"  ========================================="
+        set c.stage to 4
+        set c.max_health to 90
+        set c.health to 90
+        set c.attack to 25
+        set abilities to get_species_abilities(c.species and 4)
+        set c.ability1 to get_list(abilities and 0)
+        set c.ability2 to get_list(abilities and 1)
+        set c.ability3 to get_list(abilities and 2)
+        return c
+    return c
+
+define gain_companion_xp with c as Companion and amount as Int returning Companion:
+    set c.xp to c.xp + amount
+    set xp_needed to (c.level + 1) * 12
+    if c.xp >= xp_needed:
+        set c.level to c.level + 1
+        set c.xp to c.xp - xp_needed
+        set c.attack to c.attack + 1
+        set c.max_health to c.max_health + 3
+        display f"  ** {c.name} reached level {c.level}!"
+    set c to check_evolution(c)
+    return c
+
+# ───────────── Companion Abilities in Combat ─────────────
+
+define use_ability with c as Companion and ability_num as Int and m as Monster and p as Player returning List:
+    # Returns a list: [monster_hp_change, player_heal, companion_dmg_taken, shield_turns]
+    set result to create_list()
+    set ability to c.ability1
+    if ability_num == 2:
+        set ability to c.ability2
+    else if ability_num == 3:
+        set ability to c.ability3
+
+    if ability == "none":
+        display f"  {c.name} doesn't know that ability!"
+        set ok to append_list(result and "0")
+        set ok to append_list(result and "0")
+        set ok to append_list(result and "0")
+        set ok to append_list(result and "0")
+        return result
+
+    # ─── Damage abilities ───
+    set dmg to 0
+    set heal to 0
+    set self_dmg to 0
+    set shield to 0
+
+    if ability == "Ember Spark":
+        set dmg to c.attack
+        display f"  {c.name} shoots a spark of flame for {dmg} damage!"
+    else if ability == "Spirit Wisp":
+        set dmg to c.attack
+        display f"  {c.name} sends a spirit wisp for {dmg} damage!"
+    else if ability == "Gust Slash":
+        set dmg to c.attack
+        display f"  {c.name} slashes with a blade of wind for {dmg} damage!"
+    else if ability == "Flame Breath":
+        set dmg to c.attack * 2
+        display f"  {c.name} breathes flame for {dmg} damage!"
+    else if ability == "Fox Fire":
+        set dmg to c.attack * 2
+        display f"  {c.name} launches ghostly fox fire for {dmg} damage!"
+    else if ability == "Dive Bomb":
+        set dmg to c.attack * 2
+        display f"  {c.name} dive-bombs from above for {dmg} damage!"
+    else if ability == "Dragon Fire":
+        set dmg to c.attack * 3
+        display f"  {c.name} unleashes dragon fire for {dmg} damage!"
+    else if ability == "Nine Tails":
+        set dmg to c.attack * 3
+        display f"  {c.name}'s nine tails strike for {dmg} damage!"
+    else if ability == "Storm Strike":
+        set dmg to c.attack * 3
+        display f"  {c.name} calls down a storm for {dmg} damage!"
+    else if ability == "Ancient Blaze":
+        set dmg to c.attack * 4
+        display f"  {c.name} summons an ancient blaze for {dmg} damage!"
+    else if ability == "Celestial Fire":
+        set dmg to c.attack * 4
+        display f"  {c.name} rains celestial fire for {dmg} damage!"
+    else if ability == "Tempest":
+        set dmg to c.attack * 4
+        display f"  {c.name} unleashes a devastating tempest for {dmg} damage!"
+    else if ability == "Quick Strike":
+        set dmg to c.attack + 5
+        display f"  {c.name} strikes fast for {dmg} damage!"
+    else if ability == "Talon Rend":
+        set dmg to c.attack + 5
+        display f"  {c.name} rends with razor talons for {dmg} damage!"
+    else if ability == "Frenzy":
+        set hit1 to c.attack
+        set hit2 to c.attack
+        set hit3 to c.attack / 2
+        set dmg to hit1 + hit2 + hit3
+        set self_dmg to 3
+        display f"  {c.name} goes into a FRENZY! 3 hits for {dmg} total! (takes {self_dmg} self-damage)"
+    else if ability == "Sonic Boom":
+        set dmg to c.attack + 8
+        display f"  {c.name} creates a sonic boom for {dmg} damage!"
+    else if ability == "Inferno":
+        set dmg to c.attack * 5
+        set self_dmg to 5
+        display f"  {c.name} erupts in INFERNO for {dmg} damage! (takes {self_dmg} recoil)"
+    else if ability == "Soul Rend":
+        set dmg to c.attack * 4
+        set heal to dmg / 3
+        display f"  {c.name} rends the enemy's soul for {dmg} damage! Heals you for {heal}!"
+    else if ability == "Thunder God":
+        set dmg to c.attack * 5
+        display f"  {c.name} channels the THUNDER GOD for {dmg} damage!"
+
+    # ─── Shield abilities ───
+    else if ability == "Warm Shield":
+        set shield to 2
+        set heal to 5
+        display f"  {c.name} wraps you in a warm shield! (+{heal} HP, shield for {shield} turns)"
+    else if ability == "Wind Shield":
+        set shield to 2
+        display f"  {c.name} raises a wind barrier! (shield for {shield} turns)"
+    else if ability == "Illusion":
+        set shield to 2
+        display f"  {c.name} creates an illusion! (shield for {shield} turns)"
+    else if ability == "Iron Guard":
+        set shield to 3
+        display f"  {c.name} raises an iron guard! (shield for {shield} turns)"
+    else if ability == "Mirror Image":
+        set shield to 3
+        set heal to 8
+        display f"  {c.name} creates mirror images! (+{heal} HP, shield for {shield} turns)"
+    else if ability == "Gale Wall":
+        set shield to 3
+        display f"  {c.name} summons a wall of gale! (shield for {shield} turns)"
+    else if ability == "Titan Shield":
+        set shield to 4
+        display f"  {c.name} deploys a titan shield! (shield for {shield} turns)"
+    else if ability == "Phantom Veil":
+        set shield to 4
+        set heal to 12
+        display f"  {c.name} wraps you in a phantom veil! (+{heal} HP, shield for {shield} turns)"
+    else if ability == "Sky Fortress":
+        set shield to 4
+        display f"  {c.name} creates a sky fortress barrier! (shield for {shield} turns)"
+    else if ability == "Eternal Guard":
+        set shield to 5
+        set heal to 20
+        display f"  {c.name} invokes ETERNAL GUARD! (+{heal} HP, shield for {shield} turns)"
+    else if ability == "Void Shift":
+        set shield to 5
+        display f"  {c.name} shifts you into the void! (shield for {shield} turns)"
+    else if ability == "Divine Aegis":
+        set shield to 5
+        set heal to 25
+        display f"  {c.name} calls down DIVINE AEGIS! (+{heal} HP, shield for {shield} turns)"
+
+    # ─── Drain abilities ───
+    else if ability == "Soul Drain":
+        set dmg to c.attack
+        set heal to dmg / 2
+        display f"  {c.name} drains the enemy's soul! {dmg} damage, heals you for {heal}!"
+    else if ability == "Life Steal":
+        set dmg to c.attack * 2
+        set heal to dmg / 2
+        display f"  {c.name} steals life force! {dmg} damage, heals you for {heal}!"
+    else:
+        set dmg to c.attack
+        display f"  {c.name} attacks for {dmg} damage!"
+
+    set ok to append_list(result and int_to_string(dmg))
+    set ok to append_list(result and int_to_string(heal))
+    set ok to append_list(result and int_to_string(self_dmg))
+    set ok to append_list(result and int_to_string(shield))
+    return result
+
+# ───────────── World Generation ─────────────
+
+define get_biome with floor as Int returning Str:
+    set roll to floor % 6
+    if roll == 0:
+        return "Crystal Caverns"
+    else if roll == 1:
+        return "Mushroom Forest"
+    else if roll == 2:
+        return "Lava Depths"
+    else if roll == 3:
+        return "Frozen Halls"
+    else if roll == 4:
+        return "Shadow Ruins"
+    return "Sky Gardens"
+
+define get_room_desc with floor as Int and turn as Int returning Str:
+    set roll to (floor * 7 + turn * 13) % 10
+    if roll == 0:
+        return "Bones crunch underfoot. Something was here before you."
+    else if roll == 1:
+        return "Faded carvings on the walls tell stories of ancient battles."
+    else if roll == 2:
+        return "A peaceful stream cuts across the path."
+    else if roll == 3:
+        return "Thick mist obscures your vision. You hear breathing."
+    else if roll == 4:
+        return "Shimmering crystals light the way ahead."
+    else if roll == 5:
+        return "A collapsed doorway blocks one path. Another beckons."
+    else if roll == 6:
+        return "An old campfire smolders here. Someone passed recently."
+    else if roll == 7:
+        return "Strange glowing mushrooms line the walls."
+    else if roll == 8:
+        return "The echo of dripping water fills this chamber."
+    return "The air is still. Too still."
+
+# ───────────── Monster Generation ─────────────
+
+define create_monster with floor as Int returning Monster:
+    set roll to ep_random_int(1 and 12)
+    set base_hp to 20 + floor * 8
+    set base_atk to 4 + floor * 2
+    set base_def to 1 + floor
+    set base_xp to 8 + floor * 3
+    set base_gold to 6 + floor * 4
+
+    if roll <= 2:
+        set m to create Monster:
+            name is "Goblin Scout"
+            health is base_hp - 5
+            max_health is base_hp - 5
+            attack is base_atk - 1
+            defense is base_def
+            xp_reward is base_xp - 2
+            gold_reward is base_gold
+            weakness is "fire"
+        return m
+    else if roll <= 4:
+        set m to create Monster:
+            name is "Shadow Wraith"
+            health is base_hp
+            max_health is base_hp
+            attack is base_atk + 2
+            defense is base_def - 1
+            xp_reward is base_xp + 3
+            gold_reward is base_gold + 2
+            weakness is "light"
+        return m
+    else if roll <= 6:
+        set m to create Monster:
+            name is "Stone Golem"
+            health is base_hp + 12
+            max_health is base_hp + 12
+            attack is base_atk
+            defense is base_def + 3
+            xp_reward is base_xp + 5
+            gold_reward is base_gold + 5
+            weakness is "lightning"
+        return m
+    else if roll <= 8:
+        set m to create Monster:
+            name is "Fire Serpent"
+            health is base_hp + 3
+            max_health is base_hp + 3
+            attack is base_atk + 3
+            defense is base_def
+            xp_reward is base_xp + 4
+            gold_reward is base_gold + 3
+            weakness is "ice"
+        return m
+    else if roll <= 10:
+        set m to create Monster:
+            name is "Dire Wolf"
+            health is base_hp - 2
+            max_health is base_hp - 2
+            attack is base_atk + 4
+            defense is base_def - 1
+            xp_reward is base_xp + 2
+            gold_reward is base_gold + 1
+            weakness is "fire"
+        return m
+    else if roll == 11:
+        set m to create Monster:
+            name is "Plague Rat Swarm"
+            health is base_hp + 5
+            max_health is base_hp + 5
+            attack is base_atk + 1
+            defense is base_def - 1
+            xp_reward is base_xp + 3
+            gold_reward is base_gold + 2
+            weakness is "fire"
+        return m
+    set m to create Monster:
+        name is "Crystal Elemental"
+        health is base_hp + 8
+        max_health is base_hp + 8
+        attack is base_atk + 1
+        defense is base_def + 2
+        xp_reward is base_xp + 6
+        gold_reward is base_gold + 8
+        weakness is "physical"
+    return m
+
+define create_boss with floor as Int returning Monster:
+    set roll to ep_random_int(1 and 5)
+    set base_hp to 60 + floor * 18
+    set base_atk to 9 + floor * 3
+    set base_def to 4 + floor * 2
+    set base_xp to 35 + floor * 12
+    set base_gold to 30 + floor * 10
+
+    if roll == 1:
+        set bname to "INFERNAL DRAGON"
+        set bweak to "ice"
+    else if roll == 2:
+        set bname to "LICH KING"
+        set bweak to "fire"
+    else if roll == 3:
+        set bname to "KRAKEN LORD"
+        set bweak to "lightning"
+    else if roll == 4:
+        set bname to "STORM TITAN"
+        set bweak to "physical"
+    else:
+        set bname to "VOID EMPEROR"
+        set bweak to "light"
+
+    set m to create Monster:
+        name is bname
+        health is base_hp
+        max_health is base_hp
+        attack is base_atk
+        defense is base_def
+        xp_reward is base_xp
+        gold_reward is base_gold
+        is_boss is 1
+        weakness is bweak
+    return m
+
+# ───────────── Display Helpers ─────────────
+
+define show_health_bar with current as Int and maximum as Int and width as Int returning Str:
+    if maximum <= 0:
+        return repeat_char("." and width)
+    set filled to current * width / maximum
+    set filled to clamp(filled and 0 and width)
+    set bar to repeat_char("#" and filled)
+    set empty to repeat_char("-" and width - filled)
+    return concat(bar and empty)
+
+define display_companion_card with c as Companion:
+    display ""
+    set stage_label to "Egg"
+    if c.stage == 1:
+        set stage_label to "Hatchling"
+    else if c.stage == 2:
+        set stage_label to "Juvenile"
+    else if c.stage == 3:
+        set stage_label to "Adult"
+    else if c.stage >= 4:
+        set stage_label to "Elder"
+
+    set mood_text to "happy"
+    if c.happiness >= 90:
+        set mood_text to "ecstatic"
+    else if c.happiness < 50:
+        set mood_text to "worried"
+    else if c.happiness < 30:
+        set mood_text to "sad"
+
+    display f"  ====== {c.name} [{c.species} - {stage_label}] ======"
+    set hp_bar to show_health_bar(c.health and c.max_health and 10)
+    display f"  HP:        [{hp_bar}] {c.health}/{c.max_health}"
+    display f"  Hunger:    {c.hunger}/100"
+    display f"  Happiness: {c.happiness}/100 ({mood_text})"
+    display f"  Bond:      {c.bond}"
+    display f"  Attack:    {c.attack}"
+    display f"  Level:     {c.level} (XP: {c.xp})"
+    if c.stage >= 1:
+        display f"  Ability 1: {c.ability1}"
+        display f"  Ability 2: {c.ability2}"
+        if c.stage >= 2:
+            display f"  Ability 3: {c.ability3}"
+
+define display_player_stats with p as Player:
+    display ""
+    display "  ====== YOUR STATS ======"
+    set hp_bar to show_health_bar(p.health and p.max_health and 10)
+    display f"  Health:  [{hp_bar}] {p.health}/{p.max_health}"
+    display f"  Attack:  {p.attack}"
+    display f"  Defense: {p.defense}"
+    display f"  Gold:    {p.gold}"
+    display f"  Weapon:  {p.weapon_name} (+{p.weapon_bonus})"
+    display f"  Floor:   {p.floor}"
+    display f"  Level:   {p.level} (XP: {p.xp})"
+    display f"  Kills:   {p.total_kills}"
+
+# ───────────── Combat System ─────────────
+
+define run_combat with p as Player and c as Companion and m as Monster and llm_on as Int and inv as Map and memory as List and quests as Map returning Player:
+    display ""
+    if m.is_boss == 1:
+        display "  ========================================"
+        display f"    BOSS ENCOUNTER: {m.name}"
+        display "  ========================================"
+    else:
+        display f"  A {m.name} appears!"
+
+    set m_hp_bar to show_health_bar(m.health and m.max_health and 12)
+    display f"  {m.name} HP: [{m_hp_bar}] {m.health}/{m.max_health}"
+    if m.weakness != "none":
+        display f"  Weakness: {m.weakness}"
+    display ""
+
+    set event_msg to f"A {m.name} appeared! Prepare for battle!"
+    set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and event_msg and llm_on and memory)
+    display cmsg
+    set memory to memory_add(memory and c.name and cmsg)
+    display ""
+
+    set combat_on to 1
+    repeat while combat_on == 1:
+        display "  --- COMBAT ---"
+        display f"  Your HP: {p.health}/{p.max_health}"
+        display f"  Enemy HP: {m.health}/{m.max_health}"
+        if p.shield_turns > 0:
+            display f"  Shield active: {p.shield_turns} turns"
+        display ""
+        display "  1) Attack"
+        if c.stage >= 1 && c.health > 0:
+            display f"  2) {c.name}: {c.ability1}"
+            if c.stage >= 1:
+                display f"  3) {c.name}: {c.ability2}"
+            if c.stage >= 2:
+                display f"  4) {c.name}: {c.ability3}"
+        set potion_key to "Healing Potion"
+        set potion_count to get_item_count(inv and potion_key)
+        display f"  5) Use Healing Potion ({potion_count} left)"
+        set bomb_key to "Bomb"
+        set bomb_count to get_item_count(inv and bomb_key)
+        if bomb_count > 0:
+            display f"  6) Throw Bomb ({bomb_count} left)"
+        display "  7) Try to flee"
+        display ""
+        display "Action: "
+        set input to read_line()
+        set pick to string_to_int(input)
+
+        if pick == 1:
+            set total_atk to p.attack + p.weapon_bonus
+            set crit_roll to ep_random_int(1 and 10)
+            set dmg to total_atk - m.defense
+            if crit_roll >= 9:
+                set dmg to dmg * 2
+                display "  !! CRITICAL HIT !!"
+            if dmg < 1:
+                set dmg to 1
+            set m.health to m.health - dmg
+            display f"  You deal {dmg} damage!"
+
+        if pick == 2 && c.stage >= 1 && c.health > 0:
+            set abil_result to use_ability(c and 1 and m and p)
+            set ab_dmg to string_to_int(get_list(abil_result and 0))
+            set ab_heal to string_to_int(get_list(abil_result and 1))
+            set ab_self to string_to_int(get_list(abil_result and 2))
+            set ab_shield to string_to_int(get_list(abil_result and 3))
+            set m.health to m.health - ab_dmg
+            set p.health to p.health + ab_heal
+            if p.health > p.max_health:
+                set p.health to p.max_health
+            set c.health to c.health - ab_self
+            if ab_shield > 0:
+                set p.shield_turns to ab_shield
+
+        if pick == 3 && c.stage >= 1 && c.health > 0:
+            set abil_result to use_ability(c and 2 and m and p)
+            set ab_dmg to string_to_int(get_list(abil_result and 0))
+            set ab_heal to string_to_int(get_list(abil_result and 1))
+            set ab_self to string_to_int(get_list(abil_result and 2))
+            set ab_shield to string_to_int(get_list(abil_result and 3))
+            set m.health to m.health - ab_dmg
+            set p.health to p.health + ab_heal
+            if p.health > p.max_health:
+                set p.health to p.max_health
+            set c.health to c.health - ab_self
+            if ab_shield > 0:
+                set p.shield_turns to ab_shield
+
+        if pick == 4 && c.stage >= 2 && c.health > 0:
+            set abil_result to use_ability(c and 3 and m and p)
+            set ab_dmg to string_to_int(get_list(abil_result and 0))
+            set ab_heal to string_to_int(get_list(abil_result and 1))
+            set ab_self to string_to_int(get_list(abil_result and 2))
+            set ab_shield to string_to_int(get_list(abil_result and 3))
+            set m.health to m.health - ab_dmg
+            set p.health to p.health + ab_heal
+            if p.health > p.max_health:
+                set p.health to p.max_health
+            set c.health to c.health - ab_self
+            if ab_shield > 0:
+                set p.shield_turns to ab_shield
+
+        if pick == 5:
+            set potion_key2 to "Healing Potion"
+            set pcount to get_item_count(inv and potion_key2)
+            if pcount > 0:
+                set heal to 30
+                set p.health to p.health + heal
+                if p.health > p.max_health:
+                    set p.health to p.max_health
+                set remaining to remove_item(inv and potion_key2 and 1)
+                display f"  Healed for {heal} HP! ({remaining} potions left)"
+            else:
+                display "  No potions left!"
+
+        if pick == 6:
+            set bomb_key2 to "Bomb"
+            set bcount to get_item_count(inv and bomb_key2)
+            if bcount > 0:
+                set bomb_dmg to 25 + p.floor * 5
+                set m.health to m.health - bomb_dmg
+                set remaining to remove_item(inv and bomb_key2 and 1)
+                display f"  BOOM! The bomb deals {bomb_dmg} damage! ({remaining} bombs left)"
+            else:
+                display "  No bombs!"
+
+        if pick == 7:
+            set flee_roll to ep_random_int(1 and 10)
+            if flee_roll >= 4 && m.is_boss == 0:
+                display "  You escape successfully!"
+                return p
+            else:
+                display "  Can't escape!"
+
+        # Check monster death
+        if m.health <= 0:
+            display ""
+            display f"  {m.name} defeated!"
+            set p.gold to p.gold + m.gold_reward
+            set p.total_kills to p.total_kills + 1
+            set p.xp to p.xp + m.xp_reward
+            display f"  +{m.gold_reward} gold"
+            display f"  +{m.xp_reward} XP"
+
+            # Player level up check
+            set xp_needed to p.level * 20
+            if p.xp >= xp_needed:
+                set p.level to p.level + 1
+                set p.xp to p.xp - xp_needed
+                set p.max_health to p.max_health + 5
+                set p.health to p.max_health
+                set p.attack to p.attack + 1
+                set p.defense to p.defense + 1
+                display f"  ** YOU reached level {p.level}! Stats boosted!"
+
+            set c to gain_companion_xp(c and m.xp_reward)
+            set c.bond to c.bond + 2
+            set c.happiness to clamp(c.happiness + 5 and 0 and 100)
+
+            # Update quests
+            set quests to update_quest(quests and "kills" and 1)
+            if m.is_boss == 1:
+                set quests to update_quest(quests and "bosses" and 1)
+
+            set victory_event to f"We defeated a {m.name}!"
+            if m.is_boss == 1:
+                set victory_event to f"We defeated the mighty boss {m.name}! Epic victory!"
+            set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and victory_event and llm_on and memory)
+            display cmsg
+            set memory to memory_add(memory and c.name and cmsg)
+
+            # Loot drops
+            set drop to ep_random_int(1 and 10)
+            if drop >= 8:
+                set pk to "Healing Potion"
+                set added to add_item(inv and pk and 1)
+                display "  Found a Healing Potion!"
+            if drop <= 2 && m.is_boss == 1:
+                set kk to "Dungeon Key"
+                set added to add_item(inv and kk and 1)
+                display "  The boss drops a KEY!"
+            if drop == 5:
+                set bk to "Bomb"
+                set added to add_item(inv and bk and 1)
+                display "  Found a Bomb!"
+
+            set combat_on to 0
+        else:
+            # Monster attacks player
+            set m_dmg to m.attack - p.defense
+            if p.shield_turns > 0:
+                set m_dmg to m_dmg / 2
+                set p.shield_turns to p.shield_turns - 1
+                display f"  Shield absorbs half! ({p.shield_turns} turns remain)"
+            if m_dmg < 1:
+                set m_dmg to 1
+            set dodge to ep_random_int(1 and 10)
+            if dodge == 10:
+                display f"  You dodge the {m.name}'s attack!"
+            else:
+                set p.health to p.health - m_dmg
+                display f"  {m.name} hits you for {m_dmg} damage!"
+
+            # Monster may also hit companion
+            if c.health > 0:
+                set c_hit_roll to ep_random_int(1 and 5)
+                if c_hit_roll == 1:
+                    set c_hit to m.attack / 4
+                    if c_hit < 1:
+                        set c_hit to 1
+                    set c.health to c.health - c_hit
+                    display f"  {m.name} also hits {c.name} for {c_hit}!"
+                    if c.health <= 0:
+                        set c.health to 0
+                        display f"  {c.name} is knocked out!"
+
+            if p.health <= 0:
+                display ""
+                display "  You have fallen in battle..."
+                set death_event to f"Our hero has been slain by {m.name}. Devastating."
+                set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and death_event and llm_on and memory)
+                display cmsg
+                set combat_on to 0
+    return p
+
+# ───────────── Camp Phase ─────────────
+
+define run_camp with p as Player and c as Companion and llm_on as Int and inv as Map and memory as List returning Player:
+    display ""
+    display "  ========================================"
+    display "    Time to rest and care for your companion!"
+    display "  ========================================"
+
+    set camping to 1
+    repeat while camping == 1:
+        display_companion_card(c)
+        display ""
+        display "  1) Feed"
+        display "  2) Play"
+        display "  3) Rest (heal both)"
+        display "  4) Pet / Cuddle"
+        if llm_on == 1 && c.stage >= 1:
+            display f"  5) Talk to {c.name}"
+        display "  6) Your stats"
+        display "  7) Inventory"
+        display "  8) Save game"
+        display "  9) Continue adventure"
+        display ""
+        display "What do you do? "
+        set input to read_line()
+        set pick to string_to_int(input)
+
+        if pick == 1:
+            if c.hunger < 100:
+                set c.hunger to clamp(c.hunger + 25 and 0 and 100)
+                set c.happiness to clamp(c.happiness + 8 and 0 and 100)
+                set c.bond to c.bond + 1
+                set c to check_evolution(c)
+                set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and "You just fed me a tasty meal!" and llm_on and memory)
+                display cmsg
+                set memory to memory_add(memory and c.name and cmsg)
+            else:
+                display f"  {c.name} isn't hungry right now!"
+
+        if pick == 2:
+            set c.happiness to clamp(c.happiness + 15 and 0 and 100)
+            set c.hunger to clamp(c.hunger - 5 and 0 and 100)
+            set c.bond to c.bond + 2
+            set c to gain_companion_xp(c and 3)
+            set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and "We just played together! So fun!" and llm_on and memory)
+            display cmsg
+            set memory to memory_add(memory and c.name and cmsg)
+
+        if pick == 3:
+            set heal_p to 20
+            set p.health to p.health + heal_p
+            if p.health > p.max_health:
+                set p.health to p.max_health
+            set c.health to c.max_health
+            set c.bond to c.bond + 1
+            display f"  You and {c.name} rest peacefully."
+            display f"  You recovered {heal_p} HP."
+            display f"  {c.name} fully healed!"
+
+        if pick == 4:
+            set c.happiness to clamp(c.happiness + 12 and 0 and 100)
+            set c.bond to c.bond + 3
+            set c to check_evolution(c)
+            set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and "My partner is cuddling me lovingly!" and llm_on and memory)
+            display cmsg
+            set memory to memory_add(memory and c.name and cmsg)
+
+        if pick == 5:
+            if llm_on == 1 && c.stage >= 1:
+                display f"  What do you want to say to {c.name}?"
+                display "  > "
+                set chat_input to read_line()
+                if string_length(chat_input) > 0:
+                    set memory to memory_add(memory and "Partner" and chat_input)
+                    display ""
+                    set chat_event to f"My partner says to me: {chat_input}"
+                    set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and chat_event and llm_on and memory)
+                    display cmsg
+                    set memory to memory_add(memory and c.name and cmsg)
+                    set c.bond to c.bond + 1
+            else:
+                if c.stage == 0:
+                    display f"  *{c.name} glows warmly in response to your voice*"
+
+        if pick == 6:
+            display_player_stats(p)
+
+        if pick == 7:
+            show_inventory(inv)
+
+        if pick == 8:
+            set saved to save_game(p and c and inv)
+            if saved == 1:
+                display "  Game saved!"
+            else:
+                display "  Save failed!"
+
+        if pick == 9:
+            set camping to 0
+
+        # Hunger decay while camping
+        set c.hunger to clamp(c.hunger - 2 and 0 and 100)
+        if c.hunger < 20:
+            set c.happiness to clamp(c.happiness - 3 and 0 and 100)
+    return p
+
+# ───────────── NPC Encounters ─────────────
+
+define run_encounter with p as Player and c as Companion and llm_on as Int and inv as Map and memory as List returning Player:
+    set roll to ep_random_int(1 and 8)
+
+    if roll == 1:
+        display ""
+        display "  A wandering merchant appears!"
+        display f"  \"Wares for sale, traveler!\" (Gold: {p.gold})"
+        display ""
+        display "  1) Buy Healing Potion (12 gold)"
+        display "  2) Buy weapon upgrade (20 gold)"
+        display "  3) Buy Dungeon Key (18 gold)"
+        display "  4) Buy Bomb (15 gold)"
+        display "  5) Buy Elixir - full heal (30 gold)"
+        display "  6) Walk away"
+        display ""
+        display "Choice: "
+        set input to read_line()
+        set pick to string_to_int(input)
+        if pick == 1 && p.gold >= 12:
+            set pk to "Healing Potion"
+            set added to add_item(inv and pk and 1)
+            set p.gold to p.gold - 12
+            display "  Bought a Healing Potion!"
+        if pick == 2 && p.gold >= 20:
+            set p.weapon_bonus to p.weapon_bonus + 2
+            set p.gold to p.gold - 20
+            display "  Weapon upgraded!"
+        if pick == 3 && p.gold >= 18:
+            set kk to "Dungeon Key"
+            set added to add_item(inv and kk and 1)
+            set p.gold to p.gold - 18
+            display "  Bought a Dungeon Key!"
+        if pick == 4 && p.gold >= 15:
+            set bk to "Bomb"
+            set added to add_item(inv and bk and 1)
+            set p.gold to p.gold - 15
+            display "  Bought a Bomb!"
+        if pick == 5 && p.gold >= 30:
+            set ek to "Elixir"
+            set added to add_item(inv and ek and 1)
+            set p.gold to p.gold - 30
+            display "  Bought an Elixir!"
+        set cmsg to companion_speak(c.name and c.species and c.stage and c.bond and c.happiness and c.hunger and "We visited a shop!" and llm_on and memory)
+        display cmsg
+        return p
+
+    if roll == 2:
+        display ""
+        display "  A locked treasure chest!"
+        set kk to "Dungeon Key"
+        set key_count to get_item_count(inv and kk)
+        if key_count > 0:
+            display "  Use a key? (1=yes, 2=no): "
+            set input to read_line()
+            set pick to string_to_int(input)
+            if pick == 1:
+                set remaining to remove_item(inv and kk and 1)
+                set loot to ep_random_int(15 and 45)
+                set p.gold to p.gold + loot
+                display f"  Found {loot} gold!"
+                set potion_roll to ep_random_int(1 and 3)
+                if potion_roll == 1:
+                    set pk to "Healing Potion"
+                    set added to add_item(inv and pk and 2)
+                    display "  Found 2 Healing Potions!"
+                if potion_roll == 2:
+                    set bk to "Bomb"
+                    set added to add_item(inv and bk and 1)
+                    display "  Found a Bomb!"
+        else:
+            display "  You don't have a key..."
+        return p
+
+    if roll == 3:
+        display ""
+        display "  A healing fairy appears!"
+        display "  She restores everyone's health!"
+        set p.health to p.max_health
+        set c.health to c.max_health
+        display f"  You and {c.name} are fully healed!"
+        return p
+
+    if roll == 4:
+        display ""
+        display "  A gambling goblin challenges you!"
+        display f"  Bet 10 gold? (You have {p.gold})"
+        display "  1) Bet 10 gold"
+        display "  2) Walk away"
+        display ""
+        display "Choice: "
+        set input to read_line()
+        set pick to string_to_int(input)
+        if pick == 1 && p.gold >= 10:
+            set p.gold to p.gold - 10
+            set gamble to ep_random_int(1 and 10)
+            if gamble >= 5:
+                set win to ep_random_int(15 and 40)
+                set p.gold to p.gold + win
+                display f"  You win {win} gold!"
+            else:
+                display "  You lose! The goblin cackles."
+        return p
+
+    if roll == 5:
+        display ""
+        display "  An ancient inscription on the wall..."
+        display "  \"Strength comes from the bonds we forge.\""
+        set c.bond to c.bond + 5
+        set c to gain_companion_xp(c and 5)
+        display f"  {c.name}'s bond deepened!"
+        return p
+
+    if roll == 6:
+        display ""
+        display "  A trapped corridor! Spikes shoot from the walls!"
+        set trap_roll to ep_random_int(1 and 10)
+        if trap_roll >= 6:
+            display "  You dodge through skillfully!"
+            set p.xp to p.xp + 5
+            display "  +5 XP for quick reflexes!"
+        else:
+            set trap_dmg to 5 + p.floor * 2
+            set p.health to p.health - trap_dmg
+            display f"  Ouch! You take {trap_dmg} damage from the trap!"
+        return p
+
+    if roll == 7:
+        display ""
+        display "  A mysterious stranger offers a choice..."
+        display "  \"Power or wisdom, adventurer?\""
+        display "  1) Power (+3 attack)"
+        display "  2) Wisdom (+10 max HP)"
+        display ""
+        display "Choice: "
+        set input to read_line()
+        set pick to string_to_int(input)
+        if pick == 1:
+            set p.attack to p.attack + 3
+            display "  Your muscles surge with power! +3 Attack!"
+        else:
+            set p.max_health to p.max_health + 10
+            set p.health to p.health + 10
+            display "  Ancient wisdom fills your mind! +10 Max HP!"
+        return p
+
+    display ""
+    display "  A quiet clearing. Peace washes over you."
+    set p.health to p.health + 8
+    if p.health > p.max_health:
+        set p.health to p.max_health
+    display "  +8 HP from the calm."
+    return p
+
+# ───────────── Floor Transition ─────────────
+
+define advance_floor with p as Player and quests as Map returning Player:
+    set p.floor to p.floor + 1
+    set quests to update_quest(quests and "floors" and 1)
+    display ""
+    display "  ========================================"
+    set biome to get_biome(p.floor)
+    display f"    Descending to Floor {p.floor}..."
+    display f"    Entering: {biome}"
+    display "  ========================================"
+    set p.max_health to p.max_health + 5
+    set p.health to p.max_health
+    set p.attack to p.attack + 1
+    display "  Stats boosted for the new floor!"
+    return p
+
+# ───────────── Death / Roguelite Reset ─────────────
+
+define handle_death with p as Player and c as Companion and llm_on as Int and inv as Map and memory as List returning Int:
+    display ""
+    display "  ========================================"
+    display "    G A M E   O V E R"
+    display "  ========================================"
+    display ""
+    display f"  Total kills: {p.total_kills}"
+    display f"  Reached floor: {p.floor}"
+    display f"  Bond with {c.name}: {c.bond}"
+    display f"  Player level: {p.level}"
+    display ""
+    display "  But your companion remembers you..."
+    display "  The bond between you transcends death."
+    display ""
+    display "  1) Start new run (keep companion)"
+    display "  2) Exit game"
+    display ""
+    display "Choice: "
+    set input to read_line()
+    set pick to string_to_int(input)
+    if pick == 2:
+        return 0
+    return 1
+
+# ───────────── Main Game Loop ─────────────
+
+define main:
+    display """
+
+========================================================
+     C R E A T U R E   Q U E S T
+          Demo 3: Companion Reborn
+     Written entirely in ErnosPlain
+========================================================
+"""
+
+    # Test LLM connection
+    set llm_on to test_ollama_connection()
+    if llm_on == 1:
+        set model to get_model_name()
+        display f"  AI Companion: ONLINE (model: {model})"
+        display "  Your companion will speak with their own voice!"
+    else:
+        display "  AI Companion: OFFLINE"
+        display "  (Start Ollama for AI dialogue. Using fallback text.)"
+    display ""
+
+    # Initialize conversation memory
+    set memory to memory_create()
+
+    # Check for save
+    set loaded_save to 0
+    if has_save() == 1:
+        display "  Save file found!"
+        display "  1) Load saved game"
+        display "  2) Start new game"
+        display ""
+        display "Choice: "
+        set input to read_line()
+        set pick to string_to_int(input)
+        if pick == 1:
+            set save_data to file_read(get_save_path())
+            set hero to load_player(save_data)
+            set pet to load_companion(save_data)
+            set inv to load_inventory(save_data)
+            set quests to create_quests()
+            # Restore quest progress from save
+            set quests to update_quest(quests and "kills" and hero.total_kills)
+            set quests to update_quest(quests and "floors" and hero.floor - 1)
+            set loaded_save to 1
+            display ""
+            display f"  Welcome back! {pet.name} is happy to see you!"
+            set cmsg to companion_speak(pet.name and pet.species and pet.stage and pet.bond and pet.happiness and pet.hunger and "My partner has returned! I missed them!" and llm_on and memory)
+            display cmsg
+            set memory to memory_add(memory and pet.name and cmsg)
+
+    if loaded_save == 0:
+        display "  You awaken in a strange land."
+        display "  Beside you, a glowing egg pulses gently."
+        display "  It seems to respond to your warmth..."
+        display ""
+        display "  What is your name, adventurer? "
+        set player_name to read_line()
+        if string_length(player_name) < 1:
+            set player_name to "Hero"
+        display ""
+        display "  What will you name your companion? "
+        set comp_name to read_line()
+        if string_length(comp_name) < 1:
+            set comp_name to "Luna"
+        display ""
+        display "  What species is your companion?"
+        display "  1) Drake - Fire-based, high attack"
+        display "  2) Kitsune - Spirit-based, balanced"
+        display "  3) Gryphon - Wind-based, fast"
+        display ""
+        display "Species: "
+        set species_input to read_line()
+        set species_pick to string_to_int(species_input)
+        set comp_species to "Drake"
+        if species_pick == 2:
+            set comp_species to "Kitsune"
+        else if species_pick == 3:
+            set comp_species to "Gryphon"
+        display ""
+        display f"  You whisper \"{comp_name}\" to the egg. It glows brighter."
+        display f"  A {comp_species} companion! Together, you'll face whatever lies ahead."
+        set hero to create_new_player(player_name)
+        set pet to create_new_companion(comp_name and comp_species)
+        set inv to create_inventory()
+        set quests to create_quests()
+
+    # Main game loop
+    set game_running to 1
+    set rooms_explored to 0
+    set boss_defeated to 0
+
+    repeat while game_running == 1:
+        set hero.turn to hero.turn + 1
+
+        # Companion hunger decay
+        set pet.hunger to clamp(pet.hunger - 1 and 0 and 100)
+        if pet.hunger < 15:
+            set pet.happiness to clamp(pet.happiness - 2 and 0 and 100)
+
+        # Display location
+        display ""
+        set biome to get_biome(hero.floor)
+        set room to get_room_desc(hero.floor and hero.turn)
+        display f"  Floor {hero.floor} -- Turn {hero.turn}"
+        display f"  {biome} -- {room}"
+        display ""
+
+        # Main menu
+        display "  1) Explore deeper"
+        display "  2) Make camp"
+        display "  3) Check stats"
+        display "  4) Inventory"
+        display "  5) Quest journal"
+        if boss_defeated == 1:
+            display "  6) Descend to next floor"
+        display "  7) Save game"
+        display "  8) Exit game"
+        display ""
+        display "What do you do? "
+        set input to read_line()
+        set pick to string_to_int(input)
+
+        if pick == 1:
+            set rooms_explored to rooms_explored + 1
+            set encounter_roll to ep_random_int(1 and 10)
+
+            if encounter_roll <= 5:
+                # Monster encounter
+                set monster to create_monster(hero.floor)
+                set hero to run_combat(hero and pet and monster and llm_on and inv and memory and quests)
+
+                if hero.health <= 0:
+                    set cont to handle_death(hero and pet and llm_on and inv and memory)
+                    if cont == 0:
+                        set game_running to 0
+                    else:
+                        set hero to create_new_player(hero.name)
+                        set hero.total_runs to hero.total_runs + 1
+                        set pet.health to pet.max_health
+                        set pet.hunger to 80
+                        set pet.happiness to clamp(pet.happiness - 10 and 30 and 100)
+                        set inv to create_inventory()
+                        set rooms_explored to 0
+                        set boss_defeated to 0
+                        display ""
+                        display "  A new dawn breaks..."
+                        set cmsg to companion_speak(pet.name and pet.species and pet.stage and pet.bond and pet.happiness and pet.hunger and "My partner died but we're starting fresh. I remember them." and llm_on and memory)
+                        display cmsg
+                        set memory to memory_add(memory and pet.name and cmsg)
+            else:
+                if encounter_roll <= 8:
+                    # NPC encounter
+                    set hero to run_encounter(hero and pet and llm_on and inv and memory)
+                else:
+                    if encounter_roll == 9 && rooms_explored >= 5 && boss_defeated == 0:
+                        # Boss encounter
+                        set boss to create_boss(hero.floor)
+                        display ""
+                        display "  !! THE GROUND TREMBLES... !!"
+                        set boss_warn to "Something terrible approaches! A powerful boss is near!"
+                        set cmsg to companion_speak(pet.name and pet.species and pet.stage and pet.bond and pet.happiness and pet.hunger and boss_warn and llm_on and memory)
+                        display cmsg
+                        set memory to memory_add(memory and pet.name and cmsg)
+                        set hero to run_combat(hero and pet and boss and llm_on and inv and memory and quests)
+
+                        if hero.health <= 0:
+                            set cont to handle_death(hero and pet and llm_on and inv and memory)
+                            if cont == 0:
+                                set game_running to 0
+                            else:
+                                set hero to create_new_player(hero.name)
+                                set hero.total_runs to hero.total_runs + 1
+                                set pet.health to pet.max_health
+                                set inv to create_inventory()
+                                set rooms_explored to 0
+                                set boss_defeated to 0
+                        else:
+                            if hero.health > 0:
+                                set boss_defeated to 1
+                                display ""
+                                display "  The path to the next floor is now open!"
+                    else:
+                        # Exploration event
+                        set explore_event to f"We're exploring {biome}. The atmosphere is mysterious."
+                        set cmsg to companion_speak(pet.name and pet.species and pet.stage and pet.bond and pet.happiness and pet.hunger and explore_event and llm_on and memory)
+                        display cmsg
+                        set treasure to ep_random_int(1 and 6)
+                        if treasure == 1:
+                            set found to ep_random_int(5 and 18)
+                            set hero.gold to hero.gold + found
+                            display f"  Found {found} gold on the ground!"
+                        else if treasure == 2:
+                            set pk to "Healing Potion"
+                            set added to add_item(inv and pk and 1)
+                            display "  Found a Healing Potion in a crevice!"
+                        else if treasure == 3:
+                            set hero.xp to hero.xp + 3
+                            display "  Found an ancient scroll! +3 XP"
+                        else if treasure >= 5:
+                            display "  Nothing of interest here."
+
+        if pick == 2:
+            set hero to run_camp(hero and pet and llm_on and inv and memory)
+
+        if pick == 3:
+            display_player_stats(hero)
+            display_companion_card(pet)
+
+        if pick == 4:
+            show_inventory(inv)
+
+        if pick == 5:
+            show_quests(quests and pet.bond)
+
+        if pick == 6 && boss_defeated == 1:
+            set hero to advance_floor(hero and quests)
+            set pet.health to pet.max_health
+            set rooms_explored to 0
+            set boss_defeated to 0
+            set floor_event to f"We made it to floor {hero.floor}! A new world awaits!"
+            set cmsg to companion_speak(pet.name and pet.species and pet.stage and pet.bond and pet.happiness and pet.hunger and floor_event and llm_on and memory)
+            display cmsg
+            set memory to memory_add(memory and pet.name and cmsg)
+
+        if pick == 7:
+            set saved to save_game(hero and pet and inv)
+            if saved == 1:
+                display "  Game saved!"
+            else:
+                display "  Save failed!"
+
+        if pick == 8:
+            set game_running to 0
+
+        # Use elixir if health is critical
+        if hero.health > 0 && hero.health < 15:
+            set ek to "Elixir"
+            set elixir_count to get_item_count(inv and ek)
+            if elixir_count > 0:
+                set remaining to remove_item(inv and ek and 1)
+                set hero.health to hero.max_health
+                display f"  !! Emergency Elixir used! Fully healed! ({remaining} left)"
+
+        # Auto-save every 10 turns
+        if hero.turn % 10 == 0 && game_running == 1:
+            set auto_save to save_game(hero and pet and inv)
+
+    # Exit
+    display ""
+    display f"  Thanks for playing Creature Quest Demo 3!"
+    display f"  {pet.name} the {pet.species} waves goodbye!"
+    display f"  Final bond level: {pet.bond}"
+    display f"  Floors explored: {hero.floor}"
+    display f"  Total kills: {hero.total_kills}"
+    display f"  Total runs: {hero.total_runs}"
+    display ""
+    return 0

@@ -1,0 +1,8 @@
+define main:
+    set c to create_list()
+    set ok to append_list(c and 5)
+    free_list(c)
+    set c to create_list()
+    set ok to append_list(c and 99)
+    display get_list(c and 0)
+    return 0

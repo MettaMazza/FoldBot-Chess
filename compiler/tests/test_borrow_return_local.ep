@@ -1,0 +1,8 @@
+# expected_compile_error
+# Returning a borrow of a local variable would dangle — must be rejected.
+define get_ref:
+    set a to create_list()
+    return borrow a
+
+define main:
+    return 0

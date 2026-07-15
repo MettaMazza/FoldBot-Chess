@@ -1,0 +1,12 @@
+# Simple program for self-hosted compiler test
+define factorial with n as Int returning Int:
+    if n < 2:
+        return 1
+    return n * factorial(n - 1)
+
+define main:
+    set i to 1
+    while i <= 10:
+        display factorial(i)
+        set i to i + 1
+    return 0

@@ -1,0 +1,14 @@
+# Performance benchmark: fib(40)
+define fib with n as Int returning Int:
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+define main:
+    set start to ep_time_now_ms()
+    set result to fib(40)
+    set end to ep_time_now_ms()
+    set elapsed to end - start
+    display f"fib(40) = {result}"
+    display f"Time: {elapsed} ms"
+    return 0

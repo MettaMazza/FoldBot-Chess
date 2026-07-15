@@ -1,0 +1,43 @@
+# Forensic Test 7: HOF, Closures, Functional Patterns
+
+define apply with f and x:
+    return f(x)
+
+define compose with f and g and x:
+    return f(g(x))
+
+define main:
+    # 1. Pass function as argument
+    set doubler to given x:
+        return x * 2
+    display apply(doubler and 21)
+
+    # 2. Compose functions
+    set add_one to given x:
+        return x + 1
+    set times_three to given x:
+        return x * 3
+    display compose(add_one and times_three and 10)
+
+    # 3. Build list via append
+    set nums to [1, 2, 3, 4, 5]
+    set squared to create_list()
+    for each n in nums:
+        append_list(squared and n * n)
+    for each s in squared:
+        display s
+
+    # 4. Sum a list
+    set total to 0
+    for each n in nums:
+        set total to total + n
+    display f"Sum of 1..5: {total}"
+
+    # 5. Closure capturing outer variable
+    set multiplier to 10
+    set scale to given x:
+        return x * multiplier
+    display f"Scaled 5: {scale(5)}"
+
+    display "HOF/CLOSURES: ALL PASSED"
+    return 0

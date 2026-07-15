@@ -1,0 +1,82 @@
+# Test: English Alias Syntax
+# Every line uses the NEW alias words instead of the original keywords.
+# This verifies all English aliases work correctly.
+
+# "describe" instead of "define"
+# "returns" instead of "returning"
+# "times" instead of * or "multiplied by"
+# "give back" instead of "return"
+describe factorial with n as Int returns Int:
+    if n is fewer than 2:
+        give back 1
+    give back n times factorial(n minus 1)
+
+# "let/be" instead of "set/to"
+# "show" instead of "display"
+describe main:
+    show "=== English Alias Test ==="
+
+    # Tier 1: times, show, print, let/be
+    let x be 10
+    let y be 3
+    let product be x times y
+    show f"10 times 3 = {product}"
+    print f"same with print: {product}"
+
+    # Tier 1: loop instead of repeat
+    let counter be 0
+    loop while counter is fewer than 5:
+        let counter be counter plus 1
+    show f"loop counter: {counter}"
+
+    # Tier 2: stop and skip
+    let total be 0
+    let i be 0
+    loop while i is fewer than 10:
+        let i be i plus 1
+        if i equals 3:
+            skip
+        if i is more than 7:
+            stop
+        let total be total plus i
+
+    show f"total (skip 3, stop after 7): {total}"
+
+    # Tier 3: Comparison aliases
+    let score be 85
+
+    if score is at least 50:
+        show "passed (is at least 50)"
+
+    if score is at most 100:
+        show "valid (is at most 100)"
+
+    if score is bigger than 80:
+        show "great (is bigger than 80)"
+
+    if score is smaller than 90:
+        show "room to grow (is smaller than 90)"
+
+    let a be 42
+    let b be 42
+    let c be 99
+
+    if a is the same as b:
+        show "a is the same as b"
+
+    if a is different from c:
+        show "a is different from c"
+
+    if c does not equal a:
+        show "c does not equal a"
+
+    # Tier 3: "for every" instead of "for each"
+    let numbers be [10, 20, 30]
+    let sum be 0
+    for every num in numbers:
+        let sum be sum plus num
+    show f"sum of list: {sum}"
+
+    # Tier 2: "give back" instead of "return"
+    show "all aliases working"
+    give back 0

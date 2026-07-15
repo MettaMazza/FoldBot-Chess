@@ -1,0 +1,195 @@
+# ============================================================
+# LMDB Bridge for ErnosPlain
+# Lightning Memory-Mapped Database — fast embedded key-value store
+# ============================================================
+# Usage: import "stdlib/bridge/lmdb"
+# Requires: lmdb installed (brew install lmdb / apt install liblmdb-dev)
+# ============================================================
+
+set LMDB_HANDLE to 0
+
+# ---- Error codes ----
+set MDB_SUCCESS to 0
+set MDB_KEYEXIST to -30799
+set MDB_NOTFOUND to -30798
+set MDB_PAGE_NOTFOUND to -30797
+set MDB_CORRUPTED to -30796
+set MDB_PANIC to -30795
+set MDB_VERSION_MISMATCH to -30794
+set MDB_INVALID to -30793
+set MDB_MAP_FULL to -30792
+set MDB_DBS_FULL to -30791
+set MDB_READERS_FULL to -30790
+set MDB_TLS_FULL to -30789
+
+# ---- Flags ----
+set MDB_FIXEDMAP to 1
+set MDB_NOSUBDIR to 16384
+set MDB_NOSYNC to 65536
+set MDB_RDONLY to 131072
+set MDB_NOMETASYNC to 262144
+set MDB_WRITEMAP to 524288
+set MDB_MAPASYNC to 1048576
+set MDB_NOTLS to 2097152
+set MDB_NOLOCK to 4194304
+set MDB_NORDAHEAD to 8388608
+
+# ---- DBI flags ----
+set MDB_REVERSEKEY to 2
+set MDB_DUPSORT to 4
+set MDB_INTEGERKEY to 8
+set MDB_DUPFIXED to 16
+set MDB_INTEGERDUP to 32
+set MDB_REVERSEDUP to 64
+set MDB_CREATE to 262144
+
+# ---- Cursor operations ----
+set MDB_FIRST to 0
+set MDB_FIRST_DUP to 1
+set MDB_GET_BOTH to 2
+set MDB_GET_BOTH_RANGE to 3
+set MDB_GET_CURRENT to 4
+set MDB_GET_MULTIPLE to 5
+set MDB_LAST to 6
+set MDB_LAST_DUP to 7
+set MDB_NEXT to 8
+set MDB_NEXT_DUP to 9
+set MDB_NEXT_MULTIPLE to 10
+set MDB_NEXT_NODUP to 11
+set MDB_PREV to 12
+set MDB_PREV_DUP to 13
+set MDB_PREV_NODUP to 14
+set MDB_SET to 15
+set MDB_SET_KEY to 16
+set MDB_SET_RANGE to 17
+
+# ============================================================
+# Library loading
+# ============================================================
+define lmdb_load:
+    set LMDB_HANDLE to ep_dlopen("liblmdb.dylib")
+    if LMDB_HANDLE equals 0:
+        set LMDB_HANDLE to ep_dlopen("/opt/homebrew/lib/liblmdb.dylib")
+    if LMDB_HANDLE equals 0:
+        set LMDB_HANDLE to ep_dlopen("/usr/local/lib/liblmdb.dylib")
+    if LMDB_HANDLE equals 0:
+        set LMDB_HANDLE to ep_dlopen("liblmdb.so")
+    if LMDB_HANDLE equals 0:
+        set LMDB_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/liblmdb.so")
+    return LMDB_HANDLE
+
+# ============================================================
+# Environment
+# ============================================================
+define mdb_env_create with env_out as Int returning Int:
+    if LMDB_HANDLE equals 0:
+        set ok to lmdb_load()
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_create")
+    return ep_dlcall1(fn and env_out)
+
+define mdb_env_open with env as Int and path as Str and flags as Int and mode as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_open")
+    return ep_dlcall4(fn and env and path and flags and mode)
+
+define mdb_env_close with env as Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_close")
+    return ep_dlcall1(fn and env)
+
+define mdb_env_set_mapsize with env as Int and size as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_set_mapsize")
+    return ep_dlcall2(fn and env and size)
+
+define mdb_env_set_maxdbs with env as Int and dbs as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_set_maxdbs")
+    return ep_dlcall2(fn and env and dbs)
+
+define mdb_env_set_maxreaders with env as Int and readers as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_set_maxreaders")
+    return ep_dlcall2(fn and env and readers)
+
+define mdb_env_sync with env as Int and force as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_env_sync")
+    return ep_dlcall2(fn and env and force)
+
+# ============================================================
+# Transactions
+# ============================================================
+define mdb_txn_begin with env as Int and parent as Int and flags as Int and txn_out as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_txn_begin")
+    return ep_dlcall4(fn and env and parent and flags and txn_out)
+
+define mdb_txn_commit with txn as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_txn_commit")
+    return ep_dlcall1(fn and txn)
+
+define mdb_txn_abort with txn as Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_txn_abort")
+    return ep_dlcall1(fn and txn)
+
+define mdb_txn_reset with txn as Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_txn_reset")
+    return ep_dlcall1(fn and txn)
+
+define mdb_txn_renew with txn as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_txn_renew")
+    return ep_dlcall1(fn and txn)
+
+# ============================================================
+# Database
+# ============================================================
+define mdb_dbi_open with txn as Int and name as Int and flags as Int and dbi_out as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_dbi_open")
+    return ep_dlcall4(fn and txn and name and flags and dbi_out)
+
+define mdb_dbi_close with env as Int and dbi as Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_dbi_close")
+    return ep_dlcall2(fn and env and dbi)
+
+# ============================================================
+# Data operations
+# ============================================================
+define mdb_put with txn as Int and dbi as Int and key as Int and data as Int and flags as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_put")
+    return ep_dlcall5(fn and txn and dbi and key and data and flags)
+
+define mdb_get with txn as Int and dbi as Int and key as Int and data_out as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_get")
+    return ep_dlcall4(fn and txn and dbi and key and data_out)
+
+define mdb_del with txn as Int and dbi as Int and key as Int and data as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_del")
+    return ep_dlcall4(fn and txn and dbi and key and data)
+
+# ============================================================
+# Cursor
+# ============================================================
+define mdb_cursor_open with txn as Int and dbi as Int and cursor_out as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_cursor_open")
+    return ep_dlcall3(fn and txn and dbi and cursor_out)
+
+define mdb_cursor_get with cursor as Int and key as Int and data as Int and op as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_cursor_get")
+    return ep_dlcall4(fn and cursor and key and data and op)
+
+define mdb_cursor_close with cursor as Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_cursor_close")
+    return ep_dlcall1(fn and cursor)
+
+define mdb_cursor_del with cursor as Int and flags as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_cursor_del")
+    return ep_dlcall2(fn and cursor and flags)
+
+define mdb_cursor_count with cursor as Int and count_out as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_cursor_count")
+    return ep_dlcall2(fn and cursor and count_out)
+
+# ============================================================
+# Error
+# ============================================================
+define mdb_strerror with err as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_strerror")
+    return ep_dlcall1(fn and err)
+
+define mdb_version with major as Int and minor as Int and patch as Int returning Int:
+    set fn to ep_dlsym(LMDB_HANDLE and "mdb_version")
+    return ep_dlcall3(fn and major and minor and patch)

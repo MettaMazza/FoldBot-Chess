@@ -1,0 +1,21 @@
+import "ep_lexer"
+import "ep_parser"
+
+define main:
+    set path to get_argument(1)
+    display "Reading file..."
+    set source to read_file_content(path)
+    display "Tokenizing..."
+    set tokens to tokenize_source(source)
+    display "Token count:"
+    display length_list(tokens)
+    display "Parsing..."
+    set state to create_parser_state(tokens)
+    set program_ast to parse_program(state)
+    display "Parse done!"
+    display "Program AST length:"
+    display length_list(program_ast)
+    set funcs to get_list(program_ast and 3)
+    display "Function count:"
+    display length_list(funcs)
+    return 0

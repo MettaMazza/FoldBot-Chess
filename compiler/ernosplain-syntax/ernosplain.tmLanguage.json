@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "ErnosPlain",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.ep",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.ep",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.ep",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.ep",
+          "match": "\\b(define|if|else|return|repeat|while|with|and|to|set|display)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.ep",
+          "match": "\\b(plus|minus|multiplied by|divided by|and also|or else|is less than|is greater than|is equal to|is not equal to|equals)\\b"
+        },
+        {
+          "name": "keyword.operator.symbol.ep",
+          "match": "(\\+|\\-|\\*|\\/|\\<|\\>|\\=|\\!|\\&{2}|\\|{2})"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.ep",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.ep"
+}

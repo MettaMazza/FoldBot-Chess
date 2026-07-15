@@ -1,0 +1,18 @@
+define structure Pt:
+    field x as Int
+
+define mx on Pt:
+    return self.x
+
+define main:
+    set a to create Pt:
+        x is 1
+    set b to create Pt:
+        x is 2
+    set xs to create_list()
+    set ok to append_list(xs and a)
+    set ok to append_list(xs and b)
+    
+    for each p in xs:
+        display p.mx()
+    return 0

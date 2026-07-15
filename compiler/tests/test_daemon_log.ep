@@ -1,0 +1,31 @@
+# Tests daemon logging behavior of the signal handler.
+
+define main:
+    # 1. Clean up any stale files
+    set _ to ep_system("rm -f tests/crash_program tests/crash_program_compiled.c tests/test_daemon.log")
+    
+    # 2. Write a helper EP file that causes an abort (SIGABRT)
+    # We use FFI to call abort() so it is fully platform-independent
+    set code to "define main:\n    set lib to ep_dlopen(\"/usr/lib/libSystem.B.dylib\")\n    if lib == 0:\n        set lib to ep_dlopen(\"libc.so.6\")\n    set abort_fn to ep_dlsym(lib and \"abort\")\n    set _ to ep_dlcall0(abort_fn)\n    return 0\n"
+    set _ to write_file_content("tests/crash_program.ep" and code)
+    
+    # 3. Compile the helper program, silencing its stdout
+    set comp_res to ep_system("./target/release/ernos tests/crash_program.ep > /dev/null")
+    
+    # 4. Run the compiled helper program with ERNOS_DAEMON_LOG set
+    set run_res to ep_system("ERNOS_DAEMON_LOG=tests/test_daemon.log ./tests/crash_program")
+    
+    # 5. Check if the daemon log file exists and contains the expected error message
+    if file_exists("tests/test_daemon.log"):
+        set log_content to read_file_content("tests/test_daemon.log")
+        if string_contains(log_content and "FATAL: Runtime Error: aborted (signal 6)"):
+            display "PASS: Daemon log contains crash error message"
+        else:
+            display "FAIL: Log content mismatch:"
+            display log_content
+    else:
+        display "FAIL: Daemon log file was not created"
+        
+    # 6. Clean up
+    set _ to ep_system("rm -f tests/crash_program.ep tests/crash_program tests/crash_program_compiled.c tests/test_daemon.log")
+    return 0

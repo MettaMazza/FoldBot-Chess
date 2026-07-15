@@ -1,0 +1,16 @@
+define worker with ch:
+    set i to 0
+    repeat while i < 1000:
+        send i to ch
+        set i to i + 1
+    return 0
+
+define main:
+    set ch to channel
+    spawn worker(ch)
+    set i to 0
+    repeat while i < 1000:
+        set v to receive from ch
+        set i to i + 1
+    display f"Received {i} messages"
+    return 0

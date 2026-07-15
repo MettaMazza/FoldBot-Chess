@@ -1,0 +1,5 @@
+--- Generational GC Test ---
+Initial minor count: 0
+Minor count after trigger: 1
+Survived young node val: 99
+Generational GC test passed

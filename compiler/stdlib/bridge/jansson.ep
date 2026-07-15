@@ -1,0 +1,177 @@
+# ErnosPlain Bridge: Jansson (JSON Processing)
+# Auto-generated bindings for libjansson
+# Usage: import "stdlib/bridge/jansson"
+# Link: ernos program.ep (requires jansson installed)
+
+# ========== Constants ==========
+set JSON_OBJECT to 0
+set JSON_ARRAY to 1
+set JSON_STRING to 2
+set JSON_INTEGER to 3
+set JSON_REAL to 4
+set JSON_TRUE to 5
+set JSON_FALSE to 6
+set JSON_NULL to 7
+
+# Encoding flags
+set JSON_COMPACT to 32
+set JSON_SORT_KEYS to 128
+set JSON_INDENT_2 to 2
+set JSON_INDENT_4 to 4
+
+# ========== Core Functions ==========
+
+define jansson_load returning Int:
+    # Load jansson library. Returns handle (0 on failure).
+    set lib to ep_dlopen("libjansson.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libjansson.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libjansson.so.4")
+    return lib
+
+# ========== JSON Creation ==========
+
+define json_object_new returning Int:
+    # Create a new JSON object. Returns handle.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_object")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define json_array_new returning Int:
+    # Create a new JSON array. Returns handle.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_array")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define json_string_new with value as Str returning Int:
+    # Create a new JSON string. Returns handle.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_string")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and value)
+
+define json_integer_new with value as Int returning Int:
+    # Create a new JSON integer. Returns handle.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_integer")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and value)
+
+# ========== JSON Object Operations ==========
+
+define json_object_set with obj as Int and key as Str and value as Int returning Int:
+    # Set a key-value pair on a JSON object.
+    set lib to jansson_load()
+    if lib equals 0:
+        return -1
+    set fn to ep_dlsym(lib and "json_object_set_new")
+    if fn equals 0:
+        return -1
+    return ep_dlcall3(fn and obj and key and value)
+
+define json_object_get with obj as Int and key as Str returning Int:
+    # Get value for key from JSON object.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_object_get")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and obj and key)
+
+# ========== JSON Array Operations ==========
+
+define json_array_append with arr as Int and value as Int returning Int:
+    # Append value to JSON array.
+    set lib to jansson_load()
+    if lib equals 0:
+        return -1
+    set fn to ep_dlsym(lib and "json_array_append_new")
+    if fn equals 0:
+        return -1
+    return ep_dlcall2(fn and arr and value)
+
+define json_array_size with arr as Int returning Int:
+    # Get size of JSON array.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_array_size")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and arr)
+
+# ========== Parsing and Encoding ==========
+
+define json_parse with text as Str returning Int:
+    # Parse a JSON string. Returns JSON value handle (0 on error).
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_loads")
+    if fn equals 0:
+        return 0
+    return ep_dlcall3(fn and text and 0 and 0)
+
+define json_encode with value as Int and flags as Int returning Str:
+    # Encode JSON value to string.
+    set lib to jansson_load()
+    if lib equals 0:
+        return ""
+    set fn to ep_dlsym(lib and "json_dumps")
+    if fn equals 0:
+        return ""
+    return ep_dlcall2(fn and value and flags)
+
+define json_encode_pretty with value as Int returning Str:
+    # Encode JSON with 4-space indentation.
+    return json_encode(value and JSON_INDENT_4)
+
+# ========== Value Access ==========
+
+define json_string_value with val as Int returning Str:
+    # Get string from JSON string value.
+    set lib to jansson_load()
+    if lib equals 0:
+        return ""
+    set fn to ep_dlsym(lib and "json_string_value")
+    if fn equals 0:
+        return ""
+    return ep_dlcall1(fn and val)
+
+define json_integer_value with val as Int returning Int:
+    # Get integer from JSON integer value.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_integer_value")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and val)
+
+# ========== Cleanup ==========
+
+define json_free with val as Int:
+    # Decrease reference count / free JSON value.
+    set lib to jansson_load()
+    if lib equals 0:
+        return 0
+    set fn to ep_dlsym(lib and "json_decref")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and val)

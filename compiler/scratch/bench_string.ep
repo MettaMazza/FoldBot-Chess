@@ -1,0 +1,12 @@
+# String processing benchmark
+# Build a string by concatenating 100,000 integers, then count characters
+define main:
+    set result to ""
+    set i to 0
+    repeat while i < 100000:
+        set num_str to int_to_string(i)
+        set result to concat(result and num_str)
+        set i to i + 1
+    set len to string_length(result)
+    display f"String length: {len}"
+    return 0

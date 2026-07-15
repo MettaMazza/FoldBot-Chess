@@ -1,0 +1,5 @@
+define main:
+    set a to 1.5
+    set b to 2.5
+    set c to a plus b
+    return 0

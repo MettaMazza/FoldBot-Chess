@@ -1,0 +1,32 @@
+# Conformance Test: Concurrency and Async
+
+define worker with id and count:
+    set i to 0
+    repeat while i < count:
+        display concat("Worker " and concat(int_to_string(id) and concat(": iteration " and int_to_string(i))))
+        set i to i + 1
+    return 0
+
+define channel_producer with ch and count:
+    set i to 0
+    repeat while i < count:
+        send i to ch
+        set i to i + 1
+    return 0
+
+define main:
+    # Spawn concurrent tasks
+    spawn worker(1 and 3)
+    spawn worker(2 and 3)
+    
+    # Channel communication
+    set ch to channel
+    spawn channel_producer(ch and 5)
+    
+    set i to 0
+    repeat while i < 5:
+        set val to receive from ch
+        display val
+        set i to i + 1
+    
+    return 0

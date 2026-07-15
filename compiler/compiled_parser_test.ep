@@ -1,0 +1,868 @@
+# ErnosPlain Self-Hosted Lexer Module
+
+# Helper constructor for Token list: [type, value, line, col]
+define create_token with type and value and line and col:
+    set tok to create_list()
+    set ok to append_list(tok and type)
+    set ok to append_list(tok and value)
+    set ok to append_list(tok and line)
+    set ok to append_list(tok and col)
+    return tok
+
+define get_token_type with tok:
+    return get_list(tok and 0)
+
+define get_token_value with tok:
+    return get_list(tok and 1)
+
+define get_token_line with tok:
+    return get_list(tok and 2)
+
+define get_token_col with tok:
+    return get_list(tok and 3)
+
+define tokenize_source with source:
+    display "tokenize_source called"
+    set tokens to create_list()
+    set source_len to string_length(source)
+    display "source_len is:"
+    display source_len
+    
+    set pos to 0
+    set current_line to 1
+    set current_col to 1
+    
+    # Indentation stack (initialized to [0])
+    set indent_stack to create_list()
+    set ok to append_list(indent_stack and 0)
+    
+    set at_line_start to 1
+    
+    repeat while pos is less than source_len:
+        # 1. Process line indentation at start of lines
+        if at_line_start == 1:
+            set spaces to 0
+            set space_loop to 1
+            repeat while pos < source_len && space_loop == 1:
+                set ch to get_character(source and pos)
+                if ch == 32: # space
+                    set spaces to spaces + 1
+                    set pos to pos + 1
+                    set current_col to current_col + 1
+                else:
+                    if ch == 9: # tab (treated as 4 spaces)
+                        set spaces to spaces + 4
+                        set pos to pos + 1
+                        set current_col to current_col + 4
+                    else:
+                        set space_loop to 0
+            
+            # Check if this line is just comments or empty
+            set next_ch to get_character(source and pos)
+            if next_ch != 10 && next_ch != 13 && next_ch != 35 && pos < source_len:
+                # Actual code line, determine indentation
+                set stack_len to length_list(indent_stack)
+                set last_indent to get_list(indent_stack and stack_len - 1)
+                
+                if spaces > last_indent:
+                    set ok to append_list(indent_stack and spaces)
+                    set tok to create_token(29 and "INDENT" and current_line and current_col) + 0 # TOK_INDENT = 29
+                    set ok to append_list(tokens and tok)
+                else:
+                    if spaces < last_indent:
+                        set loop_dedent to 1
+                        repeat while loop_dedent == 1:
+                            set s_len to length_list(indent_stack)
+                            set top_indent to get_list(indent_stack and s_len - 1)
+                            if spaces < top_indent:
+                                set popped to pop_list(indent_stack)
+                                set tok to create_token(30 and "DEDENT" and current_line and current_col) + 0 # TOK_DEDENT = 30
+                                set ok to append_list(tokens and tok)
+                            else:
+                                set loop_dedent to 0
+            set at_line_start to 0
+            
+        # Re-check pos after indentation processing
+        if pos > source_len - 1:
+            # We reached EOF
+            set dummy to 0
+        else:
+            set c to get_character(source and pos)
+            
+            # Whitespace handling
+            if c == 32 || c == 9:
+                set pos to pos + 1
+                set current_col to current_col + 1
+            else:
+                if c == 10 || c == 13:
+                    # Newline character
+                    set pos to pos + 1
+                    if c == 13 && get_character(source and pos) == 10:
+                        set pos to pos + 1
+                    
+                    # Emit TOK_NEWLINE (28) if the last token wasn't already a newline
+                    set tokens_len to length_list(tokens)
+                    set should_emit_nl to 1
+                    if tokens_len > 0:
+                        set last_tok to get_list(tokens and tokens_len - 1)
+                        if get_token_type(last_tok) == 28:
+                            set should_emit_nl to 0
+                    
+                    if should_emit_nl == 1 && tokens_len > 0:
+                        set tok to create_token(28 and "\n" and current_line and current_col) + 0
+                        set ok to append_list(tokens and tok)
+                        
+                    set current_line to current_line + 1
+                    set current_col to 1
+                    set at_line_start to 1
+                else:
+                    if c == 35: # comment character '#'
+                        set pos to pos + 1
+                        repeat while pos < source_len && get_character(source and pos) != 10 && get_character(source and pos) != 13:
+                            set pos to pos + 1
+                    else:
+                        # Parse Number
+                        if c > 47 && c < 58:
+                            set num_start to pos
+                            repeat while pos < source_len && get_character(source and pos) > 47 && get_character(source and pos) < 58:
+                                set pos to pos + 1
+                                set current_col to current_col + 1
+                            
+                            set num_len to pos - num_start
+                            set num_str to substring(source and num_start and num_len) + 0
+                            set tok to create_token(25 and num_str and current_line and current_col - num_len) + 0 # TOK_INTEGER = 25
+                            set ok to append_list(tokens and tok)
+                        else:
+                            # Parse Identifier or Keyword
+                            set is_id_start to (c > 96 && c < 123) || (c > 64 && c < 91) || c == 95
+                            if is_id_start:
+                                set id_start to pos
+                                set id_loop to 1
+                                repeat while pos < source_len && id_loop == 1:
+                                    set ch to get_character(source and pos)
+                                    set is_id_part to (ch > 96 && ch < 123) || (ch > 64 && ch < 91) || (ch > 47 && ch < 58) || ch == 95
+                                    if is_id_part:
+                                        set pos to pos + 1
+                                        set current_col to current_col + 1
+                                    else:
+                                        set id_loop to 0
+                                
+                                set id_len to pos - id_start
+                                set id_str to substring(source and id_start and id_len) + 0
+                                
+                                # Match keywords
+                                set tok_type to 27 # Default to TOK_IDENTIFIER = 27
+                                if "define" equals id_str:
+                                    set tok_type to 1
+                                if "set" equals id_str:
+                                    set tok_type to 2
+                                if "to" equals id_str:
+                                    set tok_type to 3
+                                if "if" equals id_str:
+                                    set tok_type to 4
+                                if "else" equals id_str:
+                                    set tok_type to 5
+                                if "return" equals id_str:
+                                    set tok_type to 6
+                                if "display" equals id_str:
+                                    set tok_type to 7
+                                if "repeat" equals id_str:
+                                    set tok_type to 8
+                                if "while" equals id_str:
+                                    set tok_type to 9
+                                if "with" equals id_str:
+                                    set tok_type to 10
+                                if "and" equals id_str:
+                                    set tok_type to 11
+                                if "plus" equals id_str:
+                                    set tok_type to 12
+                                if "minus" equals id_str:
+                                    set tok_type to 13
+                                if "equals" equals id_str:
+                                    set tok_type to 18
+                                
+                                set tok to create_token(tok_type and id_str and current_line and current_col - id_len) + 0
+                                set ok to append_list(tokens and tok)
+                            else:
+                                if c == 34: # String Literal '"'
+                                    set pos to pos + 1
+                                    set current_col to current_col + 1
+                                    set str_start to pos
+                                    set str_loop to 1
+                                    repeat while pos < source_len && str_loop == 1:
+                                        set ch to get_character(source and pos)
+                                        if ch == 34:
+                                            set str_loop to 0
+                                            set pos to pos + 1
+                                            set current_col to current_col + 1
+                                        else:
+                                            set pos to pos + 1
+                                            set current_col to current_col + 1
+                                    
+                                    set str_len to pos - str_start - 1
+                                    set str_val to substring(source and str_start and str_len) + 0
+                                    set tok to create_token(26 and str_val and current_line and current_col - str_len - 2) + 0 # TOK_STRING_LITERAL = 26
+                                    set ok to append_list(tokens and tok)
+                                else:
+                                    # Parse Multi-character or single-character symbols
+                                    # Check lookahead for double symbols: == (18), != (19), && (20), || (21)
+                                    set sym_type to 0
+                                    set sym_val to ""
+                                    set sym_len to 1
+                                    
+                                    set next_c to get_character(source and pos + 1)
+                                    if c == 61 && next_c == 61: # ==
+                                        set sym_type to 18
+                                        set sym_val to "=="
+                                        set sym_len to 2
+                                    if c == 33 && next_c == 61: # !=
+                                        set sym_type to 19
+                                        set sym_val to "!="
+                                        set sym_len to 2
+                                    if c == 38 && next_c == 38: # &&
+                                        set sym_type to 20
+                                        set sym_val to "&&"
+                                        set sym_len to 2
+                                    if c == 124 && next_c == 124: # ||
+                                        set sym_type to 21
+                                        set sym_val to "||"
+                                        set sym_len to 2
+                                    
+                                    if sym_type == 0:
+                                        # Single-character symbol
+                                        if c == 58: # :
+                                            set sym_type to 22
+                                            set sym_val to ":"
+                                        if c == 40: # (
+                                            set sym_type to 23
+                                            set sym_val to "("
+                                        if c == 41: # )
+                                            set sym_type to 24
+                                            set sym_val to ")"
+                                        if c == 43: # +
+                                            set sym_type to 12
+                                            set sym_val to "+"
+                                        if c == 45: # -
+                                            set sym_type to 13
+                                            set sym_val to "-"
+                                        if c == 42: # *
+                                            set sym_type to 14
+                                            set sym_val to "*"
+                                        if c == 47: # /
+                                            set sym_type to 15
+                                            set sym_val to "/"
+                                        if c == 60: # <
+                                            set sym_type to 16
+                                            set sym_val to "<"
+                                        if c == 62: # >
+                                            set sym_type to 17
+                                            set sym_val to ">"
+                                    
+                                    if sym_type > 0:
+                                        set tok to create_token(sym_type and sym_val and current_line and current_col) + 0
+                                        set ok to append_list(tokens and tok)
+                                        set pos to pos + sym_len
+                                        set current_col to current_col + sym_len
+                                    else:
+                                        display "Lexer Error: Unknown symbol character code:"
+                                        display c
+                                        set pos to pos + 1
+                                        set current_col to current_col + 1
+                            
+    # Final cleanup of indentation stack to emit TOK_DEDENT
+    set stack_len to length_list(indent_stack)
+    repeat while stack_len > 1:
+        set tok to create_token(30 and "DEDENT" and current_line and current_col) + 0 # TOK_DEDENT = 30
+        set ok to append_list(tokens and tok)
+        set popped to pop_list(indent_stack)
+        set stack_len to stack_len - 1
+        
+    # Append TOK_EOF (31)
+    set tok to create_token(31 and "EOF" and current_line and current_col) + 0
+    set ok to append_list(tokens and tok)
+    
+    return tokens
+# ErnosPlain Self-Hosted Parser Module
+
+# AST Node Type Constants
+# NODE_INT = 1
+# NODE_STR = 2
+# NODE_IDENT = 3
+# NODE_BINARY = 4
+# NODE_COMP = 5
+# NODE_CALL = 6
+# NODE_SET = 7
+# NODE_RETURN = 8
+# NODE_DISPLAY = 9
+# NODE_IF = 10
+# NODE_REPEAT_WHILE = 11
+# NODE_FUNC = 12
+# NODE_PROGRAM = 13
+# NODE_LOGICAL = 14
+
+# Helper: parse integer from string
+define parse_int with s:
+    set val to 0
+    set len to string_length(s)
+    set idx to 0
+    repeat while idx < len:
+        set ch to get_character(s and idx)
+        set digit to ch - 48
+        set val to val * 10 + digit
+        set idx to idx + 1
+    return val
+
+# AST Node Constructors
+define make_node_int with val:
+    set node to create_list()
+    set ok to append_list(node and 1)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_str with val:
+    set node to create_list()
+    set ok to append_list(node and 2)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_ident with name:
+    set node to create_list()
+    set ok to append_list(node and 3)
+    set ok to append_list(node and name)
+    return node
+
+define make_node_binary with left and op and right:
+    set node to create_list()
+    set ok to append_list(node and 4)
+    set ok to append_list(node and left)
+    set ok to append_list(node and op)
+    set ok to append_list(node and right)
+    return node
+
+define make_node_comp with left and op and right:
+    set node to create_list()
+    set ok to append_list(node and 5)
+    set ok to append_list(node and left)
+    set ok to append_list(node and op)
+    set ok to append_list(node and right)
+    return node
+
+define make_node_call with name and args:
+    set node to create_list()
+    set ok to append_list(node and 6)
+    set ok to append_list(node and name)
+    set ok to append_list(node and args)
+    return node
+
+define make_node_set with var and expr:
+    set node to create_list()
+    set ok to append_list(node and 7)
+    set ok to append_list(node and var)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_return with expr:
+    set node to create_list()
+    set ok to append_list(node and 8)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_display with expr:
+    set node to create_list()
+    set ok to append_list(node and 9)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_if with cond and then_b and else_b:
+    set node to create_list()
+    set ok to append_list(node and 10)
+    set ok to append_list(node and cond)
+    set ok to append_list(node and then_b)
+    set ok to append_list(node and else_b)
+    return node
+
+define make_node_repeat_while with cond and body:
+    set node to create_list()
+    set ok to append_list(node and 11)
+    set ok to append_list(node and cond)
+    set ok to append_list(node and body)
+    return node
+
+define make_node_func with name and params and body:
+    set node to create_list()
+    set ok to append_list(node and 12)
+    set ok to append_list(node and name)
+    set ok to append_list(node and params)
+    set ok to append_list(node and body)
+    return node
+
+define make_node_program with funcs:
+    set node to create_list()
+    set ok to append_list(node and 13)
+    set ok to append_list(node and funcs)
+    return node
+
+define make_node_logical with left and op and right:
+    set node to create_list()
+    set ok to append_list(node and 14)
+    set ok to append_list(node and left)
+    set ok to append_list(node and op)
+    set ok to append_list(node and right)
+    return node
+
+# Parser State Helpers
+define create_parser_state with tokens:
+    set state to create_list()
+    set ok to append_list(state and tokens)
+    set ok to append_list(state and 0)
+    return state
+
+define get_state_tokens with state:
+    return get_list(state and 0)
+
+define get_state_pos with state:
+    return get_list(state and 1)
+
+define set_state_pos with state and new_pos:
+    return set_list(state and 1 and new_pos)
+
+define get_eof_token:
+    set tok to create_token(31 and "EOF" and 1 and 1) + 0
+    return tok
+
+define peek_token with state:
+    set tokens to get_state_tokens(state)
+    set pos to get_state_pos(state)
+    set tokens_len to length_list(tokens)
+    if pos < tokens_len:
+        return get_list(tokens and pos)
+    return get_eof_token()
+
+define advance_token with state:
+    set tokens to get_state_tokens(state)
+    set pos to get_state_pos(state)
+    set tokens_len to length_list(tokens)
+    if pos < tokens_len:
+        set tok to get_list(tokens and pos)
+        set ok to set_state_pos(state and pos + 1)
+        return tok
+    return get_eof_token()
+
+define expect_token_type with state and expected_type:
+    set tok to advance_token(state)
+    set actual_type to get_token_type(tok)
+    if actual_type == expected_type:
+        return 1
+    display "Parser Error: Expected token type:"
+    display expected_type
+    display "Found type:"
+    display actual_type
+    display "At line:"
+    display get_token_line(tok)
+    return 0
+
+define get_token_precedence with tok:
+    set t to get_token_type(tok)
+    if t == 21: # ||
+        return 1
+    if t == 20: # &&
+        return 2
+    if t == 16 || t == 17 || t == 18 || t == 19: # <, >, equals/==, !=
+        return 3
+    if t == 12 || t == 13: # plus/+, minus/-
+        return 4
+    if t == 14 || t == 15: # multiplied by/*, divided by//
+        return 5
+    if t == 23: # (
+        return 6
+    return 0
+
+# Parsing Functions
+define parse_program with state:
+    set funcs to create_list() + 0
+    set loop to 1
+    repeat while loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 31: # EOF
+            set loop to 0
+        else:
+            if t == 28: # Newline
+                set dummy to advance_token(state)
+            else:
+                if t == 1: # define
+                    set func to parse_function(state) + 0
+                    set ok to append_list(funcs and func)
+                else:
+                    display "Parser Error: Unexpected token at top level:"
+                    display t
+                    set loop to 0
+                    
+    set prog to make_node_program(funcs) + 0
+    return prog
+
+define parse_function with state:
+    set ok to expect_token_type(state and 1) # define
+    
+    set tok_name to advance_token(state)
+    set name to get_token_value(tok_name)
+    
+    set params to create_list() + 0
+    
+    set next_tok to peek_token(state)
+    if get_token_type(next_tok) == 10: # with
+        set dummy to advance_token(state) # consume "with"
+        
+        set tok_param to advance_token(state)
+        set ok to append_list(params and get_token_value(tok_param))
+        
+        set loop to 1
+        repeat while loop == 1:
+            set tok_and to peek_token(state)
+            if get_token_type(tok_and) == 11: # and
+                set dummy to advance_token(state) # consume "and"
+                set tok_param to advance_token(state)
+                set ok to append_list(params and get_token_value(tok_param))
+            else:
+                set loop to 0
+                
+    set ok to expect_token_type(state and 22) # :
+    
+    set tok_nl to peek_token(state)
+    if get_token_type(tok_nl) == 28: # Newline
+        set dummy to advance_token(state)
+        
+    set body to parse_block(state) + 0
+    
+    return make_node_func(name and params and body)
+
+define parse_block with state:
+    set ok to expect_token_type(state and 29) # INDENT
+    
+    set statements to create_list() + 0
+    
+    set loop to 1
+    repeat while loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 30 || t == 31: # DEDENT or EOF
+            set loop to 0
+        else:
+            if t == 28: # Newline
+                set dummy to advance_token(state)
+            else:
+                set stmt to parse_statement(state) + 0
+                set ok to append_list(statements and stmt)
+                
+    set tok_dedent to peek_token(state)
+    if get_token_type(tok_dedent) == 30: # DEDENT
+        set dummy to advance_token(state)
+    else:
+        display "Parser Error: Expected DEDENT, found:"
+        display get_token_type(tok_dedent)
+        
+    return statements
+
+define parse_statement with state:
+    set tok to advance_token(state)
+    set t to get_token_type(tok)
+    
+    if t == 2: # set
+        set tok_var to advance_token(state)
+        set var_name to get_token_value(tok_var)
+        set ok to expect_token_type(state and 3) # to
+        set expr to parse_expr(state and 0) + 0
+        
+        set next_t to peek_token(state)
+        if get_token_type(next_t) == 28: # Newline
+            set dummy to advance_token(state)
+            
+        return make_node_set(var_name and expr)
+    else:
+        if t == 4: # if
+            set cond to parse_expr(state and 0) + 0
+            set ok to expect_token_type(state and 22) # :
+            
+            set next_t to peek_token(state)
+            if get_token_type(next_t) == 28:
+                set dummy to advance_token(state)
+                
+            set then_branch to parse_block(state) + 0
+            
+            set else_branch to 0
+            set next_t2 to peek_token(state)
+            if get_token_type(next_t2) == 5: # else
+                set dummy to advance_token(state)
+                set ok to expect_token_type(state and 22) # :
+                
+                set next_t3 to peek_token(state)
+                if get_token_type(next_t3) == 28:
+                    set dummy to advance_token(state)
+                    
+                set else_branch to parse_block(state) + 0
+                
+            return make_node_if(cond and then_branch and else_branch)
+        else:
+            if t == 8 || t == 9: # repeat or while
+                if t == 8:
+                    set ok to expect_token_type(state and 9) # while
+                
+                set cond to parse_expr(state and 0) + 0
+                set ok to expect_token_type(state and 22) # :
+                
+                set next_t to peek_token(state)
+                if get_token_type(next_t) == 28:
+                    set dummy to advance_token(state)
+                    
+                set body to parse_block(state) + 0
+                return make_node_repeat_while(cond and body)
+            else:
+                if t == 6: # return
+                    set expr to parse_expr(state and 0) + 0
+                    
+                    set next_t to peek_token(state)
+                    if get_token_type(next_t) == 28:
+                        set dummy to advance_token(state)
+                        
+                    return make_node_return(expr)
+                else:
+                    if t == 7: # display
+                        set expr to parse_expr(state and 0) + 0
+                        
+                        set next_t to peek_token(state)
+                        if get_token_type(next_t) == 28:
+                            set dummy to advance_token(state)
+                            
+                        return make_node_display(expr)
+                    else:
+                        display "Parser Error: Unexpected statement start token type:"
+                        display t
+                        return 0
+
+define parse_expr with state and precedence:
+    set tok to advance_token(state)
+    set t to get_token_type(tok)
+    
+    set left to 0
+    if t == 25: # TOK_INTEGER
+        set val to parse_int(get_token_value(tok))
+        set left to make_node_int(val) + 0
+    else:
+        if t == 26: # TOK_STRING_LITERAL
+            set left to make_node_str(get_token_value(tok)) + 0
+        else:
+            if t == 27: # TOK_IDENTIFIER
+                set name to get_token_value(tok)
+                set next_tok to peek_token(state)
+                if get_token_type(next_tok) == 23: # (
+                    set dummy to advance_token(state)
+                    set args to create_list() + 0
+                    
+                    set next_tok2 to peek_token(state)
+                    if get_token_type(next_tok2) != 24: # not ")"
+                        set arg to parse_expr(state and 0) + 0
+                        set ok to append_list(args and arg)
+                        
+                        set loop_args to 1
+                        repeat while loop_args == 1:
+                            set next_tok3 to peek_token(state)
+                            if get_token_type(next_tok3) == 11: # and
+                                set dummy to advance_token(state)
+                                set arg to parse_expr(state and 0) + 0
+                                set ok to append_list(args and arg)
+                            else:
+                                set loop_args to 0
+                                
+                    set ok to expect_token_type(state and 24) # )
+                    set left to make_node_call(name and args) + 0
+                else:
+                    set left to make_node_ident(name) + 0
+            else:
+                if t == 23: # (
+                    set left to parse_expr(state and 0) + 0
+                    set ok to expect_token_type(state and 24) # )
+                else:
+                    display "Parser Error: Expected expression, found token type:"
+                    display t
+                    
+    set climbing to 1
+    repeat while climbing == 1:
+        set next_tok to peek_token(state)
+        set next_prec to get_token_precedence(next_tok)
+        if precedence < next_prec:
+            set op_tok to advance_token(state)
+            set op_type to get_token_type(op_tok)
+            
+            set is_math to op_type == 12 || op_type == 13 || op_type == 14 || op_type == 15
+            if is_math == 1:
+                set op to 0
+                if op_type == 12:
+                    set op to 1 # OP_ADD
+                if op_type == 13:
+                    set op to 2 # OP_SUB
+                if op_type == 14:
+                    set op to 3 # OP_MUL
+                if op_type == 15:
+                    set op to 4 # OP_DIV
+                    
+                set right_prec to get_token_precedence(op_tok)
+                set right to parse_expr(state and right_prec) + 0
+                set left to make_node_binary(left and op and right) + 0
+            else:
+                set is_comp to op_type == 16 || op_type == 17 || op_type == 18 || op_type == 19
+                if is_comp == 1:
+                    set op to 0
+                    if op_type == 16:
+                        set op to 1 # COMP_LT
+                    if op_type == 17:
+                        set op to 2 # COMP_GT
+                    if op_type == 18:
+                        set op to 3 # COMP_EQ
+                    if op_type == 19:
+                        set op to 4 # COMP_NE
+                        
+                    set right_prec to get_token_precedence(op_tok)
+                    set right to parse_expr(state and right_prec) + 0
+                    set left to make_node_comp(left and op and right) + 0
+                else:
+                    set is_logical to op_type == 20 || op_type == 21
+                    if is_logical == 1:
+                        set op to 0
+                        if op_type == 20:
+                            set op to 1 # LOGICAL_AND
+                        if op_type == 21:
+                            set op to 2 # LOGICAL_OR
+                            
+                        set right_prec to get_token_precedence(op_tok)
+                        set right to parse_expr(state and right_prec) + 0
+                        set left to make_node_logical(left and op and right) + 0
+        else:
+            set climbing to 0
+            
+    return left
+define print_ast with node:
+    display "print_ast called with node:"
+    display node
+    if node == 0:
+        display "NULL"
+        return 0
+        
+    set type to get_list(node and 0)
+    display "Node type is:"
+    display type
+    
+    if type == 1: # NODE_INT
+        display "INT:"
+        display get_list(node and 1)
+    if type == 2: # NODE_STR
+        display "STR:"
+        set ok to display_string(get_list(node and 1))
+    if type == 3: # NODE_IDENT
+        display "IDENT:"
+        set ok to display_string(get_list(node and 1))
+    if type == 4: # NODE_BINARY
+        display "BINARY OP:"
+        display get_list(node and 2)
+        display "LEFT:"
+        set ok to print_ast(get_list(node and 1))
+        display "RIGHT:"
+        set ok to print_ast(get_list(node and 3))
+    if type == 5: # NODE_COMP
+        display "COMP OP:"
+        display get_list(node and 2)
+        display "LEFT:"
+        set ok to print_ast(get_list(node and 1))
+        display "RIGHT:"
+        set ok to print_ast(get_list(node and 3))
+    if type == 14: # NODE_LOGICAL
+        display "LOGICAL OP:"
+        display get_list(node and 2)
+        display "LEFT:"
+        set ok to print_ast(get_list(node and 1))
+        display "RIGHT:"
+        set ok to print_ast(get_list(node and 3))
+    if type == 6: # NODE_CALL
+        display "CALL:"
+        set ok to display_string(get_list(node and 1))
+        display "ARGS COUNT:"
+        set args to get_list(node and 2)
+        set len to length_list(args)
+        display len
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(args and idx))
+            set idx to idx + 1
+    if type == 7: # NODE_SET
+        display "SET:"
+        set ok to display_string(get_list(node and 1))
+        set ok to print_ast(get_list(node and 2))
+    if type == 8: # NODE_RETURN
+        display "RETURN:"
+        set ok to print_ast(get_list(node and 1))
+    if type == 9: # NODE_DISPLAY
+        display "DISPLAY:"
+        set ok to print_ast(get_list(node and 1))
+    if type == 10: # NODE_IF
+        display "IF COND:"
+        set ok to print_ast(get_list(node and 1))
+        display "THEN:"
+        set then_b to get_list(node and 2)
+        set len to length_list(then_b)
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(then_b and idx))
+            set idx to idx + 1
+        display "ELSE:"
+        set else_b to get_list(node and 3)
+        if else_b != 0:
+            set len to length_list(else_b)
+            set idx to 0
+            repeat while idx < len:
+                set ok to print_ast(get_list(else_b and idx))
+                set idx to idx + 1
+    if type == 11: # NODE_REPEAT_WHILE
+        display "REPEAT WHILE COND:"
+        set ok to print_ast(get_list(node and 1))
+        display "BODY:"
+        set body to get_list(node and 2)
+        set len to length_list(body)
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(body and idx))
+            set idx to idx + 1
+    if type == 12: # NODE_FUNC
+        display "FUNC:"
+        set ok to display_string(get_list(node and 1))
+        display "PARAMS COUNT:"
+        set params to get_list(node and 2)
+        display length_list(params)
+        display "BODY:"
+        set body to get_list(node and 3)
+        set len to length_list(body)
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(body and idx))
+            set idx to idx + 1
+    if type == 13: # NODE_PROGRAM
+        display "PROGRAM:"
+        set funcs to get_list(node and 1)
+        set len to length_list(funcs)
+        display len
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(funcs and idx))
+            set idx to idx + 1
+    return 0
+
+define main:
+    set source to "define test with x and y:\n    set z to x plus y\n    if z > 10:\n        display z\n    return z\n"
+    display "Tokenizing..."
+    set tokens to tokenize_source(source)
+    
+    display "Parsing..."
+    set state to create_parser_state(tokens)
+    set program_ast to parse_program(state)
+    
+    display "AST Result:"
+    set ok to print_ast(program_ast)
+    return 0

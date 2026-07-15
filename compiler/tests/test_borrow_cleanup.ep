@@ -1,0 +1,25 @@
+# Test that borrowed references are not freed at function exit
+define run_test with parent as List returning Int:
+    # get a borrowed reference from parent
+    set slot to get_list(parent and 0)
+    
+    # iterate using for each (yields borrowed references)
+    for each item in parent:
+        set dummy to 0
+        
+    return 0
+
+define main:
+    set inner to create_list()
+    set ok to append_list(inner and 42)
+    
+    set parent to create_list()
+    set ok to append_list(parent and inner)
+    
+    # Run test
+    set ok to run_test(parent)
+    
+    # Verify that inner is still alive (not freed!)
+    display get_list(inner and 0)
+    
+    return 0

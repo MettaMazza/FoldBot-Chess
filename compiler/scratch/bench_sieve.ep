@@ -1,0 +1,28 @@
+# Sieve of Eratosthenes - primes up to 1,000,000
+define main:
+    set limit to 1000000
+    set sieve to create_list()
+    set i to 0
+    repeat while i <= limit:
+        set ok to append_list(sieve and 1)
+        set i to i + 1
+    set ok to set_list(sieve and 0 and 0)
+    set ok to set_list(sieve and 1 and 0)
+    set p to 2
+    repeat while p * p <= limit:
+        set is_prime to get_list(sieve and p)
+        if is_prime == 1:
+            set j to p * p
+            repeat while j <= limit:
+                set ok to set_list(sieve and j and 0)
+                set j to j + p
+        set p to p + 1
+    set count to 0
+    set k to 2
+    repeat while k <= limit:
+        set val to get_list(sieve and k)
+        if val == 1:
+            set count to count + 1
+        set k to k + 1
+    display f"Primes up to {limit}: {count}"
+    return 0

@@ -1,0 +1,8 @@
+# A function declared to return Int must not return a Str.
+# Since return type mismatches are warnings, this will compile and run.
+define bad_return returning Int:
+    return "not an int"
+
+define main:
+    display bad_return()
+    return 0

@@ -1,0 +1,7 @@
+# expected_compile_error
+# Moving a value while it is borrowed must be rejected (ownership safety).
+define main:
+    set a to create_list()
+    set b to borrow a
+    set c to a
+    return 0

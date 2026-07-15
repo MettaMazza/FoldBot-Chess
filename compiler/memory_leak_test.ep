@@ -1,0 +1,9 @@
+define main:
+    display "Starting memory leak test..."
+    set i to 0
+    repeat while i is less than 5000000:
+        set my_list to create_list()
+        set ok to append_list(my_list and 42)
+        set i to i plus 1
+    display "Completed 5,000,000 list allocations!"
+    return 0

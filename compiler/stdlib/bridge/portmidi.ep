@@ -1,0 +1,95 @@
+# ============================================================
+# PortMidi Bridge for ErnosPlain
+# MIDI Input/Output
+# ============================================================
+# Usage: import "stdlib/bridge/portmidi"
+# ============================================================
+
+set PORTMIDI_HANDLE to 0
+
+# ---- Library loading ----
+define portmidi_load:
+    set PORTMIDI_HANDLE to ep_dlopen("libportmidi.dylib")
+    if PORTMIDI_HANDLE equals 0:
+        set PORTMIDI_HANDLE to ep_dlopen("/opt/homebrew/lib/libportmidi.dylib")
+    if PORTMIDI_HANDLE equals 0:
+        set PORTMIDI_HANDLE to ep_dlopen("/usr/local/lib/libportmidi.dylib")
+    if PORTMIDI_HANDLE equals 0:
+        set PORTMIDI_HANDLE to ep_dlopen("libportmidi.so")
+    if PORTMIDI_HANDLE equals 0:
+        set PORTMIDI_HANDLE to ep_dlopen("/usr/lib/libportmidi.so")
+    if PORTMIDI_HANDLE equals 0:
+        set PORTMIDI_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libportmidi.so")
+    return PORTMIDI_HANDLE
+
+# ---- Init / Cleanup ----
+define portmidi_bridge_init returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_load()
+    return PORTMIDI_HANDLE
+
+# ---- Core Functions ----
+define Pm_Initialize returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_Initialize")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define Pm_Terminate returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_Terminate")
+    if fn equals 0:
+        return 1
+    return ep_dlcall0(fn)
+
+define Pm_CountDevices returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_CountDevices")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define Pm_GetDeviceInfo with id as Int returning Int:
+    # Returns pointer to PmDeviceInfo struct
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_GetDeviceInfo")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and id)
+
+define Pm_OpenInput with stream as Int and inputDevice as Int and inputDriverInfo as Int and bufferSize as Int and timeProc as Int and timeInfo as Int returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_OpenInput")
+    if fn equals 0:
+        return 1
+    return ep_dlcall6(fn and stream and inputDevice and inputDriverInfo and bufferSize and timeProc and timeInfo)
+
+define Pm_OpenOutput with stream as Int and outputDevice as Int and outputDriverInfo as Int and bufferSize as Int and timeProc as Int and timeInfo as Int and latency as Int returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_OpenOutput")
+    if fn equals 0:
+        return 1
+    return ep_dlcall7(fn and stream and outputDevice and outputDriverInfo and bufferSize and timeProc and timeInfo and latency)
+
+define Pm_Write with stream as Int and buffer as Int and length as Int returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_Write")
+    if fn equals 0:
+        return 1
+    return ep_dlcall3(fn and stream and buffer and length)
+
+define Pm_Close with stream as Int returning Int:
+    if PORTMIDI_HANDLE equals 0:
+        set ok to portmidi_bridge_init()
+    set fn to ep_dlsym(PORTMIDI_HANDLE and "Pm_Close")
+    if fn equals 0:
+        return 1
+    return ep_dlcall1(fn and stream)

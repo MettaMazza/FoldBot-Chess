@@ -1,0 +1,6 @@
+define main:
+    set n to 5
+    set add_n to given x:
+        return x + n
+    display add_n(10)
+    return 0

@@ -1,0 +1,12 @@
+# Bundled ErnosPlain toolchain build artifacts
+compiler/target/
+
+# ernos-generated C intermediates
+*_compiled.c
+
+# compiled binaries — rebuild with `cc` / `ernos` (see AGENT.md §3)
+/verify/test_fold_chess_bot
+/verify/test_endgame_oracle
+/tests/fold_bot_cli
+
+.DS_Store

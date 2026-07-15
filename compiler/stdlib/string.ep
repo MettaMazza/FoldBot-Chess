@@ -1,0 +1,373 @@
+# Ernos String Standard Library (Expanded)
+
+# NOTE: string_concat() and int_to_string() are provided by the compiler runtime.
+# Do not redefine them here.
+
+# ---- External C Runtime Functions ----
+external define string_length with s:
+external define get_character with s and idx:
+external define substring with s and start and len:
+external define concat with a and b:
+external define int_to_string with n:
+external define string_from_list with lst:
+
+# ---- Character Operations ----
+
+define char_at with s and idx:
+    return get_character(s and idx)
+
+define is_digit with ch:
+    if ch > 47:
+        if ch < 58:
+            return 1
+    return 0
+
+define is_alpha with ch:
+    if ch > 64:
+        if ch < 91:
+            return 1
+    if ch > 96:
+        if ch < 123:
+            return 1
+    return 0
+
+define is_alphanumeric with ch:
+    if is_alpha(ch) == 1:
+        return 1
+    return is_digit(ch)
+
+define is_space with ch:
+    if ch == 32:
+        return 1
+    if ch == 9:
+        return 1
+    if ch == 10:
+        return 1
+    if ch == 13:
+        return 1
+    return 0
+
+define to_upper_char with ch:
+    if ch > 96:
+        if ch < 123:
+            return ch - 32
+    return ch
+
+define to_lower_char with ch:
+    if ch > 64:
+        if ch < 91:
+            return ch + 32
+    return ch
+
+# ---- String Comparison & Search ----
+
+define string_equals with s1 and s2:
+    set len1 to string_length(s1)
+    set len2 to string_length(s2)
+    if len1 != len2:
+        return 0
+    set i to 0
+    repeat while i < len1:
+        set c1 to get_character(s1 and i)
+        set c2 to get_character(s2 and i)
+        if c1 != c2:
+            return 0
+        set i to i + 1
+    return 1
+
+define starts_with with s and prefix:
+    set plen to string_length(prefix)
+    set slen to string_length(s)
+    if plen > slen:
+        return 0
+    set sub to substring(s and 0 and plen)
+    return string_equals(sub and prefix)
+
+define ends_with with s and suffix:
+    set slen to string_length(s)
+    set suflen to string_length(suffix)
+    if suflen > slen:
+        return 0
+    set start to slen - suflen
+    set sub to substring(s and start and suflen)
+    return string_equals(sub and suffix)
+
+define string_contains with haystack and needle:
+    set idx to string_index_of(haystack and needle)
+    if idx > 0 - 1:
+        return 1
+    return 0
+
+define string_index_of with s and substr:
+    set hlen to string_length(s)
+    set nlen to string_length(substr)
+    if nlen > hlen:
+        return 0 - 1
+    set i to 0
+    set limit to hlen - nlen + 1
+    repeat while i < limit:
+        set sub to substring(s and i and nlen)
+        if string_equals(sub and substr) == 1:
+            return i
+        set i to i + 1
+    return 0 - 1
+
+define string_last_index_of with s and substr:
+    set hlen to string_length(s)
+    set nlen to string_length(substr)
+    if nlen > hlen:
+        return 0 - 1
+    set i to hlen - nlen
+    repeat while i > 0 - 1:
+        set sub to substring(s and i and nlen)
+        if string_equals(sub and substr) == 1:
+            return i
+        set i to i - 1
+    return 0 - 1
+
+define string_count with s and substr:
+    set count to 0
+    set hlen to string_length(s)
+    set nlen to string_length(substr)
+    if nlen > hlen:
+        return 0
+    set i to 0
+    set limit to hlen - nlen + 1
+    repeat while i < limit:
+        set sub to substring(s and i and nlen)
+        if string_equals(sub and substr) == 1:
+            set count to count + 1
+            set i to i + nlen
+        else:
+            set i to i + 1
+    return count
+
+# ---- String Manipulation ----
+
+define repeat_string with s and count:
+    set result to ""
+    set i to 0
+    repeat while i < count:
+        set result to concat(result and s)
+        set i to i + 1
+    return result
+
+define string_replace with s and old and new_str:
+    set result to ""
+    set slen to string_length(s)
+    set olen to string_length(old)
+    set i to 0
+    repeat while i < slen:
+        if i + olen < slen + 1:
+            set sub to substring(s and i and olen)
+            if string_equals(sub and old) == 1:
+                set result to concat(result and new_str)
+                set i to i + olen
+            else:
+                set ch to substring(s and i and 1)
+                set result to concat(result and ch)
+                set i to i + 1
+        else:
+            set ch to substring(s and i and 1)
+            set result to concat(result and ch)
+            set i to i + 1
+    return result
+
+define string_to_upper with s:
+    set len to string_length(s)
+    set lst to create_list()
+    set i to 0
+    repeat while i < len:
+        set ch to get_character(s and i)
+        set ok to append_list(lst and to_upper_char(ch))
+        set i to i + 1
+    return string_from_list(lst)
+
+define string_to_lower with s:
+    set len to string_length(s)
+    set lst to create_list()
+    set i to 0
+    repeat while i < len:
+        set ch to get_character(s and i)
+        set ok to append_list(lst and to_lower_char(ch))
+        set i to i + 1
+    return string_from_list(lst)
+
+define trim_left with s:
+    set len to string_length(s)
+    set start to 0
+    repeat while start < len:
+        set ch to get_character(s and start)
+        if is_space(ch) == 0:
+            set rest to substring(s and start and len - start)
+            return rest
+        set start to start + 1
+    return ""
+
+define trim_right with s:
+    set len to string_length(s)
+    set end_idx to len - 1
+    repeat while end_idx > 0 - 1:
+        set ch to get_character(s and end_idx)
+        if is_space(ch) == 0:
+            return substring(s and 0 and end_idx + 1)
+        set end_idx to end_idx - 1
+    return ""
+
+define string_trim with s:
+    set trimmed to trim_left(s)
+    return trim_right(trimmed)
+
+define reverse_string with s:
+    set len to string_length(s)
+    set lst to create_list()
+    set i to len - 1
+    repeat while i > 0 - 1:
+        set ok to append_list(lst and get_character(s and i))
+        set i to i - 1
+    return string_from_list(lst)
+
+define string_pad_left with s and width and pad_char:
+    set slen to string_length(s)
+    if slen > width - 1:
+        return s
+    set pad_str to ""
+    set i to 0
+    set needed to width - slen
+    repeat while i < needed:
+        set ch_str to substring(pad_char and 0 and 1)
+        set pad_str to concat(pad_str and ch_str)
+        set i to i + 1
+    return concat(pad_str and s)
+
+define string_pad_right with s and width and pad_char:
+    set slen to string_length(s)
+    if slen > width - 1:
+        return s
+    set result to s
+    set i to 0
+    set needed to width - slen
+    repeat while i < needed:
+        set ch_str to substring(pad_char and 0 and 1)
+        set result to concat(result and ch_str)
+        set i to i + 1
+    return result
+
+# ---- String Split & Join ----
+
+define split with s and delimiter:
+    set result to create_list()
+    set current to create_list()
+    set slen to string_length(s)
+    set dlen to string_length(delimiter)
+    set i to 0
+    repeat while i < slen:
+        if i + dlen < slen + 1:
+            set sub to substring(s and i and dlen)
+            if string_equals(sub and delimiter) == 1:
+                set word to string_from_list(current)
+                set ok to append_list(result and word)
+                set current to create_list()
+                set i to i + dlen
+            else:
+                set ok to append_list(current and get_character(s and i))
+                set i to i + 1
+        else:
+            set ok to append_list(current and get_character(s and i))
+            set i to i + 1
+    set word to string_from_list(current)
+    set ok to append_list(result and word)
+    return result
+
+define join with parts and separator:
+    set plen to length_list(parts)
+    if plen == 0:
+        return ""
+    set result to get_list(parts and 0)
+    set i to 1
+    repeat while i < plen:
+        set result to concat(result and separator)
+        set item to get_list(parts and i)
+        set result to concat(result and item)
+        set i to i + 1
+    return result
+
+# ---- StringBuilder (native realloc-backed) ----
+
+external define ep_sb_create with dummy returning Int
+external define ep_sb_append with sb and s returning Int
+external define ep_sb_append_int with sb and n returning Int
+external define ep_sb_to_string with sb returning Str
+external define ep_sb_length with sb returning Int
+
+define create_builder:
+    return ep_sb_create(0)
+
+define builder_append with builder and s:
+    return ep_sb_append(builder and s)
+
+define builder_append_int with builder and n:
+    return ep_sb_append_int(builder and n)
+
+define builder_to_string with builder:
+    return ep_sb_to_string(builder)
+
+define builder_length with builder:
+    return ep_sb_length(builder)
+
+define builder_clear with builder:
+    return ep_sb_create(0)
+
+# ---- String Conversion ----
+
+define string_to_int with s:
+    set len to string_length(s)
+    set result to 0
+    set negative to 0
+    set i to 0
+    if len > 0:
+        set ch to get_character(s and 0)
+        if ch == 45:
+            set negative to 1
+            set i to 1
+    repeat while i < len:
+        set ch to get_character(s and i)
+        if is_digit(ch) == 1:
+            set result to result * 10 + ch - 48
+        set i to i + 1
+    if negative == 1:
+        return 0 - result
+    return result
+
+# ---- String Formatting ----
+
+define string_format with template and args:
+    # Simple format: replaces {0}, {1}, {2} etc. with args from list
+    set result to ""
+    set tlen to string_length(template)
+    set i to 0
+    repeat while i < tlen:
+        set ch to get_character(template and i)
+        if ch == 123:
+            # '{' character - look for index and '}'
+            set j to i + 1
+            set idx_str to ""
+            repeat while j < tlen:
+                set ch2 to get_character(template and j)
+                if ch2 == 125:
+                    # '}' found - extract index
+                    set idx to string_to_int(idx_str)
+                    if idx < length_list(args):
+                        set arg_val to get_list(args and idx)
+                        set result to concat(result and arg_val)
+                    set i to j + 1
+                    set j to tlen
+                else:
+                    set ch2_str to substring(template and j and 1)
+                    set idx_str to concat(idx_str and ch2_str)
+                    set j to j + 1
+        else:
+            set ch_str to substring(template and i and 1)
+            set result to concat(result and ch_str)
+            set i to i + 1
+    return result

@@ -1,0 +1,28 @@
+=== String Basics ===
+hello world
+length: 11
+=== Substring ===
+sub(0,5): hello
+=== Conversion ===
+int_to_string: 42
+string_to_int: 123
+=== Search ===
+contains quick: 1
+contains slow: 0
+index_of brown: 10
+=== Replace ===
+replaced: the quick brown dog
+=== Upper/Lower ===
+upper: HELLO WORLD
+lower: hello world
+=== Trim ===
+trimmed: 'spaces'
+=== Split ===
+split len: 3
+  part: a
+  part: b
+  part: c
+=== Char ===
+char_at 1: 66
+char_from_code 65: A
+ALL STRING TESTS PASSED

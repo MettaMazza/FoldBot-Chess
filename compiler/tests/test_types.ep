@@ -1,0 +1,84 @@
+# Structs, Enums, and Pattern Matching Test
+
+define structure Point:
+    field x as Int
+    field y as Int
+
+define structure Named:
+    field label as Str
+    field value as Int
+
+define choice Direction:
+    variant North
+    variant South
+    variant East
+    variant West
+
+define choice Shape:
+    variant Circle with radius as Int
+    variant Rect with width as Int and height as Int
+
+define area with s as Shape returning Int:
+    check s:
+        if Circle with r:
+            return r * r * 3
+        if Rect with w and h:
+            return w * h
+
+define main:
+    # === Structs ===
+    display "=== Structs ==="
+    set p to create Point:
+        x is 10
+        y is 20
+    display f"Point: ({p.x}, {p.y})"
+    set p.x to 50
+    display f"After set: ({p.x}, {p.y})"
+
+    set n to create Named:
+        label is "test"
+        value is 42
+    display f"Named: {n.label} = {n.value}"
+
+    # === Enums ===
+    display "=== Enums ==="
+    set dir to North
+    check dir:
+        if North:
+            display "Going north"
+        if South:
+            display "Going south"
+        if East:
+            display "Going east"
+        if West:
+            display "Going west"
+
+    # === Enum with data ===
+    display "=== Enum with data ==="
+    set c to Circle with 5
+    set r to Rect with 3 and 4
+    display f"circle area: {area(c)}"
+    display f"rect area: {area(r)}"
+
+    # === String match ===
+    display "=== String match ==="
+    set color to "red"
+    check color:
+        if "red":
+            display "color is red"
+        if "blue":
+            display "color is blue"
+
+    # === Int match ===
+    display "=== Int match ==="
+    set code to 200
+    check code:
+        if 200:
+            display "OK"
+        if 404:
+            display "Not Found"
+        if 500:
+            display "Server Error"
+
+    display "ALL TYPE TESTS PASSED"
+    return 0

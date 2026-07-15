@@ -1,0 +1,134 @@
+# Ernos Math Standard Library
+
+# ---- Basic Operations ----
+
+define absolute with x:
+    if x is less than 0:
+        return 0 - x
+    return x
+
+define min with a and b:
+    if a is less than b:
+        return a
+    return b
+
+define max with a and b:
+    if a is greater than b:
+        return a
+    return b
+
+define clamp with value and lo and hi:
+    if value is less than lo:
+        return lo
+    if value is greater than hi:
+        return hi
+    return value
+
+# ---- Exponentiation and Roots ----
+
+define power with base and exp:
+    if exp is less than 0:
+        return 0
+    if exp == 0:
+        return 1
+    set res to 1
+    set i to 0
+    repeat while i is less than exp:
+        set res to res multiplied by base
+        set i to i plus 1
+    return res
+
+define sqrt_int with n:
+    if n is less than 0:
+        return 0
+    if n == 0:
+        return 0
+    set guess to n / 2
+    if guess == 0:
+        set guess to 1
+    repeat while guess multiplied by guess is greater than n:
+        set guess to (guess plus n / guess) / 2
+    return guess
+
+# ---- GCD / LCM ----
+
+define gcd with a and b:
+    set x to absolute(a)
+    set y to absolute(b)
+    repeat while y is greater than 0:
+        set temp to y
+        set y to x - (x / y multiplied by y)
+        set x to temp
+    return x
+
+define lcm with a and b:
+    if a == 0:
+        return 0
+    if b == 0:
+        return 0
+    set g to gcd(a and b)
+    return absolute(a / g multiplied by b)
+
+# ---- Factorial and Combinatorics ----
+
+define factorial with n:
+    if n is less than 2:
+        return 1
+    set result to 1
+    set i to 2
+    repeat while i is less than n + 1:
+        set result to result multiplied by i
+        set i to i + 1
+    return result
+
+define fibonacci with n:
+    if n is less than 2:
+        return n
+    set a to 0
+    set b to 1
+    set i to 2
+    repeat while i is less than n + 1:
+        set temp to b
+        set b to a + b
+        set a to temp
+        set i to i + 1
+    return b
+
+# ---- Checks ----
+
+define is_even with n:
+    set remainder to n - (n / 2 multiplied by 2)
+    if remainder == 0:
+        return 1
+    return 0
+
+define is_odd with n:
+    set remainder to n - (n / 2 multiplied by 2)
+    if remainder == 0:
+        return 0
+    return 1
+
+define is_prime with n:
+    if n is less than 2:
+        return 0
+    if n == 2:
+        return 1
+    set remainder to n - (n / 2 multiplied by 2)
+    if remainder == 0:
+        return 0
+    set i to 3
+    repeat while i multiplied by i is less than n + 1:
+        set rem to n - (n / i multiplied by i)
+        if rem == 0:
+            return 0
+        set i to i + 2
+    return 1
+
+# ---- Sign ----
+
+define sign with x:
+    if x is greater than 0:
+        return 1
+    if x is less than 0:
+        return 0 - 1
+    return 0

@@ -1,0 +1,26 @@
+# Struct allocation benchmark
+# Create 100,000 structs with 3 fields, store in list, iterate and sum a field
+define structure Record:
+    field x as Int
+    field y as Int
+    field z as Int
+
+define main:
+    set records to create_list()
+    set i to 0
+    repeat while i < 100000:
+        set r to create Record:
+            x is i
+            y is i * 2
+            z is i * 3
+        set ok to append_list(records and r)
+        set i to i + 1
+    set total to 0
+    set j to 0
+    set size to length_list(records)
+    repeat while j < size:
+        set rec as Record to get_list(records and j)
+        set total to total + rec.z
+        set j to j + 1
+    display f"Sum of z field: {total}"
+    return 0

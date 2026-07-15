@@ -1,0 +1,11 @@
+import "string"
+
+define main:
+    set s to "Hello World"
+    set lower to string_to_lower(s)
+    display lower
+    set upper to string_to_upper(s)
+    display upper
+    set trimmed to string_trim("  spaces  ")
+    display trimmed
+    return 0

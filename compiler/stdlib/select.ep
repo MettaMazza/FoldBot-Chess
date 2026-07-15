@@ -1,0 +1,40 @@
+# ErnosPlain Channel Select Library
+# Provides select() semantics for waiting on multiple channels
+# with timeout support for async patterns
+
+import "sync"
+
+# ───────────── Channel Select ─────────────
+
+# Wait for data on any of the given channels, with timeout in milliseconds
+# Returns the index (0-based) of the first channel that has data, or -1 on timeout
+# Usage:
+#   set channels to create_list()
+#   set ok to append_list(channels and ch1)
+#   set ok to append_list(channels and ch2)
+#   set ready to select(channels and 5000)    # 5 second timeout
+#   if ready == 0:
+#       receive val from ch1
+#   else if ready == 1:
+#       receive val from ch2
+#   else:
+#       display "Timeout!"
+
+define select with channels and timeout_ms:
+    return channel_select(channels and timeout_ms)
+
+# Select with no timeout (block forever until one channel is ready)
+define select_blocking with channels:
+    return channel_select(channels and 0 - 1)
+
+# Check if a channel has data available without blocking
+define channel_ready with ch:
+    return channel_has_data(ch)
+
+# Try to receive from a channel without blocking
+# Returns the value if available, or default_val if channel is empty
+define try_receive with ch and default_val:
+    if channel_has_data(ch):
+        receive val from ch
+        return val
+    return default_val

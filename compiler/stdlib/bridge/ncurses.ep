@@ -1,0 +1,278 @@
+# ============================================================
+# ncurses Bridge for ErnosPlain
+# Terminal UI — pre-installed on macOS & most Linux
+# ============================================================
+# Usage: import "stdlib/bridge/ncurses"
+# ============================================================
+
+set NCURSES_HANDLE to 0
+set NCURSES_STDSCR to 0
+
+# ---- Color constants ----
+set COLOR_BLACK to 0
+set COLOR_RED to 1
+set COLOR_GREEN to 2
+set COLOR_YELLOW to 3
+set COLOR_BLUE to 4
+set COLOR_MAGENTA to 5
+set COLOR_CYAN to 6
+set COLOR_WHITE to 7
+
+# ---- Key constants ----
+set NCURSES_KEY_DOWN to 258
+set NCURSES_KEY_UP to 259
+set NCURSES_KEY_LEFT to 260
+set NCURSES_KEY_RIGHT to 261
+set NCURSES_KEY_HOME to 262
+set NCURSES_KEY_BACKSPACE to 263
+set NCURSES_KEY_F1 to 265
+set NCURSES_KEY_F2 to 266
+set NCURSES_KEY_F3 to 267
+set NCURSES_KEY_F4 to 268
+set NCURSES_KEY_F5 to 269
+set NCURSES_KEY_F6 to 270
+set NCURSES_KEY_F7 to 271
+set NCURSES_KEY_F8 to 272
+set NCURSES_KEY_F9 to 273
+set NCURSES_KEY_F10 to 274
+set NCURSES_KEY_F11 to 275
+set NCURSES_KEY_F12 to 276
+set NCURSES_KEY_DC to 330
+set NCURSES_KEY_NPAGE to 338
+set NCURSES_KEY_PPAGE to 339
+set NCURSES_KEY_END to 360
+set NCURSES_KEY_ENTER to 10
+set NCURSES_KEY_TAB to 9
+set NCURSES_KEY_ESC to 27
+
+# ---- Attribute constants ----
+set A_NORMAL to 0
+set A_STANDOUT to 65536
+set A_UNDERLINE to 131072
+set A_REVERSE to 262144
+set A_BLINK to 524288
+set A_DIM to 1048576
+set A_BOLD to 2097152
+
+# ============================================================
+# Library loading
+# ============================================================
+define ncurses_load:
+    set NCURSES_HANDLE to ep_dlopen("libncurses.dylib")
+    if NCURSES_HANDLE equals 0:
+        set NCURSES_HANDLE to ep_dlopen("/usr/lib/libncurses.dylib")
+    if NCURSES_HANDLE equals 0:
+        set NCURSES_HANDLE to ep_dlopen("libncursesw.so.6")
+    if NCURSES_HANDLE equals 0:
+        set NCURSES_HANDLE to ep_dlopen("libncurses.so")
+    if NCURSES_HANDLE equals 0:
+        set NCURSES_HANDLE to ep_dlopen("libncursesw.so")
+    if NCURSES_HANDLE equals 0:
+        set NCURSES_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libncursesw.so.6")
+    return NCURSES_HANDLE
+
+# ============================================================
+# Init / Cleanup
+# ============================================================
+define curses_init returning Int:
+    if NCURSES_HANDLE equals 0:
+        set ok to ncurses_load()
+    set fn to ep_dlsym(NCURSES_HANDLE and "initscr")
+    set NCURSES_STDSCR to ep_dlcall0(fn)
+    return NCURSES_STDSCR
+
+define curses_end returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "endwin")
+    return ep_dlcall0(fn)
+
+define curses_raw returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "raw")
+    return ep_dlcall0(fn)
+
+define curses_cbreak returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "cbreak")
+    return ep_dlcall0(fn)
+
+define curses_noecho returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "noecho")
+    return ep_dlcall0(fn)
+
+define curses_echo_on returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "echo")
+    return ep_dlcall0(fn)
+
+# ============================================================
+# Output
+# ============================================================
+define curses_print with text as Str returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "printw")
+    return ep_dlcall1(fn and text)
+
+define curses_print_at with y as Int and x as Int and text as Str returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "mvprintw")
+    return ep_dlcall3(fn and y and x and text)
+
+define curses_add_char with ch as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "addch")
+    return ep_dlcall1(fn and ch)
+
+define curses_add_char_at with y as Int and x as Int and ch as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "mvaddch")
+    return ep_dlcall3(fn and y and x and ch)
+
+# ============================================================
+# Input
+# ============================================================
+define curses_get_char returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "getch")
+    return ep_dlcall0(fn)
+
+define curses_ungetch with ch as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "ungetch")
+    return ep_dlcall1(fn and ch)
+
+# ============================================================
+# Cursor and screen
+# ============================================================
+define curses_move with y as Int and x as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "move")
+    return ep_dlcall2(fn and y and x)
+
+define curses_refresh returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "refresh")
+    return ep_dlcall0(fn)
+
+define curses_clear returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "clear")
+    return ep_dlcall0(fn)
+
+define curses_erase returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "erase")
+    return ep_dlcall0(fn)
+
+define curses_get_max_y returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "getmaxy")
+    return ep_dlcall1(fn and NCURSES_STDSCR)
+
+define curses_get_max_x returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "getmaxx")
+    return ep_dlcall1(fn and NCURSES_STDSCR)
+
+# ============================================================
+# Color
+# ============================================================
+define curses_has_colors returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "has_colors")
+    return ep_dlcall0(fn)
+
+define curses_start_color returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "start_color")
+    return ep_dlcall0(fn)
+
+define curses_init_pair with pair as Int and fg as Int and bg as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "init_pair")
+    return ep_dlcall3(fn and pair and fg and bg)
+
+define curses_color_on with pair as Int returning Int:
+    # COLOR_PAIR(n) = n << 8
+    set attr to pair * 256
+    set fn to ep_dlsym(NCURSES_HANDLE and "attron")
+    return ep_dlcall1(fn and attr)
+
+define curses_color_off with pair as Int returning Int:
+    set attr to pair * 256
+    set fn to ep_dlsym(NCURSES_HANDLE and "attroff")
+    return ep_dlcall1(fn and attr)
+
+# ============================================================
+# Attributes
+# ============================================================
+define curses_attr_on with attr as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "attron")
+    return ep_dlcall1(fn and attr)
+
+define curses_attr_off with attr as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "attroff")
+    return ep_dlcall1(fn and attr)
+
+define curses_bold_on returning Int:
+    return curses_attr_on(A_BOLD)
+
+define curses_bold_off returning Int:
+    return curses_attr_off(A_BOLD)
+
+define curses_underline_on returning Int:
+    return curses_attr_on(A_UNDERLINE)
+
+define curses_underline_off returning Int:
+    return curses_attr_off(A_UNDERLINE)
+
+# ============================================================
+# Windows
+# ============================================================
+define curses_new_window with h as Int and w as Int and y as Int and x as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "newwin")
+    return ep_dlcall4(fn and h and w and y and x)
+
+define curses_del_window with win as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "delwin")
+    return ep_dlcall1(fn and win)
+
+define curses_window_refresh with win as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "wrefresh")
+    return ep_dlcall1(fn and win)
+
+define curses_window_print with win as Int and text as Str returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "wprintw")
+    return ep_dlcall2(fn and win and text)
+
+define curses_window_border with win as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "box")
+    return ep_dlcall3(fn and win and 0 and 0)
+
+define curses_window_clear with win as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "wclear")
+    return ep_dlcall1(fn and win)
+
+define curses_window_move with win as Int and y as Int and x as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "wmove")
+    return ep_dlcall3(fn and win and y and x)
+
+# ============================================================
+# Settings
+# ============================================================
+define curses_keypad with bf as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "keypad")
+    return ep_dlcall2(fn and NCURSES_STDSCR and bf)
+
+define curses_nodelay with bf as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "nodelay")
+    return ep_dlcall2(fn and NCURSES_STDSCR and bf)
+
+define curses_halfdelay with tenths as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "halfdelay")
+    return ep_dlcall1(fn and tenths)
+
+define curses_curs_set with visibility as Int returning Int:
+    set fn to ep_dlsym(NCURSES_HANDLE and "curs_set")
+    return ep_dlcall1(fn and visibility)
+
+# ============================================================
+# Convenience
+# ============================================================
+define curses_quick_init returning Int:
+    # Initialize ncurses with common settings
+    set scr to curses_init()
+    set ok to curses_cbreak()
+    set ok to curses_noecho()
+    set ok to curses_keypad(1)
+    if curses_has_colors() == 1:
+        set ok to curses_start_color()
+    return scr
+
+define curses_center_text with y as Int and text as Str returning Int:
+    set max_x to curses_get_max_x()
+    set text_len to string_length(text)
+    set x to max_x - text_len
+    set x to x / 2
+    return curses_print_at(y and x and text)

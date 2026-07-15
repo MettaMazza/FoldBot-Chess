@@ -1,0 +1,24 @@
+import "collections"
+
+define structure RangeIterator:
+    field current as Int
+    field limit as Int
+
+implement Iterator for RangeIterator:
+    define next returning IterResult:
+        if self.current < self.limit:
+            set val to self.current
+            set self.current to self.current + 1
+            return Next with val
+        else:
+            return Done
+
+define main:
+    set iter to create RangeIterator:
+        current is 0
+        limit is 5
+    
+    for each num in iter:
+        display num
+    
+    return 0

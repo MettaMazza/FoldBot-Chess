@@ -1,0 +1,126 @@
+# ============================================================
+# miniaudio Bridge for ErnosPlain
+# Cross-platform audio playback/recording — miniaud.io
+# ============================================================
+# Usage: import "stdlib/bridge/miniaudio"
+# Requires: miniaudio compiled as shared library
+# ============================================================
+
+set MINIAUDIO_HANDLE to 0
+
+# ---- Result codes ----
+set MA_SUCCESS to 0
+set MA_ERROR to -1
+set MA_INVALID_ARGS to -2
+set MA_INVALID_OPERATION to -3
+set MA_OUT_OF_MEMORY to -4
+
+# ============================================================
+# Library loading
+# ============================================================
+define miniaudio_load:
+    set MINIAUDIO_HANDLE to ep_dlopen("libminiaudio.dylib")
+    if MINIAUDIO_HANDLE equals 0:
+        set MINIAUDIO_HANDLE to ep_dlopen("/usr/local/lib/libminiaudio.dylib")
+    if MINIAUDIO_HANDLE equals 0:
+        set MINIAUDIO_HANDLE to ep_dlopen("/opt/homebrew/lib/libminiaudio.dylib")
+    if MINIAUDIO_HANDLE equals 0:
+        set MINIAUDIO_HANDLE to ep_dlopen("libminiaudio.so")
+    if MINIAUDIO_HANDLE equals 0:
+        set MINIAUDIO_HANDLE to ep_dlopen("/usr/local/lib/libminiaudio.so")
+    return MINIAUDIO_HANDLE
+
+# ============================================================
+# Engine (high-level API)
+# Note: ma_engine is a large struct. These wrappers expect you to
+# allocate memory externally or use the convenience functions below
+# that handle allocation internally.
+# ============================================================
+define audio_engine_init with engine_ptr as Int returning Int:
+    if MINIAUDIO_HANDLE equals 0:
+        set ok to miniaudio_load()
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_engine_init")
+    # ma_engine_init(NULL config, engine_ptr) — NULL for default config
+    return ep_dlcall2(fn and 0 and engine_ptr)
+
+define audio_engine_uninit with engine_ptr as Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_engine_uninit")
+    return ep_dlcall1(fn and engine_ptr)
+
+define audio_engine_play_sound with engine_ptr as Int and path as Str and group as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_engine_play_sound")
+    return ep_dlcall3(fn and engine_ptr and path and group)
+
+define audio_engine_set_volume with engine_ptr as Int and volume as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_engine_set_volume")
+    return ep_dlcall2(fn and engine_ptr and volume)
+
+define audio_engine_set_gain_db with engine_ptr as Int and gain_db as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_engine_set_gain_db")
+    return ep_dlcall2(fn and engine_ptr and gain_db)
+
+# ============================================================
+# Sound (lower-level, reusable sound instances)
+# ============================================================
+define audio_sound_init_from_file with engine_ptr as Int and path as Str and flags as Int and group as Int and fence as Int and sound_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_init_from_file")
+    return ep_dlcall6(fn and engine_ptr and path and flags and group and fence and sound_ptr)
+
+define audio_sound_uninit with sound_ptr as Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_uninit")
+    return ep_dlcall1(fn and sound_ptr)
+
+define audio_sound_start with sound_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_start")
+    return ep_dlcall1(fn and sound_ptr)
+
+define audio_sound_stop with sound_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_stop")
+    return ep_dlcall1(fn and sound_ptr)
+
+define audio_sound_set_volume with sound_ptr as Int and volume as Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_set_volume")
+    return ep_dlcall2(fn and sound_ptr and volume)
+
+define audio_sound_set_pitch with sound_ptr as Int and pitch as Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_set_pitch")
+    return ep_dlcall2(fn and sound_ptr and pitch)
+
+define audio_sound_set_pan with sound_ptr as Int and pan as Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_set_pan")
+    return ep_dlcall2(fn and sound_ptr and pan)
+
+define audio_sound_set_looping with sound_ptr as Int and looping as Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_set_looping")
+    return ep_dlcall2(fn and sound_ptr and looping)
+
+define audio_sound_is_playing with sound_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_is_playing")
+    return ep_dlcall1(fn and sound_ptr)
+
+define audio_sound_at_end with sound_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_at_end")
+    return ep_dlcall1(fn and sound_ptr)
+
+define audio_sound_seek_to_pcm_frame with sound_ptr as Int and frame as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_seek_to_pcm_frame")
+    return ep_dlcall2(fn and sound_ptr and frame)
+
+define audio_sound_get_length_in_pcm_frames with sound_ptr as Int and length_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_sound_get_length_in_pcm_frames")
+    return ep_dlcall2(fn and sound_ptr and length_ptr)
+
+# ============================================================
+# Decoder (for manual audio file reading)
+# ============================================================
+define audio_decoder_init_file with path as Str and config as Int and decoder_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_decoder_init_file")
+    return ep_dlcall3(fn and path and config and decoder_ptr)
+
+define audio_decoder_uninit with decoder_ptr as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_decoder_uninit")
+    return ep_dlcall1(fn and decoder_ptr)
+
+define audio_decoder_read_pcm_frames with decoder_ptr as Int and output as Int and frame_count as Int and frames_read as Int returning Int:
+    set fn to ep_dlsym(MINIAUDIO_HANDLE and "ma_decoder_read_pcm_frames")
+    return ep_dlcall4(fn and decoder_ptr and output and frame_count and frames_read)

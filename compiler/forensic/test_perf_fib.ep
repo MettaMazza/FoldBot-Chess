@@ -1,0 +1,15 @@
+# Forensic Test 9: Performance — fib(40) to verify GC skip
+
+define fib with n as Int returning Int:
+    if n is less than 2:
+        return n
+    return fib(n minus 1) plus fib(n minus 2)
+
+define main:
+    set start to ep_time_now_ms()
+    set result to fib(40)
+    set end to ep_time_now_ms()
+    set elapsed to end minus start
+    display f"fib(40) = {result}"
+    display f"Time: {elapsed}ms"
+    return 0

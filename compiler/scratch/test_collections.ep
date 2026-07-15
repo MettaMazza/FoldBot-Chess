@@ -1,0 +1,27 @@
+import "../stdlib/collections"
+
+define main:
+    set m to create_map()
+    set ok to map_insert(m and "x" and 42)
+    set ok to map_insert(m and "y" and 99)
+    set s to map_size(m)
+    display f"map_size = {s}, expected 2"
+    if s != 2:
+        display "FAIL"
+        return 1
+    set v to map_get_val(m and "x")
+    display f"map_get_val(x) = {v}, expected 42"
+    if v != 42:
+        display "FAIL"
+        return 1
+    set st to create_set()
+    set ok to set_add(st and "a")
+    set ok to set_add(st and "b")
+    set ok to set_add(st and "c")
+    set ss to set_size(st)
+    display f"set_size = {ss}, expected 3"
+    if ss != 3:
+        display "FAIL"
+        return 1
+    display "PASS: collections.ep works with C runtime maps"
+    return 0

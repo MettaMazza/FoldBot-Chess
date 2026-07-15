@@ -1,0 +1,19 @@
+import "ep_lexer"
+import "ep_parser"
+import "ep_codegen"
+
+define main:
+    set path to get_argument(1)
+    display "Reading file..."
+    set source to read_file_content(path)
+    display "Tokenizing..."
+    set tokens to tokenize_source(source)
+    display "Parsing..."
+    set state to create_parser_state(tokens)
+    set program_ast to parse_program(state)
+    display "Parse done!"
+    display "Generating C..."
+    set c_code to generate_c(program_ast and 0)
+    display "C code length:"
+    display string_length(c_code)
+    return 0

@@ -1,0 +1,171 @@
+# ErnosPlain Collections Standard Library
+# Implements HashSet, Stack, Queue, Priority Queue, Iterator
+
+# ════════════════════════════════════════════
+# HashMap — provided by C runtime builtins:
+#   create_map, map_insert, map_get_val, map_contains,
+#   map_delete, map_size, map_keys, map_values, free_map,
+#   map_set_str, map_get_str
+# ════════════════════════════════════════════
+
+# ════════════════════════════════════════════
+# HashSet (backed by C runtime HashMap)
+# ════════════════════════════════════════════
+
+define create_set:
+    return create_map()
+
+define set_add with s and value:
+    return map_insert(s and value and 1)
+
+define set_has with s and value:
+    return map_contains(s and value)
+
+define set_remove with s and value:
+    return map_delete(s and value)
+
+define set_size with s:
+    return map_size(s)
+
+define set_values with s:
+    return map_keys(s)
+
+# ════════════════════════════════════════════
+# Stack (backed by list — LIFO)
+# ════════════════════════════════════════════
+
+define create_stack:
+    return create_list()
+
+define push_stack with s and value:
+    set ok to append_list(s and value)
+    return 1
+
+define pop_stack with s:
+    set len to length_list(s)
+    if len == 0:
+        return 0
+    set val to get_list(s and len - 1)
+    set ok to remove_list(s and len - 1)
+    return val
+
+define stack_peek with s:
+    set len to length_list(s)
+    if len == 0:
+        return 0
+    return get_list(s and len - 1)
+
+define stack_size with s:
+    return length_list(s)
+
+define stack_is_empty with s:
+    if length_list(s) == 0:
+        return 1
+    return 0
+
+# ════════════════════════════════════════════
+# Queue (backed by list — FIFO)
+# ════════════════════════════════════════════
+
+define create_queue:
+    return create_list()
+
+define enqueue with q and value:
+    set ok to append_list(q and value)
+    return 1
+
+define dequeue with q:
+    set len to length_list(q)
+    if len == 0:
+        return 0
+    set val to get_list(q and 0)
+    set ok to remove_list(q and 0)
+    return val
+
+define queue_peek with q:
+    set len to length_list(q)
+    if len == 0:
+        return 0
+    return get_list(q and 0)
+
+define queue_size with q:
+    return length_list(q)
+
+define queue_is_empty with q:
+    if length_list(q) == 0:
+        return 1
+    return 0
+
+# ════════════════════════════════════════════
+# Priority Queue (min-heap backed by list)
+# ════════════════════════════════════════════
+
+define create_priority_queue:
+    return create_list()
+
+define pq_push with pq and value:
+    set ok to append_list(pq and value)
+    # Sift up
+    set idx to length_list(pq) - 1
+    repeat while idx > 0:
+        set parent to (idx - 1) / 2
+        set parent_val to get_list(pq and parent)
+        set child_val to get_list(pq and idx)
+        if child_val < parent_val:
+            set ok to set_list(pq and parent and child_val)
+            set ok to set_list(pq and idx and parent_val)
+            set idx to parent
+        else:
+            set idx to 0
+    return 1
+
+define pq_pop with pq:
+    set len to length_list(pq)
+    if len == 0:
+        return 0
+    set min_val to get_list(pq and 0)
+    set last to get_list(pq and len - 1)
+    set ok to remove_list(pq and len - 1)
+    set len to len - 1
+    if len > 0:
+        set ok to set_list(pq and 0 and last)
+        # Sift down
+        set idx to 0
+        set done to 0
+        repeat while done == 0:
+            set left to idx * 2 + 1
+            set right to idx * 2 + 2
+            set smallest to idx
+            if left < len:
+                if get_list(pq and left) < get_list(pq and smallest):
+                    set smallest to left
+            if right < len:
+                if get_list(pq and right) < get_list(pq and smallest):
+                    set smallest to right
+            if smallest != idx:
+                set tmp to get_list(pq and idx)
+                set ok to set_list(pq and idx and get_list(pq and smallest))
+                set ok to set_list(pq and smallest and tmp)
+                set idx to smallest
+            else:
+                set done to 1
+    return min_val
+
+define pq_peek with pq:
+    if length_list(pq) == 0:
+        return 0
+    return get_list(pq and 0)
+
+define pq_size with pq:
+    return length_list(pq)
+
+# ════════════════════════════════════════════
+# Iterator/Generator Protocol
+# ════════════════════════════════════════════
+
+define choice IterResult:
+    variant Next with value as Any
+    variant Done
+
+define trait Iterator:
+    define next returning IterResult

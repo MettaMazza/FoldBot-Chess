@@ -1,0 +1,12 @@
+define helper:
+    set temp to create_list()
+    return 0
+
+define main:
+    set i to 0
+    while i < 10000:
+        set ok to helper()
+        set i to i + 1
+    display ep_gc_get_minor_count()
+    display ep_gc_get_major_count()
+    return 0

@@ -1,0 +1,64 @@
+# Cross-platform feature test: structs, enums, pattern matching, channels, closures
+
+define structure Sensor:
+    field name as Str
+    field value as Int
+
+define choice Reading:
+    variant Valid with amount as Int
+    variant Invalid with reason as Str
+
+define classify with val as Int returning Reading:
+    if val >= 0:
+        return Valid with val
+    return Invalid with "negative"
+
+define apply with f and x as Int returning Int:
+    return f(x)
+
+define sensor_worker with id as Int and chan:
+    set reading to classify(id * 10)
+    check reading:
+        if Valid with amount:
+            send amount to chan
+        if Invalid with reason:
+            send 0 - 1 to chan
+
+define main:
+    # Struct usage
+    set s to create Sensor:
+        name is "temp"
+        value is 42
+    display s.name
+    display s.value
+
+    # Enum + pattern matching
+    set r1 to classify(25)
+    check r1:
+        if Valid with amount:
+            display amount
+        if Invalid with reason:
+            display reason
+
+    set r2 to classify(0 - 5)
+    check r2:
+        if Valid with amount:
+            display amount
+        if Invalid with reason:
+            display reason
+
+    # Closure usage
+    set doubler to given x:
+        return x * 2
+    set result to apply(doubler and 21)
+    display result
+
+    # Channel + spawn
+    set ch to channel
+    spawn sensor_worker(3 and ch)
+    spawn sensor_worker(5 and ch)
+    set v1 to receive from ch
+    set v2 to receive from ch
+    display v1 + v2
+
+    return 0

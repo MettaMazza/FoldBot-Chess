@@ -1,0 +1,90 @@
+# ============================================================
+# libusb Bridge for ErnosPlain
+# USB Device Access
+# ============================================================
+# Usage: import "stdlib/bridge/libusb"
+# ============================================================
+
+set LIBUSB_HANDLE to 0
+
+# ---- Library loading ----
+define libusb_load:
+    set LIBUSB_HANDLE to ep_dlopen("libusb-1.0.dylib")
+    if LIBUSB_HANDLE equals 0:
+        set LIBUSB_HANDLE to ep_dlopen("/opt/homebrew/lib/libusb-1.0.dylib")
+    if LIBUSB_HANDLE equals 0:
+        set LIBUSB_HANDLE to ep_dlopen("/usr/local/lib/libusb-1.0.dylib")
+    if LIBUSB_HANDLE equals 0:
+        set LIBUSB_HANDLE to ep_dlopen("libusb-1.0.so")
+    if LIBUSB_HANDLE equals 0:
+        set LIBUSB_HANDLE to ep_dlopen("/usr/lib/libusb-1.0.so")
+    if LIBUSB_HANDLE equals 0:
+        set LIBUSB_HANDLE to ep_dlopen("/usr/local/lib/libusb-1.0.so")
+    if LIBUSB_HANDLE equals 0:
+        set LIBUSB_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libusb-1.0.so")
+    return LIBUSB_HANDLE
+
+# ---- Init / Cleanup ----
+define libusb_bridge_init returning Int:
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_load()
+    return LIBUSB_HANDLE
+
+# ---- Core Functions ----
+define libusb_init with ctx as Int returning Int:
+    # Expects pointer to context pointer
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_init")
+    if fn equals 0:
+        return 1
+    return ep_dlcall1(fn and ctx)
+
+define libusb_exit with ctx as Int returning Int:
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_exit")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and ctx)
+
+define libusb_get_device_list with ctx as Int and list as Int returning Int:
+    # Returns number of devices in list
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_get_device_list")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and ctx and list)
+
+define libusb_free_device_list with list as Int and unref_devices as Int returning Int:
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_free_device_list")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and list and unref_devices)
+
+define libusb_get_device_descriptor with dev as Int and desc as Int returning Int:
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_get_device_descriptor")
+    if fn equals 0:
+        return 1
+    return ep_dlcall2(fn and dev and desc)
+
+define libusb_open with dev as Int and dev_handle as Int returning Int:
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_open")
+    if fn equals 0:
+        return 1
+    return ep_dlcall2(fn and dev and dev_handle)
+
+define libusb_close with dev_handle as Int returning Int:
+    if LIBUSB_HANDLE equals 0:
+        set ok to libusb_bridge_init()
+    set fn to ep_dlsym(LIBUSB_HANDLE and "libusb_close")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and dev_handle)

@@ -1,0 +1,108 @@
+# Core Language Test
+
+define fib with n:
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+define add with a and b:
+    return a + b
+
+define main:
+    # === Arithmetic ===
+    display "=== Arithmetic ==="
+    display 10 + 20
+    display 100 - 37
+    display 6 * 7
+    display 100 / 4
+    display 17 % 5
+
+    # === Variables ===
+    display "=== Variables ==="
+    set x to 42
+    set name to "Ernos"
+    set flag to true
+    display x
+    display name
+    display flag
+
+    # === Comparisons ===
+    display "=== Comparisons ==="
+    if 10 equals 10:
+        display "eq ok"
+    if 10 != 5:
+        display "neq ok"
+    if 3 < 5:
+        display "lt ok"
+    if 5 > 3:
+        display "gt ok"
+    if 3 <= 3:
+        display "le ok"
+    if 5 >= 5:
+        display "ge ok"
+
+    # === Logical ===
+    display "=== Logical ==="
+    if true && true:
+        display "and ok"
+    if false || true:
+        display "or ok"
+    if not false:
+        display "not ok"
+
+    # === If/Else ===
+    display "=== If/Else ==="
+    set val to 15
+    if val > 20:
+        display "big"
+    else:
+        display "small"
+
+    # === Loops ===
+    display "=== Loops ==="
+    set i to 0
+    repeat while i < 3:
+        display i
+        set i to i + 1
+
+    # while shorthand
+    set j to 0
+    while j < 3:
+        set j to j + 1
+    display f"while ended at j={j}"
+
+    # === Break/Continue ===
+    display "=== Break/Continue ==="
+    set k to 0
+    repeat while k < 10:
+        if k equals 3:
+            break
+        display k
+        set k to k + 1
+
+    set m to 0
+    repeat while m < 5:
+        set m to m + 1
+        if m equals 3:
+            continue
+        display m
+
+    # === Functions ===
+    display "=== Functions ==="
+    display add(10 and 20)
+    display fib(10)
+
+    # === F-strings ===
+    display "=== F-strings ==="
+    set score to 99
+    display f"Score: {score}"
+    display f"Calc: {add(5 and 3)}"
+
+    # === For-each ===
+    display "=== For-each ==="
+    set items to [10, 20, 30]
+    for each item in items:
+        display item
+
+    display "ALL CORE TESTS PASSED"
+    return 0

@@ -1,0 +1,10 @@
+import "ep_lexer"
+import "ep_parser"
+import "ep_codegen"
+
+define main:
+    display "A"
+    set n to get_argument_count()
+    display n
+    display "B"
+    return 0

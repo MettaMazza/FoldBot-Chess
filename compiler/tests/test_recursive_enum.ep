@@ -1,0 +1,8 @@
+define choice T:
+    variant N
+    variant C with v as Int and next as T
+
+define main:
+    set tail to N
+    set l to C with 1 and tail
+    return 0

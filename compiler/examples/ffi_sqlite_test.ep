@@ -1,0 +1,24 @@
+import "sql"
+
+define main:
+    set db to sql_open(":memory:")
+    if db == 0:
+        display "Failed to open database"
+        return 1
+
+    set ok1 to sql_execute(db and "CREATE TABLE users (id INTEGER, name TEXT);")
+    set ok2 to sql_execute(db and "INSERT INTO users VALUES (42, 'MettaMazza');")
+    
+    set rows to sql_query(db and "SELECT id, name FROM users;")
+    set num_rows to length_list(rows)
+    display num_rows
+    
+    if num_rows > 0:
+        set row to get_list(rows and 0)
+        set id_str to get_list(row and 0)
+        set name to get_list(row and 1)
+        
+        set ok4 to display_string(id_str)
+        set ok5 to display_string(name)
+
+    set ok3 to sql_close(db)

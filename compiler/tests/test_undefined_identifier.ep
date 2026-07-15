@@ -1,0 +1,5 @@
+# expected_compile_error
+# Referencing a name that was never bound is a type error.
+define main:
+    display mystery_value
+    return 0

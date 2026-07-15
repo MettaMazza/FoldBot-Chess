@@ -1,0 +1,22 @@
+# Regression: spawning with the loop variable inside a constant-bound (unrolled)
+# loop must pass the correct per-iteration value to each task. Previously the
+# loop unroller did not substitute the counter into Spawn arguments, so every
+# worker received 0 (sum 0 instead of 0+1+2+3 = 6).
+define worker with id and ch:
+    send id to ch
+    return 0
+
+define main:
+    set ch to create_channel()
+    set w to 0
+    repeat while w < 4:
+        spawn worker(w and ch)
+        set w to w + 1
+    set got to 0
+    set sum to 0
+    repeat while got < 4:
+        set r to receive from ch
+        set sum to sum + r
+        set got to got + 1
+    display sum
+    return 0

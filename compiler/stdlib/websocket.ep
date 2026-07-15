@@ -1,0 +1,288 @@
+# ErnosPlain WebSocket Protocol Library
+# Implements WebSocket framing (RFC 6455) on top of TCP sockets
+# Requires: ep_sha1, ep_base64_encode, ep_net_recv_bytes C builtins
+
+import "net"
+import "string"
+
+# ---- External C runtime functions ----
+external define ep_sha1 with data:
+external define ep_net_recv_bytes with fd and count:
+external define ep_net_send_raw with fd and buf and count:
+
+# WebSocket GUID per RFC 6455
+define get_ws_guid:
+    return "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+# ───────────── Handshake ─────────────
+
+define ws_extract_key with request:
+    # Extract Sec-WebSocket-Key from HTTP upgrade request
+    set search to "Sec-WebSocket-Key: "
+    set pos to string_index_of(request and search)
+    if pos < 0:
+        return ""
+    set start to pos + string_length(search)
+    set rest to substring(request and start and string_length(request) - start)
+    set end_pos to string_index_of(rest and "\r\n")
+    if end_pos < 0:
+        set end_pos to string_length(rest)
+    return substring(rest and 0 and end_pos)
+
+define ws_upgrade with client_fd and request:
+    # Perform WebSocket upgrade handshake
+    set key to ws_extract_key(request)
+    if string_length(key) < 1:
+        return 0
+    
+    # Compute accept key: SHA-1(key + GUID) → Base64 (ep_sha1 returns Base64 directly)
+    set combined to concat(key and get_ws_guid())
+    set accept_key to ep_sha1(combined)
+    
+    # Build HTTP 101 Switching Protocols response
+    set response to "HTTP/1.1 101 Switching Protocols\r\n"
+    set response to concat(response and "Upgrade: websocket\r\n")
+    set response to concat(response and "Connection: Upgrade\r\n")
+    set response to concat(response and "Sec-WebSocket-Accept: ")
+    set response to concat(response and accept_key)
+    set response to concat(response and "\r\n\r\n")
+    
+    set ok to net_send(client_fd and response)
+    return 1
+
+# ───────────── Frame Reading ─────────────
+
+define ws_read_frame with client_fd:
+    # Read a WebSocket frame and return decoded payload
+    # Frame format: [FIN|RSV|opcode(4)] [MASK|length(7)] [extended_len] [mask_key(4)] [payload]
+    
+    set header to ep_net_recv_bytes(client_fd and 2)
+    if header == 0:
+        return ""
+    
+    set byte1 to get_character(header and 0)
+    set byte2 to get_character(header and 1)
+    
+    # Extract opcode (lower 4 bits of byte1)
+    set opcode to byte1 % 16
+    
+    # Check for close frame (opcode 8)
+    if opcode == 8:
+        return ""
+    
+    # Handle ping frame (opcode 9) — respond with pong and continue
+    if opcode == 9:
+        # Check mask bit and extract payload length
+        set ping_masked to 0
+        if byte2 >= 128:
+            set ping_masked to 1
+        set ping_len to byte2 % 128
+        # Consume the 4-byte mask key if present (browsers ALWAYS mask)
+        set ping_mask_key to ""
+        if ping_masked == 1:
+            set ping_mask_key to ep_net_recv_bytes(client_fd and 4)
+            if ping_mask_key == 0:
+                return ""
+        if ping_len > 0:
+            set ping_data to ep_net_recv_bytes(client_fd and ping_len)
+            if ping_data == 0:
+                return ""
+            # Unmask ping payload if masked
+            if ping_masked == 1:
+                set unmasked to create_list()
+                set pi to 0
+                repeat while pi < ping_len:
+                    set db to peek_byte(str_to_ptr(ping_data) and pi)
+                    set mb to peek_byte(str_to_ptr(ping_mask_key) and pi % 4)
+                    set xr to 0
+                    set bv to 128
+                    set dd to db
+                    set mm to mb
+                    repeat while bv >= 1:
+                        set dbit to dd / bv
+                        set mbit to mm / bv
+                        set dd to dd % bv
+                        set mm to mm % bv
+                        if dbit != mbit:
+                            set xr to xr + bv
+                        set bv to bv / 2
+                    set ok to append_list(unmasked and xr)
+                    set pi to pi + 1
+                set ping_data to string_from_list(unmasked)
+            ws_send_pong(client_fd and ping_data)
+        else:
+            ws_send_pong(client_fd and "")
+        # Return a sentinel so caller knows to continue, not close
+        return "PING_HANDLED"
+    
+    # Ignore pong frame (opcode 10)
+    if opcode == 10:
+        # Check mask bit and extract payload length
+        set pong_masked to 0
+        if byte2 >= 128:
+            set pong_masked to 1
+        set pong_len to byte2 % 128
+        # Consume the 4-byte mask key if present (browsers ALWAYS mask)
+        if pong_masked == 1:
+            set pong_mask_key to ep_net_recv_bytes(client_fd and 4)
+            if pong_mask_key == 0:
+                return ""
+        if pong_len > 0:
+            set pong_data to ep_net_recv_bytes(client_fd and pong_len)
+        return "PONG_IGNORED"
+
+    
+    # Extract mask bit and payload length
+    set is_masked to 0
+    if byte2 >= 128:
+        set is_masked to 1
+        set payload_len to byte2 - 128
+    else:
+        set payload_len to byte2
+    
+    # Handle extended payload lengths
+    # Note: use peek_byte, NOT get_character — binary data may contain null bytes
+    if payload_len == 126:
+        set ext to ep_net_recv_bytes(client_fd and 2)
+        if ext == 0:
+            return ""
+        set payload_len to peek_byte(str_to_ptr(ext) and 0) * 256 + peek_byte(str_to_ptr(ext) and 1)
+    else if payload_len == 127:
+        set ext to ep_net_recv_bytes(client_fd and 8)
+        if ext == 0:
+            return ""
+        # For simplicity, use lower 4 bytes (up to 4GB)
+        set payload_len to peek_byte(str_to_ptr(ext) and 4) * 16777216 + peek_byte(str_to_ptr(ext) and 5) * 65536 + peek_byte(str_to_ptr(ext) and 6) * 256 + peek_byte(str_to_ptr(ext) and 7)
+    
+    # Enforce maximum payload limit (10MB = 10485760 bytes)
+    if payload_len > 10485760:
+        return ""
+        
+    # Read mask key if masked
+    set mask_key to ""
+    if is_masked == 1:
+        set mask_key to ep_net_recv_bytes(client_fd and 4)
+        if mask_key == 0:
+            return ""
+    
+    # Read payload
+    if payload_len < 1:
+        return ""
+    set payload to ep_net_recv_bytes(client_fd and payload_len)
+    if payload == 0:
+        return ""
+    
+    # Unmask if needed — use payload_len (no strlen)
+    # because the masked payload may contain null bytes (when ASCII == mask byte)
+    # get_character uses strlen which truncates at nulls; peek_byte does not
+    if is_masked == 1 and payload_len > 0:
+        set result_bytes to create_list()
+        set idx to 0
+        repeat while idx < payload_len:
+            set data_byte to peek_byte(str_to_ptr(payload) and idx)
+            set Prince to str_to_ptr(mask_key)
+            set mask_byte to peek_byte(Prince and idx % 4)
+            # XOR via bit decomposition (no bitwise ops in ErnosPlain)
+            set xor_result to 0
+            set bit_val to 128
+            set d to data_byte
+            set m to mask_byte
+            repeat while bit_val >= 1:
+                set d_bit to d / bit_val
+                set m_bit to m / bit_val
+                set d to d % bit_val
+                set m to m % bit_val
+                if d_bit != m_bit:
+                    set xor_result to xor_result + bit_val
+                set bit_val to bit_val / 2
+            set ok to append_list(result_bytes and xor_result)
+            set idx to idx + 1
+        return string_from_list(result_bytes)
+    
+    return payload
+
+# ───────────── Frame Sending (Binary-Safe) ─────────────
+# All frame sending uses ep_net_send_raw which sends exact byte counts.
+# This avoids the critical strlen truncation bug where frame headers
+# containing null bytes (e.g., extended length 0x00 for payloads 126-255)
+# were silently truncated by ep_net_send/strlen.
+
+define ws_build_header_list with opcode and payload_len:
+    # Build WebSocket frame header bytes as a list (NOT a string)
+    # Returns the list directly — caller uses it to build raw byte buffer
+    set header_bytes to create_list()
+    
+    # First byte: FIN (0x80) | opcode
+    set ok to append_list(header_bytes and 128 + opcode)
+    
+    # Second byte: payload length (server frames are NOT masked)
+    if payload_len < 126:
+        set ok to append_list(header_bytes and payload_len)
+    else if payload_len < 65536:
+        set ok to append_list(header_bytes and 126)
+        set ok to append_list(header_bytes and payload_len / 256)
+        set ok to append_list(header_bytes and payload_len % 256)
+    else:
+        set ok to append_list(header_bytes and 127)
+        # 8 bytes for length (first 4 are 0 for reasonable sizes)
+        set ok to append_list(header_bytes and 0)
+        set ok to append_list(header_bytes and 0)
+        set ok to append_list(header_bytes and 0)
+        set ok to append_list(header_bytes and 0)
+        set ok to append_list(header_bytes and payload_len / 16777216 % 256)
+        set ok to append_list(header_bytes and payload_len / 65536 % 256)
+        set ok to append_list(header_bytes and payload_len / 256 % 256)
+        set ok to append_list(header_bytes and payload_len % 256)
+    
+    return header_bytes
+
+define ws_send_frame_raw with client_fd and opcode and message and msg_len:
+    # Build and send a complete WebSocket frame using binary-safe send
+    # This function handles all frame types (text, binary, close, ping, pong)
+    set hdr to ws_build_header_list(opcode and msg_len)
+    set hdr_len to length_list(hdr)
+    set total_len to hdr_len + msg_len
+    
+    # Allocate raw byte buffer for the complete frame
+    set frame_buf to alloc_bytes(total_len)
+    
+    # Copy header bytes into buffer
+    set hi to 0
+    repeat while hi < hdr_len:
+        poke_byte(frame_buf and hi and get_list(hdr and hi))
+        set hi to hi + 1
+    
+    # Copy payload bytes into buffer (using peek_byte to handle all byte values)
+    if msg_len > 0:
+        set msg_ptr to str_to_ptr(message)
+        set mi to 0
+        repeat while mi < msg_len:
+            poke_byte(frame_buf and hdr_len + mi and peek_byte(msg_ptr and mi))
+            set mi to mi + 1
+    
+    # Send the complete frame with explicit length (no strlen!)
+    set ok to ep_net_send_raw(client_fd and frame_buf and total_len)
+    free_bytes(frame_buf)
+    return 1
+
+define ws_send_text with client_fd and message:
+    # Send a text frame (opcode 0x01)
+    return ws_send_frame_raw(client_fd and 1 and message and string_length(message))
+
+define ws_send_binary with client_fd and data:
+    # Send a binary frame (opcode 0x02)
+    return ws_send_frame_raw(client_fd and 2 and data and string_length(data))
+
+define ws_send_close with client_fd:
+    # Send close frame (opcode 0x08) with empty payload, then close
+    set ok to ws_send_frame_raw(client_fd and 8 and "" and 0)
+    set ok to net_close(client_fd)
+    return 1
+
+define ws_send_ping with client_fd:
+    # Send ping frame (opcode 0x09) with empty payload
+    return ws_send_frame_raw(client_fd and 9 and "" and 0)
+
+define ws_send_pong with client_fd and data:
+    # Send pong frame (opcode 0x0A) with data
+    return ws_send_frame_raw(client_fd and 10 and data and string_length(data))

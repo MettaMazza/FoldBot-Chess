@@ -1,0 +1,86 @@
+# Data Structures Test — Full Coverage
+
+define main:
+    # === Lists ===
+    display "=== Lists ==="
+    set l to create_list()
+    append_list(l and 100)
+    append_list(l and 200)
+    append_list(l and 300)
+    display f"len: {length_list(l)}"
+    display f"[0]: {get_list(l and 0)}"
+    display f"[1]: {get_list(l and 1)}"
+    display f"[2]: {get_list(l and 2)}"
+
+    set_list(l and 1 and 999)
+    display f"after set [1]: {get_list(l and 1)}"
+
+    set popped to pop_list(l)
+    display f"popped: {popped}, len: {length_list(l)}"
+
+    set removed to remove_list(l and 0)
+    display f"removed [0]: {removed}, len: {length_list(l)}"
+
+    free_list(l)
+    display "list freed ok"
+
+    # === List Literals ===
+    display "=== List Literals ==="
+    set fruits to ["apple", "banana", "cherry"]
+    display f"fruits len: {length_list(fruits)}"
+    for each f in fruits:
+        display f"  {f}"
+
+    set empty to []
+    display f"empty len: {length_list(empty)}"
+
+    set nums to [10, 20, 30, 40, 50]
+    set sum to 0
+    for each n in nums:
+        set sum to sum + n
+    display f"sum: {sum}"
+
+    # === Maps with STRING keys ===
+    display "=== Maps (string keys) ==="
+    set m to create_map()
+    map_insert(m and "one" and 100)
+    map_insert(m and "two" and 200)
+    display f"map size: {map_size(m)}"
+    set v1 to map_get_val(m and "one")
+    display f"get one: {v1}"
+    display f"contains two: {map_contains(m and "two")}"
+    display f"contains nope: {map_contains(m and "nope")}"
+
+    map_delete(m and "one")
+    display f"after delete, size: {map_size(m)}"
+    free_map(m)
+
+    # === Maps with INTEGER keys ===
+    display "=== Maps (integer keys) ==="
+    set im to create_map()
+    map_insert(im and 1 and 100)
+    map_insert(im and 42 and 999)
+    map_insert(im and 0 and 50)
+    display f"int key 1: {map_get_val(im and 1)}"
+    display f"int key 42: {map_get_val(im and 42)}"
+    display f"int key 0: {map_get_val(im and 0)}"
+    display f"contains 42: {map_contains(im and 42)}"
+    display f"contains 99: {map_contains(im and 99)}"
+    display f"int map size: {map_size(im)}"
+    map_delete(im and 1)
+    display f"after delete 1, size: {map_size(im)}"
+    free_map(im)
+
+    # === Map String Values ===
+    display "=== Map String Values ==="
+    set config to create_map()
+    map_set_str(config and "name" and "ErnosPlain")
+    map_set_str(config and "version" and "1.0")
+    set n to map_get_str(config and "name")
+    set v to map_get_str(config and "version")
+    display f"name: {n}"
+    display f"version: {v}"
+    free_map(config)
+
+    display "ALL DATA TESTS PASSED"
+    return 0

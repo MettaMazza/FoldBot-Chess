@@ -1,0 +1,9 @@
+# Borrowing a value, passing the borrow to a function that returns it, is valid.
+define get_ref with borrow lst:
+    return lst
+
+define main:
+    set a to create_list()
+    set b to get_ref(borrow a)
+    display "ok"
+    return 0

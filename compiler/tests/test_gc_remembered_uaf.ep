@@ -1,0 +1,36 @@
+# GC stress: maximize old->young references (write barrier / remembered set),
+# garbage churn, and explicit promotion across many minor + major collections,
+# under concurrent workers. Compiled with --asan this exercises the remembered
+# set / ep_gc_unregister / minor-sweep interaction for use-after-free.
+define worker with id and ch:
+    set outer to create_list()
+    set n to 0
+    repeat while n < 3000:
+        set inner to create_list()
+        set ok to append_list(inner and n)
+        set ok2 to append_list(inner and id)
+        # old(outer) -> young(inner) edge once outer has been promoted by a minor GC
+        set ok3 to append_list(outer and inner)
+        # Periodically drop `outer`: its referenced inner lists become garbage while
+        # still present in the remembered set, forcing churn through the sweep.
+        set bucket to n - ((n / 200) * 200)
+        if bucket == 0:
+            set outer to create_list()
+        set n to n + 1
+    send id to ch
+    return 0
+
+define main:
+    set ch to create_channel()
+    set w to 0
+    repeat while w < 4:
+        spawn worker(w and ch)
+        set w to w + 1
+    set got to 0
+    set sum to 0
+    repeat while got < 4:
+        set r to receive from ch
+        set sum to sum + r
+        set got to got + 1
+    display sum
+    return 0

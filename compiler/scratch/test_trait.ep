@@ -1,0 +1,19 @@
+# scratch/test_trait.ep
+define trait Greeter:
+    define greet returning Str
+
+define structure Person:
+    field name as Str
+
+implement Greeter for Person:
+    define greet returning Str:
+        return f"Hello, my name is {self.name}"
+
+define print_greeting with g as Greeter:
+    display g.greet()
+
+define main:
+    set p to create Person:
+        name is "Alice"
+    print_greeting(p)
+    return 0

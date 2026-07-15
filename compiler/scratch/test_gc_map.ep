@@ -1,0 +1,65 @@
+# GC Map traversal stress test
+# Tests that values stored inside maps (lists, other maps) survive GC
+
+define make_node with id:
+    set node to create_map()
+    set ok to map_insert(node and "id" and id)
+    # Store a list inside the map — this is what gets collected without the fix
+    set peers to create_list()
+    set ok to append_list(peers and 10)
+    set ok to append_list(peers and 20)
+    set ok to append_list(peers and 30)
+    set ok to map_insert(node and "peers" and peers)
+    # Store a nested map
+    set meta to create_map()
+    set ok to map_insert(meta and "status" and 1)
+    set ok to map_insert(meta and "term" and 42)
+    set ok to map_insert(node and "meta" and meta)
+    return node
+
+define worker with ch and id:
+    set i to 0
+    repeat while i < 100:
+        set node to make_node(id * 1000 + i)
+        send node to ch
+        set i to i + 1
+    return 0
+
+define main:
+    set ch to create_channel()
+
+    # Spawn 4 workers creating maps with nested lists and maps
+    spawn worker(ch and 1)
+    spawn worker(ch and 2)
+    spawn worker(ch and 3)
+    spawn worker(ch and 4)
+
+    set received to 0
+    set errors to 0
+    repeat while received < 400:
+        set node to receive from ch
+        # Verify the map itself
+        set id to map_get_val(node and "id")
+        # Verify the list inside the map survived GC
+        set peers to map_get_val(node and "peers")
+        set peer_len to length_list(peers)
+        if peer_len != 3:
+            display f"ERROR: peers list corrupted, len={peer_len} expected 3"
+            set errors to errors + 1
+        set p0 to get_list(peers and 0)
+        if p0 != 10:
+            display f"ERROR: peers[0]={p0}, expected 10"
+            set errors to errors + 1
+        # Verify the nested map survived GC
+        set meta to map_get_val(node and "meta")
+        set term to map_get_val(meta and "term")
+        if term != 42:
+            display f"ERROR: meta.term={term}, expected 42"
+            set errors to errors + 1
+        set received to received + 1
+
+    if errors == 0:
+        display f"PASS: {received} maps with nested lists/maps survived GC"
+    else:
+        display f"FAIL: {errors} corruption errors in {received} maps"
+    return errors

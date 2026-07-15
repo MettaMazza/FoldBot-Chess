@@ -1,0 +1,5 @@
+define main:
+    set a to create_list()
+    set b to borrow a
+    set c to a  # This should fail because a is borrowed!
+    return 0

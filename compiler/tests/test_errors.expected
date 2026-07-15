@@ -1,0 +1,9 @@
+=== TEST ERROR HANDLING ===
+-- successful try --
+10
+-- error propagation --
+Division by zero
+-- direct result --
+5
+Division by zero
+=== ERROR HANDLING TESTS COMPLETE ===

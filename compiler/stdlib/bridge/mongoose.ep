@@ -1,0 +1,76 @@
+# ============================================================
+# Mongoose Bridge for ErnosPlain
+# HTTP / WebSocket Server Capability
+# ============================================================
+# Usage: import "stdlib/bridge/mongoose"
+# ============================================================
+
+set MONGOOSE_HANDLE to 0
+
+# ---- Library loading ----
+define mongoose_load:
+    set MONGOOSE_HANDLE to ep_dlopen("libmongoose.dylib")
+    if MONGOOSE_HANDLE equals 0:
+        set MONGOOSE_HANDLE to ep_dlopen("/opt/homebrew/lib/libmongoose.dylib")
+    if MONGOOSE_HANDLE equals 0:
+        set MONGOOSE_HANDLE to ep_dlopen("/usr/local/lib/libmongoose.dylib")
+    if MONGOOSE_HANDLE equals 0:
+        set MONGOOSE_HANDLE to ep_dlopen("libmongoose.so")
+    if MONGOOSE_HANDLE equals 0:
+        set MONGOOSE_HANDLE to ep_dlopen("/usr/lib/libmongoose.so")
+    if MONGOOSE_HANDLE equals 0:
+        set MONGOOSE_HANDLE to ep_dlopen("/usr/local/lib/libmongoose.so")
+    return MONGOOSE_HANDLE
+
+# ---- Init / Cleanup ----
+define mongoose_init returning Int:
+    if MONGOOSE_HANDLE equals 0:
+        set ok to mongoose_load()
+    return MONGOOSE_HANDLE
+
+# ---- Core Functions ----
+define mg_mgr_init with mgr as Int returning Int:
+    # Initializes a Mongoose manager. Expects pointer to mg_mgr (allocated bytes).
+    if MONGOOSE_HANDLE equals 0:
+        set ok to mongoose_init()
+    set fn to ep_dlsym(MONGOOSE_HANDLE and "mg_mgr_init")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and mgr)
+
+define mg_mgr_free with mgr as Int returning Int:
+    # Free resources associated with a Mongoose manager
+    if MONGOOSE_HANDLE equals 0:
+        set ok to mongoose_init()
+    set fn to ep_dlsym(MONGOOSE_HANDLE and "mg_mgr_free")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and mgr)
+
+define mg_http_listen with mgr as Int and url as Str and cb as Int and cb_data as Int returning Int:
+    # Creates an HTTP listener connection
+    if MONGOOSE_HANDLE equals 0:
+        set ok to mongoose_init()
+    set fn to ep_dlsym(MONGOOSE_HANDLE and "mg_http_listen")
+    if fn equals 0:
+        return 0
+    return ep_dlcall4(fn and mgr and url and cb and cb_data)
+
+define mg_mgr_poll with mgr as Int and timeout_ms as Int returning Int:
+    # Polls for connection events. Call in loop.
+    if MONGOOSE_HANDLE equals 0:
+        set ok to mongoose_init()
+    set fn to ep_dlsym(MONGOOSE_HANDLE and "mg_mgr_poll")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and mgr and timeout_ms)
+
+define mg_http_reply with c as Int and status_code as Int and headers as Str and body as Str returning Int:
+    # Simple helper to send HTTP response
+    if MONGOOSE_HANDLE equals 0:
+        set ok to mongoose_init()
+    set fn to ep_dlsym(MONGOOSE_HANDLE and "mg_http_reply")
+    if fn equals 0:
+        return 0
+    # Calls: mg_http_reply(c, status_code, headers, "%s", body)
+    return ep_dlcall5(fn and c and status_code and headers and "%s" and body)

@@ -1,0 +1,82 @@
+# ============================================================
+# libnotify Bridge for ErnosPlain
+# Desktop Notifications (Linux with macOS AppleScript fallback)
+# ============================================================
+# Usage: import "stdlib/bridge/libnotify"
+# ============================================================
+
+set LIBNOTIFY_HANDLE to 0
+
+# ---- Library loading ----
+define libnotify_load:
+    set LIBNOTIFY_HANDLE to ep_dlopen("libnotify.so.4")
+    if LIBNOTIFY_HANDLE equals 0:
+        set LIBNOTIFY_HANDLE to ep_dlopen("libnotify.so")
+    if LIBNOTIFY_HANDLE equals 0:
+        set LIBNOTIFY_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libnotify.so.4")
+    return LIBNOTIFY_HANDLE
+
+# ---- Init / Cleanup ----
+define libnotify_bridge_init returning Int:
+    if LIBNOTIFY_HANDLE equals 0:
+        set ok to libnotify_load()
+    return LIBNOTIFY_HANDLE
+
+# ---- Core Functions ----
+define notify_init with app_name as Str returning Int:
+    if LIBNOTIFY_HANDLE equals 0:
+        set ok to libnotify_bridge_init()
+    if LIBNOTIFY_HANDLE equals 0:
+        return 0
+    set fn to ep_dlsym(LIBNOTIFY_HANDLE and "notify_init")
+    if fn equals 0:
+        return 0
+    return ep_dlcall1(fn and app_name)
+
+define notify_uninit returning Int:
+    if LIBNOTIFY_HANDLE equals 0:
+        set ok to libnotify_bridge_init()
+    if LIBNOTIFY_HANDLE equals 0:
+        return 0
+    set fn to ep_dlsym(LIBNOTIFY_HANDLE and "notify_uninit")
+    if fn equals 0:
+        return 0
+    return ep_dlcall0(fn)
+
+define notify_notification_new with summary as Str and body as Str and icon as Str returning Int:
+    if LIBNOTIFY_HANDLE equals 0:
+        set ok to libnotify_bridge_init()
+    if LIBNOTIFY_HANDLE equals 0:
+        return 0
+    set fn to ep_dlsym(LIBNOTIFY_HANDLE and "notify_notification_new")
+    if fn equals 0:
+        return 0
+    return ep_dlcall3(fn and summary and body and icon)
+
+define notify_notification_show with notification as Int and error as Int returning Int:
+    if LIBNOTIFY_HANDLE equals 0:
+        set ok to libnotify_bridge_init()
+    if LIBNOTIFY_HANDLE equals 0:
+        return 0
+    set fn to ep_dlsym(LIBNOTIFY_HANDLE and "notify_notification_show")
+    if fn equals 0:
+        return 0
+    return ep_dlcall2(fn and notification and error)
+
+# ---- Cross-Platform Wrapper ----
+define show_notification with summary as Str and body as Str returning Int:
+    # Returns 1 on success, 0 on failure
+    set ok to notify_init("ErnosPlainApp")
+    if ok equals 1:
+        set notif to notify_notification_new(summary and body and "dialog-information")
+        if notif > 0:
+            set shown to notify_notification_show(notif and 0)
+            set ok2 to notify_uninit()
+            return shown
+    
+    # Fallback to macOS AppleScript
+    set cmd to concat("osascript -e 'display notification \"" and concat(body and concat("\" with title \"" and concat(summary and "\"'"))))
+    set code to run_command(cmd)
+    if code equals 0:
+        return 1
+    return 0

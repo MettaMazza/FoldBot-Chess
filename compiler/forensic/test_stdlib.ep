@@ -1,0 +1,49 @@
+# Forensic Test 10: Standard Library
+import "string"
+import "crypto"
+
+define main:
+    # 1. String operations
+    set greeting to "Hello, World!"
+    set upper to string_upper(greeting)
+    display upper
+
+    set lower to string_lower(greeting)
+    display lower
+
+    set trimmed to string_trim("  spaces  ")
+    display f"Trimmed: '{trimmed}'"
+
+    set has_world to string_contains(greeting and "World")
+    display f"Contains World: {has_world}"
+
+    set replaced to string_replace(greeting and "World" and "ErnosPlain")
+    display replaced
+
+    set idx to string_index_of(greeting and "World")
+    display f"Index of World: {idx}"
+
+    # 2. String split
+    set csv to "a,b,c,d"
+    set parts to string_split(csv and ",")
+    for each part in parts:
+        display part
+
+    # 3. Math
+    set abs_val to ep_abs(0 - 42)
+    display f"abs(-42): {abs_val}"
+
+    # 4. Random
+    set rand to ep_random_int(0 and 100)
+    display f"Random 0-100: {rand}"
+
+    # 5. Time
+    set now to ep_time_now_ms()
+    display f"Current time (ms): {now}"
+
+    # 6. UUID
+    set id to uuid_v4()
+    display f"UUID: {id}"
+
+    display "STDLIB: ALL PASSED"
+    return 0

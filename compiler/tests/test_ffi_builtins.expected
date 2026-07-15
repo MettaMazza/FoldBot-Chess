@@ -1,0 +1,9 @@
+=== FFI Builtin Tests ===
+hello world
+bytes: 72 105 33
+Hi!
+ABC
+round-trip: 65 66 67
+ep_int_to_str(42) = 42
+ptr_to_str(0) = []
+all FFI builtins working

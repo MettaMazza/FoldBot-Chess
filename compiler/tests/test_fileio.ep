@@ -1,0 +1,23 @@
+# File I/O Test
+
+define main:
+    display "=== File I/O ==="
+    set path to "/tmp/ernos_test_file.txt"
+
+    # Write
+    file_write(path and "hello from ernos")
+    display f"exists after write: {file_exists(path)}"
+
+    # Read
+    set content to file_read(path)
+    display f"read: {content}"
+
+    # Append
+    file_append(path and "\nsecond line")
+    set content2 to file_read(path)
+    display f"after append: {content2}"
+
+    # Cleanup
+    file_write("/tmp/ernos_test_file.txt" and "")
+    display "ALL FILE TESTS PASSED"
+    return 0

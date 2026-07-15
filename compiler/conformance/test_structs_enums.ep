@@ -1,0 +1,46 @@
+# Conformance Test: Structs, Enums, and Pattern Matching
+
+define structure Point:
+    field x as Int
+    field y as Int
+
+define structure User:
+    field name as Str
+    field age as Int
+
+define choice Shape:
+    variant Circle with radius as Int
+    variant Rectangle with width as Int and height as Int
+
+define area on Point:
+    return self.x * self.y
+
+define main:
+    # Struct creation
+    set p to create Point:
+        x is 10
+        y is 20
+    display p.x
+    display p.y
+    
+    # Field access
+    set user to create User:
+        name is "Alice"
+        age is 30
+    display user.name
+    display user.age
+    
+    # Method call
+    set a to p.area()
+    display a
+    
+    # Enum creation and matching
+    set shape to Circle with 5
+    check shape:
+        if Circle with radius:
+            display radius
+        if Rectangle with width and height:
+            set area to width * height
+            display area
+    
+    return 0

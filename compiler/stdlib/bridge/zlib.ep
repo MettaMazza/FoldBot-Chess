@@ -1,0 +1,85 @@
+# ErnosPlain Bridge: zlib (Compression)
+# Auto-generated bindings for zlib
+# Usage: import "stdlib/bridge/zlib"
+# Link: ernos program.ep (requires zlib installed)
+
+# ========== Constants ==========
+set Z_OK to 0
+set Z_STREAM_END to 1
+set Z_NEED_DICT to 2
+set Z_ERRNO to -1
+set Z_STREAM_ERROR to -2
+set Z_DATA_ERROR to -3
+set Z_MEM_ERROR to -4
+set Z_BUF_ERROR to -5
+set Z_VERSION_ERROR to -6
+
+set Z_NO_COMPRESSION to 0
+set Z_BEST_SPEED to 1
+set Z_BEST_COMPRESSION to 9
+set Z_DEFAULT_COMPRESSION to -1
+
+set Z_DEFLATED to 8
+
+# ========== Core Functions ==========
+
+define zlib_version returning Str:
+    set lib to ep_dlopen("libz.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libz.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libz.so.1")
+    if lib equals 0:
+        return "unknown"
+    set fn_ver to ep_dlsym(lib and "zlibVersion")
+    if fn_ver equals 0:
+        return "unknown"
+    return ep_dlcall0(fn_ver)
+
+define zlib_compress with dest as Int and dest_len as Int and source as Str and source_len as Int returning Int:
+    # Compress data. Returns Z_OK (0) on success.
+    set lib to ep_dlopen("libz.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libz.so")
+    if lib equals 0:
+        return Z_ERRNO
+    set fn_compress to ep_dlsym(lib and "compress")
+    if fn_compress equals 0:
+        return Z_ERRNO
+    return ep_dlcall4(fn_compress and dest and dest_len and source and source_len)
+
+define zlib_uncompress with dest as Int and dest_len as Int and source as Int and source_len as Int returning Int:
+    # Decompress data. Returns Z_OK (0) on success.
+    set lib to ep_dlopen("libz.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libz.so")
+    if lib equals 0:
+        return Z_ERRNO
+    set fn_uncompress to ep_dlsym(lib and "uncompress")
+    if fn_uncompress equals 0:
+        return Z_ERRNO
+    return ep_dlcall4(fn_uncompress and dest and dest_len and source and source_len)
+
+define zlib_crc32 with crc as Int and buf as Str and len as Int returning Int:
+    # Compute CRC-32 checksum.
+    set lib to ep_dlopen("libz.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libz.so")
+    if lib equals 0:
+        return 0
+    set fn_crc to ep_dlsym(lib and "crc32")
+    if fn_crc equals 0:
+        return 0
+    return ep_dlcall3(fn_crc and crc and buf and len)
+
+define zlib_adler32 with adler as Int and buf as Str and len as Int returning Int:
+    # Compute Adler-32 checksum.
+    set lib to ep_dlopen("libz.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libz.so")
+    if lib equals 0:
+        return 0
+    set fn_adler to ep_dlsym(lib and "adler32")
+    if fn_adler equals 0:
+        return 0
+    return ep_dlcall3(fn_adler and adler and buf and len)

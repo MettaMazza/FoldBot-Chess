@@ -1,0 +1,138 @@
+# ============================================================
+# expat Bridge for ErnosPlain
+# XML parsing — the oldest C XML parser
+# ============================================================
+# Usage: import "stdlib/bridge/expat"
+# Requires: expat installed (usually pre-installed, or brew install expat)
+# ============================================================
+
+set EXPAT_HANDLE to 0
+
+# ---- Status codes ----
+set XML_STATUS_ERROR to 0
+set XML_STATUS_OK to 1
+set XML_STATUS_SUSPENDED to 2
+
+# ---- Boolean ----
+set XML_TRUE to 1
+set XML_FALSE to 0
+
+# ---- Error codes ----
+set XML_ERROR_NONE to 0
+set XML_ERROR_NO_MEMORY to 1
+set XML_ERROR_SYNTAX to 2
+set XML_ERROR_NO_ELEMENTS to 3
+set XML_ERROR_INVALID_TOKEN to 4
+set XML_ERROR_UNCLOSED_TOKEN to 5
+set XML_ERROR_DUPLICATE_ATTRIBUTE to 8
+
+# ============================================================
+# Library loading
+# ============================================================
+define expat_load:
+    set EXPAT_HANDLE to ep_dlopen("libexpat.dylib")
+    if EXPAT_HANDLE equals 0:
+        set EXPAT_HANDLE to ep_dlopen("libexpat.1.dylib")
+    if EXPAT_HANDLE equals 0:
+        set EXPAT_HANDLE to ep_dlopen("/opt/homebrew/lib/libexpat.1.dylib")
+    if EXPAT_HANDLE equals 0:
+        set EXPAT_HANDLE to ep_dlopen("/usr/local/lib/libexpat.dylib")
+    if EXPAT_HANDLE equals 0:
+        set EXPAT_HANDLE to ep_dlopen("libexpat.so")
+    if EXPAT_HANDLE equals 0:
+        set EXPAT_HANDLE to ep_dlopen("libexpat.so.1")
+    if EXPAT_HANDLE equals 0:
+        set EXPAT_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libexpat.so.1")
+    return EXPAT_HANDLE
+
+# ============================================================
+# Parser lifecycle
+# ============================================================
+define xml_parser_create with encoding as Int returning Int:
+    if EXPAT_HANDLE equals 0:
+        set ok to expat_load()
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_ParserCreate")
+    return ep_dlcall1(fn and encoding)
+
+define xml_parser_create_ns with encoding as Int and separator as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_ParserCreateNS")
+    return ep_dlcall2(fn and encoding and separator)
+
+define xml_parser_free with parser as Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_ParserFree")
+    return ep_dlcall1(fn and parser)
+
+define xml_parser_reset with parser as Int and encoding as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_ParserReset")
+    return ep_dlcall2(fn and parser and encoding)
+
+# ============================================================
+# Parsing
+# ============================================================
+define xml_parse with parser as Int and buffer as Str and len as Int and is_final as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_Parse")
+    return ep_dlcall4(fn and parser and buffer and len and is_final)
+
+# ============================================================
+# Handler registration
+# ============================================================
+define xml_set_element_handler with parser as Int and start_handler as Int and end_handler as Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_SetElementHandler")
+    return ep_dlcall3(fn and parser and start_handler and end_handler)
+
+define xml_set_character_data_handler with parser as Int and handler as Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_SetCharacterDataHandler")
+    return ep_dlcall2(fn and parser and handler)
+
+define xml_set_comment_handler with parser as Int and handler as Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_SetCommentHandler")
+    return ep_dlcall2(fn and parser and handler)
+
+define xml_set_processing_instruction_handler with parser as Int and handler as Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_SetProcessingInstructionHandler")
+    return ep_dlcall2(fn and parser and handler)
+
+# ============================================================
+# User data
+# ============================================================
+define xml_set_user_data with parser as Int and user_data as Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_SetUserData")
+    return ep_dlcall2(fn and parser and user_data)
+
+define xml_get_user_data with parser as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_GetUserData")
+    return ep_dlcall1(fn and parser)
+
+# ============================================================
+# Error handling
+# ============================================================
+define xml_get_error_code with parser as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_GetErrorCode")
+    return ep_dlcall1(fn and parser)
+
+define xml_error_string with code as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_ErrorString")
+    return ep_dlcall1(fn and code)
+
+define xml_get_current_line_number with parser as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_GetCurrentLineNumber")
+    return ep_dlcall1(fn and parser)
+
+define xml_get_current_column_number with parser as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_GetCurrentColumnNumber")
+    return ep_dlcall1(fn and parser)
+
+define xml_get_current_byte_index with parser as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_GetCurrentByteIndex")
+    return ep_dlcall1(fn and parser)
+
+# ============================================================
+# Suspend / Resume
+# ============================================================
+define xml_stop_parser with parser as Int and resumable as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_StopParser")
+    return ep_dlcall2(fn and parser and resumable)
+
+define xml_resume_parser with parser as Int returning Int:
+    set fn to ep_dlsym(EXPAT_HANDLE and "XML_ResumeParser")
+    return ep_dlcall1(fn and parser)

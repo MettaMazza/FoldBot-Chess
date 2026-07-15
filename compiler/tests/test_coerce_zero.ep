@@ -1,0 +1,12 @@
+# The `expr + 0` coercion idiom (used pervasively by the self-hosted compiler to
+# coerce heap handles to int) must keep compiling and running after the arithmetic
+# tightening. This is the positive counterpart to test_pointer_arith_reject.
+define main:
+    set xs to create_list()
+    set ok to append_list(xs and 42)
+    # Coerce the list handle to its integer (pointer) value via the + 0 idiom.
+    set handle to xs + 0
+    # A real numeric add still works too.
+    set sum to 20 + 22
+    display sum
+    return 0

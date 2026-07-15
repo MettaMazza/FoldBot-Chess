@@ -1,0 +1,107 @@
+# ErnosPlain Bridge: libcurl (HTTP Client)
+# Auto-generated bindings for libcurl
+# Usage: import "stdlib/bridge/curl"
+# Link: ernos program.ep (requires libcurl installed)
+
+# ========== Constants ==========
+set CURLE_OK to 0
+set CURLE_UNSUPPORTED_PROTOCOL to 1
+set CURLE_COULDNT_CONNECT to 7
+set CURLE_REMOTE_ACCESS_DENIED to 9
+set CURLE_HTTP_RETURNED_ERROR to 22
+set CURLE_OPERATION_TIMEDOUT to 28
+
+set CURLOPT_URL to 10002
+set CURLOPT_POST to 47
+set CURLOPT_POSTFIELDS to 10015
+set CURLOPT_HTTPHEADER to 10023
+set CURLOPT_WRITEFUNCTION to 20011
+set CURLOPT_WRITEDATA to 10001
+set CURLOPT_TIMEOUT to 13
+set CURLOPT_FOLLOWLOCATION to 52
+set CURLOPT_VERBOSE to 41
+set CURLOPT_SSL_VERIFYPEER to 64
+set CURLOPT_USERAGENT to 10018
+
+set CURLINFO_RESPONSE_CODE to 2097154
+
+# ========== Core Functions ==========
+
+define curl_init returning Int:
+    # Initialize a curl handle. Returns handle (0 on failure).
+    set lib to ep_dlopen("libcurl.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libcurl.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libcurl.so.4")
+    if lib equals 0:
+        return 0
+    set fn_init to ep_dlsym(lib and "curl_easy_init")
+    if fn_init equals 0:
+        return 0
+    return ep_dlcall0(fn_init)
+
+define curl_setopt_str with handle as Int and option as Int and value as Str returning Int:
+    set lib to ep_dlopen("libcurl.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libcurl.so")
+    if lib equals 0:
+        return 1
+    set fn_setopt to ep_dlsym(lib and "curl_easy_setopt")
+    return ep_dlcall3(fn_setopt and handle and option and value)
+
+define curl_setopt_int with handle as Int and option as Int and value as Int returning Int:
+    set lib to ep_dlopen("libcurl.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libcurl.so")
+    if lib equals 0:
+        return 1
+    set fn_setopt to ep_dlsym(lib and "curl_easy_setopt")
+    return ep_dlcall3(fn_setopt and handle and option and value)
+
+define curl_perform with handle as Int returning Int:
+    set lib to ep_dlopen("libcurl.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libcurl.so")
+    if lib equals 0:
+        return 1
+    set fn_perform to ep_dlsym(lib and "curl_easy_perform")
+    return ep_dlcall1(fn_perform and handle)
+
+define curl_cleanup with handle as Int:
+    set lib to ep_dlopen("libcurl.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libcurl.so")
+    if lib equals 0:
+        return 0
+    set fn_cleanup to ep_dlsym(lib and "curl_easy_cleanup")
+    return ep_dlcall1(fn_cleanup and handle)
+
+# ========== Convenience Functions ==========
+
+define http_get with url as Str returning Int:
+    # Simple HTTP GET. Returns 0 on success.
+    set handle to curl_init()
+    if handle equals 0:
+        display "Error: could not initialize curl"
+        return 1
+    set _ to curl_setopt_str(handle and CURLOPT_URL and url)
+    set _ to curl_setopt_int(handle and CURLOPT_FOLLOWLOCATION and 1)
+    set _ to curl_setopt_int(handle and CURLOPT_TIMEOUT and 30)
+    set result to curl_perform(handle)
+    curl_cleanup(handle)
+    return result
+
+define http_post with url as Str and data as Str returning Int:
+    # Simple HTTP POST. Returns 0 on success.
+    set handle to curl_init()
+    if handle equals 0:
+        return 1
+    set _ to curl_setopt_str(handle and CURLOPT_URL and url)
+    set _ to curl_setopt_int(handle and CURLOPT_POST and 1)
+    set _ to curl_setopt_str(handle and CURLOPT_POSTFIELDS and data)
+    set _ to curl_setopt_int(handle and CURLOPT_FOLLOWLOCATION and 1)
+    set _ to curl_setopt_int(handle and CURLOPT_TIMEOUT and 30)
+    set result to curl_perform(handle)
+    curl_cleanup(handle)
+    return result

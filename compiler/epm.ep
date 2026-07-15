@@ -1,0 +1,181 @@
+# ErnosPlain Package Manager (epm)
+# Manages projects, dependencies, building, and testing
+
+import "stdlib/fs"
+import "stdlib/string"
+import "stdlib/json"
+import "stdlib/os"
+
+# ---- Project Configuration ----
+
+define epm_init with project_name:
+    # Create ernos.toml
+    set config to concat("[package]\nname = \"" and concat(project_name and "\"\nversion = \"0.1.0\"\nauthor = \"\"\ndescription = \"\"\n\n[dependencies]\n\n[dev-dependencies]\n"))
+    set ok to write_file("ernos.toml" and config)
+    
+    # Create src/ directory
+    set ok to create_directory("src")
+    
+    # Create main.ep
+    set main_content to "# " 
+    set main_content to concat(main_content and project_name)
+    set main_content to concat(main_content and "\n\ndefine main:\n    display \"Hello from ")
+    set main_content to concat(main_content and project_name)
+    set main_content to concat(main_content and "!\"\n    return 0\n")
+    set ok to write_file("src/main.ep" and main_content)
+    
+    # Create .gitignore
+    set ok to write_file(".gitignore" and "*.o\n*.c\nbuild/\n*.dSYM/\n")
+    
+    display concat("Created new ErnosPlain project: " and project_name)
+    return 0
+
+# ---- Build ----
+
+define epm_build:
+    # Read ernos.toml
+    if file_exists("ernos.toml") == 0:
+        display "Error: ernos.toml not found. Run 'epm init <name>' first."
+        return 1
+    
+    set config to read_file("ernos.toml")
+    set name to toml_get_value(config and "name")
+    
+    # Find main source file
+    set main_file to "src/main.ep"
+    if file_exists(main_file) == 0:
+        set main_file to "main.ep"
+        if file_exists(main_file) == 0:
+            display "Error: No main.ep found in src/ or project root."
+            return 1
+    
+    # Compile
+    set cmd to concat("ernos " and main_file)
+    display concat("Building " and concat(name and "..."))
+    set result to run_command(cmd)
+    display result
+    return 0
+
+# ---- Run ----
+
+define epm_run:
+    set build_result to epm_build()
+    if build_result != 0:
+        return build_result
+    
+    set config to read_file("ernos.toml")
+    set name to toml_get_value(config and "name")
+    
+    # Find the compiled binary
+    set binary to concat("./" and name)
+    if file_exists(binary) == 0:
+        set binary to "./main"
+    
+    display concat("Running " and concat(name and "..."))
+    display ""
+    set result to run_command(binary)
+    display result
+    return 0
+
+# ---- Test ----
+
+define epm_test:
+    display "Running tests..."
+    set test_dir to "tests"
+    set passed to 0
+    set failed to 0
+    
+    if is_directory(test_dir) == 1:
+        set files to list_directory(test_dir)
+        set count to length_list(files)
+        set i to 0
+        repeat while i < count:
+            set f to get_list(files and i)
+            if ends_with(f and ".ep") == 1:
+                if starts_with(f and "test_") == 1:
+                    set path to concat(concat(test_dir and "/") and f)
+                    display concat("  Testing " and f)
+                    set cmd to concat("ernos " and path)
+                    set result to run_command(cmd)
+                    if result == 0:
+                        set passed to passed + 1
+                    else:
+                        set failed to failed + 1
+                        display concat("    FAILED: " and f)
+            set i to i + 1
+    
+    # Also look for test_*.ep in root
+    # ...
+    
+    display ""
+    display concat(ep_int_to_str(passed) and " tests passed")
+    if failed > 0:
+        display concat(ep_int_to_str(failed) and " tests FAILED")
+        return 1
+    display "All tests passed!"
+    return 0
+
+# ---- TOML parsing (minimal) ----
+
+define toml_get_value with content and key:
+    set lines to split(content and "\n")
+    set count to length_list(lines)
+    set search to concat(key and " = ")
+    set i to 0
+    repeat while i < count:
+        set line to get_list(lines and i)
+        set trimmed to trim_left(line)
+        if starts_with(trimmed and search) == 1:
+            set val_start to string_length(search)
+            set line_len to string_length(trimmed)
+            set raw_val to substring(trimmed and val_start and line_len - val_start)
+            # Remove quotes
+            if string_length(raw_val) > 1:
+                set first_ch to get_character(raw_val and 0)
+                if first_ch == 34:
+                    return substring(raw_val and 1 and string_length(raw_val) - 2)
+            return raw_val
+        set i to i + 1
+    return ""
+
+# ---- Main entry point ----
+
+define main:
+    set args to get_args()
+    set argc to length_list(args)
+    
+    if argc < 2:
+        display "ErnosPlain Package Manager (epm)"
+        display ""
+        display "Usage:"
+        display "  epm init <name>   Create a new project"
+        display "  epm build         Build the project"
+        display "  epm run           Build and run"
+        display "  epm test          Run tests"
+        display "  epm version       Show version"
+        return 0
+    
+    set command to get_list(args and 1)
+    
+    if string_equals(command and "init") == 1:
+        if argc < 3:
+            display "Usage: epm init <project-name>"
+            return 1
+        set name to get_list(args and 2)
+        return epm_init(name)
+    
+    if string_equals(command and "build") == 1:
+        return epm_build()
+    
+    if string_equals(command and "run") == 1:
+        return epm_run()
+    
+    if string_equals(command and "test") == 1:
+        return epm_test()
+    
+    if string_equals(command and "version") == 1:
+        display "epm version 0.1.0"
+        return 0
+    
+    display concat("Unknown command: " and command)
+    return 1

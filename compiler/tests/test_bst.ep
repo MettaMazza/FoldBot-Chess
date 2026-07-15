@@ -1,0 +1,33 @@
+define choice Tree:
+    variant Leaf
+    variant Node with value as Int and left as Tree and right as Tree
+
+define insert with t as Tree and v as Int returning Tree:
+    check t:
+        if Leaf:
+            return Node with v and Leaf and Leaf
+        if Node with value and left and right:
+            if v < value:
+                set newleft to insert(left and v)
+                return Node with value and newleft and right
+            if v > value:
+                set newright to insert(right and v)
+                return Node with value and left and newright
+            return t
+    return t
+
+define size_of with t as Tree returning Int:
+    check t:
+        if Leaf:
+            return 0
+        if Node with value and left and right:
+            return 1 + size_of(left) + size_of(right)
+    return 0
+
+define main:
+    set t to Leaf
+    set t to insert(t and 5)
+    set t to insert(t and 3)
+    set t to insert(t and 7)
+    display size_of(t)
+    return 0

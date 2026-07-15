@@ -1,0 +1,7 @@
+define main:
+    set base to 10
+    set f to given x:
+        set y to x + base
+        return y
+    display f(5)
+    return 0

@@ -1,0 +1,6 @@
+# expected_compile_error
+# A list literal must not mix element types.
+define main:
+    set xs to [1, "hello", 3]
+    display length_list(xs)
+    return 0

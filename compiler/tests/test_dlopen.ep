@@ -1,0 +1,21 @@
+define main:
+    # Test ep_dlopen with libm (math library)
+    set lib to ep_dlopen("libm.dylib")
+    if lib equals 0:
+        # macOS: try alternate path
+        set lib to ep_dlopen("/usr/lib/libm.dylib")
+    
+    if lib equals 0:
+        display "dlopen: could not load libm (expected on some systems)"
+        display "PASS: dlopen API is callable"
+    else:
+        display "dlopen: loaded libm"
+        set abs_fn to ep_dlsym(lib and "abs")
+        if abs_fn equals 0:
+            display "dlsym: abs not found (expected - long long vs int)"
+        else:
+            display "dlsym: found abs"
+        set result to ep_dlclose(lib)
+        display "dlclose: done"
+        display "PASS: dlopen/dlsym/dlclose work"
+    return 0

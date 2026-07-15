@@ -1,0 +1,75 @@
+# ErnosPlain Bridge: PCRE2 (Regular Expressions)
+# Auto-generated bindings for libpcre2
+# Usage: import "stdlib/bridge/pcre"
+# Link: ernos program.ep (requires pcre2 installed)
+
+# ========== Constants ==========
+set PCRE2_CASELESS to 1
+set PCRE2_MULTILINE to 2
+set PCRE2_DOTALL to 4
+set PCRE2_EXTENDED to 8
+set PCRE2_ANCHORED to 16
+set PCRE2_UTF to 32
+set PCRE2_NO_AUTO_CAPTURE to 64
+
+set PCRE2_ERROR_NOMATCH to -1
+set PCRE2_ERROR_PARTIAL to -2
+
+# ========== Core Functions ==========
+
+define pcre2_load returning Int:
+    # Load PCRE2 library. Returns handle (0 on failure).
+    set lib to ep_dlopen("libpcre2-8.dylib")
+    if lib equals 0:
+        set lib to ep_dlopen("libpcre2-8.so")
+    if lib equals 0:
+        set lib to ep_dlopen("libpcre2-8.so.0")
+    return lib
+
+define pcre2_compile_pattern with pattern as Str and options as Int returning Int:
+    # Compile a regex pattern. Returns compiled pattern handle (0 on failure).
+    set lib to pcre2_load()
+    if lib equals 0:
+        return 0
+    set fn_compile to ep_dlsym(lib and "pcre2_compile_8")
+    if fn_compile equals 0:
+        return 0
+    return ep_dlcall5(fn_compile and pattern and string_length(pattern) and options and 0 and 0)
+
+define pcre2_match_pattern with compiled as Int and subject as Str and options as Int returning Int:
+    # Match a compiled pattern against a subject string.
+    # Returns match count (>0 on match, <0 on no match/error).
+    set lib to pcre2_load()
+    if lib equals 0:
+        return PCRE2_ERROR_NOMATCH
+    set fn_match to ep_dlsym(lib and "pcre2_match_8")
+    set fn_create_match to ep_dlsym(lib and "pcre2_match_data_create_from_pattern_8")
+    if fn_match equals 0:
+        return PCRE2_ERROR_NOMATCH
+    if fn_create_match equals 0:
+        return PCRE2_ERROR_NOMATCH
+    set match_data to ep_dlcall2(fn_create_match and compiled and 0)
+    set result to ep_dlcall5(fn_match and compiled and subject and string_length(subject) and 0 and options)
+    return result
+
+# ========== Convenience Functions ==========
+
+define regex_matches with pattern as Str and text as Str returning Int:
+    # Check if text matches pattern. Returns 1 on match, 0 on no match.
+    set compiled to pcre2_compile_pattern(pattern and 0)
+    if compiled equals 0:
+        return 0
+    set result to pcre2_match_pattern(compiled and text and 0)
+    if result > 0:
+        return 1
+    return 0
+
+define regex_matches_case_insensitive with pattern as Str and text as Str returning Int:
+    # Check if text matches pattern (case-insensitive). Returns 1 on match, 0 on no match.
+    set compiled to pcre2_compile_pattern(pattern and PCRE2_CASELESS)
+    if compiled equals 0:
+        return 0
+    set result to pcre2_match_pattern(compiled and text and 0)
+    if result > 0:
+        return 1
+    return 0

@@ -1,0 +1,107 @@
+# ErnosPlain File System Standard Library
+# Provides file I/O, directory operations, and path utilities
+
+# ---- External C Runtime Functions ----
+external define ep_read_file with path:
+external define ep_write_file with path and content:
+external define ep_append_file with path and content:
+external define ep_file_exists with path:
+external define ep_is_directory with path:
+external define ep_file_size with path:
+external define ep_list_directory with path:
+external define ep_create_directory with path:
+external define ep_remove_file with path:
+external define ep_remove_directory with path:
+external define ep_rename_file with old_path and new_path:
+external define ep_copy_file with src and dst:
+external define ep_get_cwd:
+external define ep_realpath with path:
+
+# ---- File Reading ----
+
+define read_file with path:
+    return ep_read_file(path)
+
+define read_lines with path:
+    set content to ep_read_file(path)
+    set lines to string_split(content and "\n")
+    return lines
+
+# ---- File Writing ----
+
+define write_file with path and content:
+    return ep_write_file(path and content)
+
+define append_file with path and content:
+    return ep_append_file(path and content)
+
+# ---- File Info ----
+
+define file_exists with path:
+    return ep_file_exists(path)
+
+define is_directory with path:
+    return ep_is_directory(path)
+
+define file_size with path:
+    return ep_file_size(path)
+
+# ---- Directory Operations ----
+
+define list_directory with path:
+    return ep_list_directory(path)
+
+define create_directory with path:
+    return ep_create_directory(path)
+
+define remove_file with path:
+    return ep_remove_file(path)
+
+define remove_directory with path:
+    return ep_remove_directory(path)
+
+define rename_file with old_path and new_path:
+    return ep_rename_file(old_path and new_path)
+
+define copy_file with src and dst:
+    return ep_copy_file(src and dst)
+
+# ---- Path Utilities ----
+
+define get_cwd:
+    return ep_get_cwd()
+
+define path_join with base and child:
+    return concat(concat(base and "/") and child)
+
+define path_extension with path:
+    set len to string_length(path)
+    set i to len - 1
+    repeat while i > 0 - 1:
+        set ch to get_character(path and i)
+        if ch == 46:
+            return substring(path and i + 1 and len - i - 1)
+        if ch == 47:
+            return ""
+        set i to i - 1
+    return ""
+
+define path_basename with path:
+    set len to string_length(path)
+    set i to len - 1
+    repeat while i > 0 - 1:
+        set ch to get_character(path and i)
+        if ch == 47:
+            return substring(path and i + 1 and len - i - 1)
+        set i to i - 1
+    return path
+
+define path_dirname with path:
+    set len to string_length(path)
+    set i to len - 1
+    repeat while i > 0 - 1:
+        set ch to get_character(path and i)
+        if ch == 47:
+            return substring(path and 0 and i)
+        set i to i - 1
+    return "."

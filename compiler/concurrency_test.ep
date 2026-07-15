@@ -1,0 +1,19 @@
+define worker with id and chan:
+    set val to id * 2
+    send val to chan
+
+define main:
+    set chan to channel
+    set i to 1
+    while i < 11:
+        spawn worker(i and chan)
+        set i to i + 1
+
+    set sum to 0
+    set count to 0
+    while count < 10:
+        set res to receive from chan
+        set sum to sum + res
+        set count to count + 1
+
+    display sum

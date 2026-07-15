@@ -1,0 +1,428 @@
+# ============================================================================
+#  EXACT INTEGERS  --  whole numbers of unlimited size, with no rounding.
+# ============================================================================
+#
+#  WHY THIS MODULE EXISTS
+#  ----------------------
+#  Every constant in the Smithian Fold Theory is FORCED from the One with no
+#  free parameters. That claim is only meaningful under exact arithmetic: a
+#  rounded value is not a forced value. So nothing here is ever allowed to
+#  become a floating-point number. The machine's built-in whole number holds
+#  only 64 bits, but some Fold quantities -- for example the absolute scale
+#  two-to-the-127 -- are far larger than that. This module therefore builds
+#  whole numbers of unlimited size from the ground up, in plain English.
+#
+#  HOW A NUMBER IS STORED
+#  ----------------------
+#  An ExactInteger has two parts:
+#     sign    -- minus one, zero, or plus one. Zero means the value is zero.
+#     digits  -- the size of the number written out in ordinary base-ten
+#                digits, most significant digit first, with no leading zeros.
+#  The number is therefore literally readable: nothing is hidden or encoded.
+#
+#  HOW THE ARITHMETIC IS DONE
+#  --------------------------
+#  Adding and multiplying digit by digit in base ten would be slow, so inside
+#  each function the digit text is regrouped into "blocks" of nine digits.
+#  Each block is an ordinary whole number below one billion, so the product
+#  of any two blocks stays below 10^18, which still fits exactly in one of the
+#  machine's 64-bit multiplications -- exact, with no overflow and no float.
+#  These blocks are held little-end-first (least significant block at index 0)
+#  and never leave the function they are built in, because a list cannot be
+#  safely stored in a structure or returned in this language.
+# ============================================================================
+
+define structure ExactInteger:
+    field sign as Int
+    field digits as Str
+
+
+# The number of digits packed into one working block: nine, because the
+# largest nine-digit block times itself stays below the 64-bit limit.
+define block_size_in_digits returning Int:
+    return 1000000000
+
+
+# ----------------------------------------------------------------------------
+#  Building and reading ExactIntegers
+# ----------------------------------------------------------------------------
+
+# Make an ExactInteger from a sign and an already-clean digit string.
+# Forces the sign to zero when the magnitude is zero, so there is one and
+# only one representation of zero.
+define exact_integer_from_sign_and_digits with sign as Int and digits as Str returning ExactInteger:
+    set chosen_sign to sign
+    if digits equals "0":
+        set chosen_sign to 0
+    set value to create ExactInteger:
+        sign is chosen_sign
+        digits is digits
+    return value
+
+
+# The integer zero.
+define exact_integer_zero returning ExactInteger:
+    return exact_integer_from_sign_and_digits(0 and "0")
+
+
+# The integer one.
+define exact_integer_one returning ExactInteger:
+    return exact_integer_from_sign_and_digits(1 and "1")
+
+
+# Make an ExactInteger from one of the machine's ordinary whole numbers.
+define exact_integer_from_number with whole_number as Int returning ExactInteger:
+    set sign to 0
+    set magnitude to whole_number
+    if whole_number > 0:
+        set sign to 1
+    if whole_number < 0:
+        set sign to -1
+        set magnitude to 0 - whole_number
+    return exact_integer_from_sign_and_digits(sign and int_to_string(magnitude))
+
+
+# Make an ExactInteger from a sign and a possibly-untidy digit string (one
+# that may carry leading zeros), tidying the digits into canonical form.
+define exact_integer_from_messy_digits with sign as Int and messy_digits as Str returning ExactInteger:
+    set blocks to digits_to_blocks(messy_digits)
+    set tidy_digits to blocks_to_digits(blocks)
+    return exact_integer_from_sign_and_digits(sign and tidy_digits)
+
+
+# Render an ExactInteger as readable text, with a leading minus when negative.
+define exact_integer_to_text with value as ExactInteger returning Str:
+    if value.sign < 0:
+        return concat("-" and value.digits)
+    return value.digits
+
+
+# ----------------------------------------------------------------------------
+#  Internal: converting between digit text and nine-digit working blocks
+# ----------------------------------------------------------------------------
+
+# Turn a base-ten digit string into little-end-first blocks of nine digits.
+define digits_to_blocks with digits as Str returning List:
+    set blocks to create_list()
+    set length to string_length(digits)
+    set high to length
+    repeat while high > 0:
+        set low to high - 9
+        if low < 0:
+            set low to 0
+        set chunk to substring(digits and low and (high - low))
+        set added to append_list(blocks and text_to_number(chunk))
+        set high to low
+    return trim_leading_zero_blocks(blocks)
+
+
+# Turn little-end-first blocks back into a clean base-ten digit string.
+define blocks_to_digits with blocks as List returning Str:
+    set count to length_list(blocks)
+    if count == 0:
+        return "0"
+    set highest_block as Int to get_list(blocks and (count - 1))
+    set text to int_to_string(highest_block)
+    set index to count - 2
+    repeat while index >= 0:
+        set this_block as Int to get_list(blocks and index)
+        set text to concat(text and pad_block_to_nine_digits(this_block))
+        set index to index - 1
+    return text
+
+
+# Write a single block as exactly nine digits, padded on the left with zeros.
+define pad_block_to_nine_digits with block_value as Int returning Str:
+    set text to int_to_string(block_value)
+    repeat while string_length(text) < 9:
+        set text to concat("0" and text)
+    return text
+
+
+# Read a short digit string (nine digits or fewer) into an ordinary number,
+# without any built-in parser and without ever forming a float.
+define text_to_number with text as Str returning Int:
+    set total to 0
+    set index to 0
+    set length to string_length(text)
+    repeat while index < length:
+        set character_code to char_at(text and index)
+        set total to total * 10 + (character_code - 48)
+        set index to index + 1
+    return total
+
+
+# ----------------------------------------------------------------------------
+#  Internal: arithmetic on bare magnitude blocks (sign ignored)
+# ----------------------------------------------------------------------------
+
+# Drop empty highest-order blocks so the most significant block is non-zero.
+define trim_leading_zero_blocks with blocks as List returning List:
+    set count to length_list(blocks)
+    repeat while count > 0:
+        set highest_block as Int to get_list(blocks and (count - 1))
+        if highest_block != 0:
+            break
+        set removed to pop_list(blocks)
+        set count to count - 1
+    return blocks
+
+
+# Compare two magnitudes: plus one if the first is larger, minus one if the
+# second is larger, zero if equal.
+define compare_magnitudes with first as List and second as List returning Int:
+    set first_count to length_list(first)
+    set second_count to length_list(second)
+    if first_count > second_count:
+        return 1
+    if first_count < second_count:
+        return -1
+    set index to first_count - 1
+    repeat while index >= 0:
+        set first_block as Int to get_list(first and index)
+        set second_block as Int to get_list(second and index)
+        if first_block > second_block:
+            return 1
+        if first_block < second_block:
+            return -1
+        set index to index - 1
+    return 0
+
+
+# Add two magnitudes, carrying between nine-digit blocks.
+define add_magnitudes with first as List and second as List returning List:
+    set result to create_list()
+    set carry to 0
+    set first_count to length_list(first)
+    set second_count to length_list(second)
+    set count to first_count
+    if second_count > first_count:
+        set count to second_count
+    set index to 0
+    repeat while index < count:
+        set first_block to 0
+        if index < first_count:
+            set first_block as Int to get_list(first and index)
+        set second_block to 0
+        if index < second_count:
+            set second_block as Int to get_list(second and index)
+        set total to first_block + second_block + carry
+        set added to append_list(result and total % block_size_in_digits())
+        set carry to total / block_size_in_digits()
+        set index to index + 1
+    if carry > 0:
+        set added to append_list(result and carry)
+    return result
+
+
+# Subtract the second magnitude from the first, assuming the first is the
+# larger of the two, borrowing between nine-digit blocks.
+define subtract_magnitudes with first as List and second as List returning List:
+    set result to create_list()
+    set borrowed to 0
+    set first_count to length_list(first)
+    set second_count to length_list(second)
+    set index to 0
+    repeat while index < first_count:
+        set first_block as Int to get_list(first and index)
+        set second_block to 0
+        if index < second_count:
+            set second_block as Int to get_list(second and index)
+        set difference to first_block - second_block - borrowed
+        if difference < 0:
+            set difference to difference + block_size_in_digits()
+            set borrowed to 1
+        else:
+            set borrowed to 0
+        set added to append_list(result and difference)
+        set index to index + 1
+    return trim_leading_zero_blocks(result)
+
+
+# Multiply two magnitudes, long-multiplication style, block by block.
+define multiply_magnitudes with first as List and second as List returning List:
+    set first_count to length_list(first)
+    set second_count to length_list(second)
+    set result to create_list()
+    set index to 0
+    repeat while index < first_count + second_count:
+        set added to append_list(result and 0)
+        set index to index + 1
+    set outer to 0
+    repeat while outer < first_count:
+        set first_block as Int to get_list(first and outer)
+        set carry to 0
+        set inner to 0
+        repeat while inner < second_count:
+            set second_block as Int to get_list(second and inner)
+            set running as Int to get_list(result and (outer + inner))
+            set product to first_block * second_block + running + carry
+            set placed to set_list(result and (outer + inner) and product % block_size_in_digits())
+            set carry to product / block_size_in_digits()
+            set inner to inner + 1
+        set position to outer + second_count
+        repeat while carry > 0:
+            set running as Int to get_list(result and position)
+            set total to running + carry
+            set placed to set_list(result and position and total % block_size_in_digits())
+            set carry to total / block_size_in_digits()
+            set position to position + 1
+        set outer to outer + 1
+    return trim_leading_zero_blocks(result)
+
+
+# ----------------------------------------------------------------------------
+#  Signed arithmetic on whole ExactIntegers
+# ----------------------------------------------------------------------------
+
+# The same magnitude with the opposite sign.
+define exact_integer_negate with value as ExactInteger returning ExactInteger:
+    return exact_integer_from_sign_and_digits((0 - value.sign) and value.digits)
+
+
+# The magnitude of a value, always zero or positive.
+define exact_integer_absolute with value as ExactInteger returning ExactInteger:
+    if value.sign < 0:
+        return exact_integer_negate(value)
+    return value
+
+
+# True when the value is exactly zero.
+define exact_integer_is_zero with value as ExactInteger returning Bool:
+    return value.sign == 0
+
+
+# Add two ExactIntegers, handling like and unlike signs.
+define exact_integer_add with first as ExactInteger and second as ExactInteger returning ExactInteger:
+    if first.sign == 0:
+        return second
+    if second.sign == 0:
+        return first
+    set first_blocks to digits_to_blocks(first.digits)
+    set second_blocks to digits_to_blocks(second.digits)
+    if first.sign == second.sign:
+        return exact_integer_from_sign_and_digits(first.sign and blocks_to_digits(add_magnitudes(first_blocks and second_blocks)))
+    set order to compare_magnitudes(first_blocks and second_blocks)
+    if order == 0:
+        return exact_integer_zero()
+    if order > 0:
+        return exact_integer_from_sign_and_digits(first.sign and blocks_to_digits(subtract_magnitudes(first_blocks and second_blocks)))
+    return exact_integer_from_sign_and_digits(second.sign and blocks_to_digits(subtract_magnitudes(second_blocks and first_blocks)))
+
+
+# Subtract the second ExactInteger from the first.
+define exact_integer_subtract with first as ExactInteger and second as ExactInteger returning ExactInteger:
+    return exact_integer_add(first and exact_integer_negate(second))
+
+
+# Multiply two ExactIntegers; the sign is the product of the two signs.
+define exact_integer_multiply with first as ExactInteger and second as ExactInteger returning ExactInteger:
+    if first.sign == 0:
+        return exact_integer_zero()
+    if second.sign == 0:
+        return exact_integer_zero()
+    set first_blocks to digits_to_blocks(first.digits)
+    set second_blocks to digits_to_blocks(second.digits)
+    set product_blocks to multiply_magnitudes(first_blocks and second_blocks)
+    set product_digits to blocks_to_digits(product_blocks)
+    return exact_integer_from_sign_and_digits((first.sign * second.sign) and product_digits)
+
+
+# Compare two ExactIntegers: plus one, zero, or minus one.
+define exact_integer_compare with first as ExactInteger and second as ExactInteger returning Int:
+    if first.sign < second.sign:
+        return -1
+    if first.sign > second.sign:
+        return 1
+    if first.sign == 0:
+        return 0
+    set first_blocks to digits_to_blocks(first.digits)
+    set second_blocks to digits_to_blocks(second.digits)
+    set magnitude_order to compare_magnitudes(first_blocks and second_blocks)
+    return first.sign * magnitude_order
+
+
+# Raise a base to a whole exponent by repeated multiplication. The exponent
+# is a small Fold count, such as the 127 of the absolute scale.
+define exact_integer_power with base as ExactInteger and exponent as Int returning ExactInteger:
+    set result to exact_integer_one()
+    set step to 0
+    repeat while step < exponent:
+        set result to exact_integer_multiply(result and base)
+        set step to step + 1
+    return result
+
+
+# ----------------------------------------------------------------------------
+#  Division, remainder, and greatest common divisor
+# ----------------------------------------------------------------------------
+#  Division is done exactly as it is done by hand: walk the dividend one
+#  decimal digit at a time, keeping a running remainder, and at each step
+#  choose the largest single digit the divisor will go into. Because both the
+#  quotient and remainder of two non-negative numbers are themselves
+#  non-negative, the outcome is reported as two plain digit strings, which a
+#  structure can hold and return safely.
+# ----------------------------------------------------------------------------
+
+define structure DivisionOutcome:
+    field quotient_digits as Str
+    field remainder_digits as Str
+
+
+# Divide one non-negative ExactInteger by a positive ExactInteger, giving the
+# whole quotient and the leftover remainder.
+define exact_integer_divide with dividend as ExactInteger and divisor as ExactInteger returning DivisionOutcome:
+    set ten to exact_integer_from_number(10)
+    set quotient_digits to ""
+    set remainder to exact_integer_zero()
+    set dividend_digits to dividend.digits
+    set length to string_length(dividend_digits)
+    set index to 0
+    repeat while index < length:
+        set digit_text to substring(dividend_digits and index and 1)
+        set next_digit to text_to_number(digit_text)
+        set shifted to exact_integer_multiply(remainder and ten)
+        set next_value to exact_integer_from_number(next_digit)
+        set remainder to exact_integer_add(shifted and next_value)
+        set quotient_digit to 0
+        repeat while quotient_digit < 9:
+            set next_count to exact_integer_from_number(quotient_digit + 1)
+            set trial to exact_integer_multiply(divisor and next_count)
+            if exact_integer_compare(trial and remainder) > 0:
+                break
+            set quotient_digit to quotient_digit + 1
+        set this_count to exact_integer_from_number(quotient_digit)
+        set to_remove to exact_integer_multiply(divisor and this_count)
+        set remainder to exact_integer_subtract(remainder and to_remove)
+        set quotient_digits to concat(quotient_digits and int_to_string(quotient_digit))
+        set index to index + 1
+    set quotient_blocks to digits_to_blocks(quotient_digits)
+    set tidy_quotient to blocks_to_digits(quotient_blocks)
+    set outcome to create DivisionOutcome:
+        quotient_digits is tidy_quotient
+        remainder_digits is remainder.digits
+    return outcome
+
+
+# Divide one ExactInteger by another that is known to divide it with no
+# remainder, carrying the combined sign through.
+define exact_integer_divide_exactly with dividend as ExactInteger and divisor as ExactInteger returning ExactInteger:
+    if dividend.sign == 0:
+        return exact_integer_zero()
+    set absolute_dividend to exact_integer_absolute(dividend)
+    set absolute_divisor to exact_integer_absolute(divisor)
+    set outcome to exact_integer_divide(absolute_dividend and absolute_divisor)
+    return exact_integer_from_sign_and_digits((dividend.sign * divisor.sign) and outcome.quotient_digits)
+
+
+# The greatest common divisor of two ExactIntegers, by Euclid's method:
+# repeatedly replace the larger by its remainder against the smaller until
+# nothing is left over. Used to put every fraction in lowest terms.
+define exact_integer_greatest_common_divisor with first as ExactInteger and second as ExactInteger returning ExactInteger:
+    set larger to exact_integer_absolute(first)
+    set smaller to exact_integer_absolute(second)
+    repeat while smaller.sign != 0:
+        set outcome to exact_integer_divide(larger and smaller)
+        set larger to smaller
+        set smaller to exact_integer_from_sign_and_digits(1 and outcome.remainder_digits)
+    return larger

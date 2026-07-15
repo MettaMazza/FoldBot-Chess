@@ -1,0 +1,250 @@
+# ============================================================
+# cairo Bridge for ErnosPlain
+# 2D vector graphics — draw shapes, text, save to PNG
+# ============================================================
+# Usage: import "stdlib/bridge/cairo"
+# Requires: cairo installed (brew install cairo / apt install libcairo2-dev)
+# Note: cairo uses doubles for coordinates. Since ErnosPlain FFI
+# passes long long, integer coordinates only. For subpixel work,
+# multiply by 100 and divide by 100 in the library.
+# ============================================================
+
+set CAIRO_HANDLE to 0
+
+# ---- Surface formats ----
+set CAIRO_FORMAT_ARGB32 to 0
+set CAIRO_FORMAT_RGB24 to 1
+set CAIRO_FORMAT_A8 to 2
+set CAIRO_FORMAT_A1 to 3
+
+# ---- Line cap styles ----
+set CAIRO_LINE_CAP_BUTT to 0
+set CAIRO_LINE_CAP_ROUND to 1
+set CAIRO_LINE_CAP_SQUARE to 2
+
+# ---- Line join styles ----
+set CAIRO_LINE_JOIN_MITER to 0
+set CAIRO_LINE_JOIN_ROUND to 1
+set CAIRO_LINE_JOIN_BEVEL to 2
+
+# ---- Font slant ----
+set CAIRO_FONT_SLANT_NORMAL to 0
+set CAIRO_FONT_SLANT_ITALIC to 1
+set CAIRO_FONT_SLANT_OBLIQUE to 2
+
+# ---- Font weight ----
+set CAIRO_FONT_WEIGHT_NORMAL to 0
+set CAIRO_FONT_WEIGHT_BOLD to 1
+
+# ---- Fill rule ----
+set CAIRO_FILL_RULE_WINDING to 0
+set CAIRO_FILL_RULE_EVEN_ODD to 1
+
+# ---- Status ----
+set CAIRO_STATUS_SUCCESS to 0
+
+# ============================================================
+# Library loading
+# ============================================================
+define cairo_load_lib:
+    set CAIRO_HANDLE to ep_dlopen("libcairo.dylib")
+    if CAIRO_HANDLE equals 0:
+        set CAIRO_HANDLE to ep_dlopen("libcairo.2.dylib")
+    if CAIRO_HANDLE equals 0:
+        set CAIRO_HANDLE to ep_dlopen("/opt/homebrew/lib/libcairo.dylib")
+    if CAIRO_HANDLE equals 0:
+        set CAIRO_HANDLE to ep_dlopen("/usr/local/lib/libcairo.dylib")
+    if CAIRO_HANDLE equals 0:
+        set CAIRO_HANDLE to ep_dlopen("libcairo.so")
+    if CAIRO_HANDLE equals 0:
+        set CAIRO_HANDLE to ep_dlopen("libcairo.so.2")
+    if CAIRO_HANDLE equals 0:
+        set CAIRO_HANDLE to ep_dlopen("/usr/lib/x86_64-linux-gnu/libcairo.so.2")
+    return CAIRO_HANDLE
+
+# ============================================================
+# Surface
+# ============================================================
+define cairo_image_surface_create with format_v as Int and width as Int and height as Int returning Int:
+    if CAIRO_HANDLE equals 0:
+        set ok to cairo_load_lib()
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_image_surface_create")
+    return ep_dlcall3(fn and format_v and width and height)
+
+define cairo_surface_write_to_png with surface as Int and path as Str returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_surface_write_to_png")
+    return ep_dlcall2(fn and surface and path)
+
+define cairo_surface_destroy with surface as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_surface_destroy")
+    return ep_dlcall1(fn and surface)
+
+define cairo_image_surface_get_width with surface as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_image_surface_get_width")
+    return ep_dlcall1(fn and surface)
+
+define cairo_image_surface_get_height with surface as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_image_surface_get_height")
+    return ep_dlcall1(fn and surface)
+
+define cairo_surface_status with surface as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_surface_status")
+    return ep_dlcall1(fn and surface)
+
+define cairo_surface_flush with surface as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_surface_flush")
+    return ep_dlcall1(fn and surface)
+
+define cairo_image_surface_get_data with surface as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_image_surface_get_data")
+    return ep_dlcall1(fn and surface)
+
+define cairo_image_surface_get_stride with surface as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_image_surface_get_stride")
+    return ep_dlcall1(fn and surface)
+
+# ============================================================
+# Context
+# ============================================================
+define cairo_create_ctx with surface as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_create")
+    return ep_dlcall1(fn and surface)
+
+define cairo_destroy_ctx with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_destroy")
+    return ep_dlcall1(fn and cr)
+
+define cairo_save with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_save")
+    return ep_dlcall1(fn and cr)
+
+define cairo_restore with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_restore")
+    return ep_dlcall1(fn and cr)
+
+define cairo_status with cr as Int returning Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_status")
+    return ep_dlcall1(fn and cr)
+
+# ============================================================
+# Path construction
+# ============================================================
+define cairo_move_to with cr as Int and x as Int and y as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_move_to")
+    return ep_dlcall3(fn and cr and x and y)
+
+define cairo_line_to with cr as Int and x as Int and y as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_line_to")
+    return ep_dlcall3(fn and cr and x and y)
+
+define cairo_rectangle with cr as Int and x as Int and y as Int and w as Int and h as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_rectangle")
+    return ep_dlcall5(fn and cr and x and y and w and h)
+
+define cairo_arc with cr as Int and cx as Int and cy as Int and radius as Int and angle1 as Int and angle2 as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_arc")
+    return ep_dlcall6(fn and cr and cx and cy and radius and angle1 and angle2)
+
+define cairo_curve_to with cr as Int and x1 as Int and y1 as Int and x2 as Int and y2 as Int and x3 as Int and y3 as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_curve_to")
+    return ep_dlcall7(fn and cr and x1 and y1 and x2 and y2 and x3 and y3)
+
+define cairo_close_path with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_close_path")
+    return ep_dlcall1(fn and cr)
+
+define cairo_new_path with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_new_path")
+    return ep_dlcall1(fn and cr)
+
+define cairo_new_sub_path with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_new_sub_path")
+    return ep_dlcall1(fn and cr)
+
+# ============================================================
+# Drawing operations
+# ============================================================
+define cairo_stroke with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_stroke")
+    return ep_dlcall1(fn and cr)
+
+define cairo_fill with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_fill")
+    return ep_dlcall1(fn and cr)
+
+define cairo_stroke_preserve with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_stroke_preserve")
+    return ep_dlcall1(fn and cr)
+
+define cairo_fill_preserve with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_fill_preserve")
+    return ep_dlcall1(fn and cr)
+
+define cairo_paint with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_paint")
+    return ep_dlcall1(fn and cr)
+
+define cairo_clip with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_clip")
+    return ep_dlcall1(fn and cr)
+
+# ============================================================
+# Style
+# ============================================================
+define cairo_set_source_rgb with cr as Int and r as Int and g as Int and b as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_source_rgb")
+    return ep_dlcall4(fn and cr and r and g and b)
+
+define cairo_set_source_rgba with cr as Int and r as Int and g as Int and b as Int and a as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_source_rgba")
+    return ep_dlcall5(fn and cr and r and g and b and a)
+
+define cairo_set_line_width with cr as Int and width as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_line_width")
+    return ep_dlcall2(fn and cr and width)
+
+define cairo_set_line_cap with cr as Int and cap as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_line_cap")
+    return ep_dlcall2(fn and cr and cap)
+
+define cairo_set_line_join with cr as Int and join_v as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_line_join")
+    return ep_dlcall2(fn and cr and join_v)
+
+define cairo_set_fill_rule with cr as Int and rule as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_fill_rule")
+    return ep_dlcall2(fn and cr and rule)
+
+# ============================================================
+# Text
+# ============================================================
+define cairo_select_font_face with cr as Int and family as Str and slant as Int and weight as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_select_font_face")
+    return ep_dlcall4(fn and cr and family and slant and weight)
+
+define cairo_set_font_size with cr as Int and size as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_set_font_size")
+    return ep_dlcall2(fn and cr and size)
+
+define cairo_show_text with cr as Int and text as Str:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_show_text")
+    return ep_dlcall2(fn and cr and text)
+
+# ============================================================
+# Transformations
+# ============================================================
+define cairo_translate with cr as Int and tx as Int and ty as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_translate")
+    return ep_dlcall3(fn and cr and tx and ty)
+
+define cairo_scale with cr as Int and sx as Int and sy as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_scale")
+    return ep_dlcall3(fn and cr and sx and sy)
+
+define cairo_rotate with cr as Int and angle as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_rotate")
+    return ep_dlcall2(fn and cr and angle)
+
+define cairo_identity_matrix with cr as Int:
+    set fn to ep_dlsym(CAIRO_HANDLE and "cairo_identity_matrix")
+    return ep_dlcall1(fn and cr)

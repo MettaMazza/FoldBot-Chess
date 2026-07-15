@@ -1,0 +1,32 @@
+# Main program importing election module
+import "election"
+
+define main:
+    set node to create_map()
+    set ok to map_insert(node and "id" and 1)
+    set ok to map_insert(node and "votes_received" and create_map())
+
+    # Use same variable name 'votes' as the imported function
+    set votes to map_get_val(node and "votes_received")
+    set ok to map_insert(votes and "node1" and 1)
+    set ok to map_insert(votes and "node2" and 1)
+    set ok to map_insert(votes and "node3" and 1)
+
+    set vs to map_size(votes)
+    display f"main: map_size(votes) = {vs}, expected 3"
+
+    if vs != 3:
+        display "FAIL: map_size returned wrong value!"
+        return 1
+
+    # Also call the imported function which uses same var name
+    set election_votes to election_start_vote(node)
+    set ev_size to map_size(election_votes)
+    display f"main: map_size(election_votes) = {ev_size}, expected 3"
+
+    if ev_size != 3:
+        display "FAIL: election map_size returned wrong value!"
+        return 1
+
+    display "PASS: no name collision"
+    return 0

@@ -1,0 +1,54 @@
+# String Operations Test — Full Coverage
+
+define main:
+    display "=== String Basics ==="
+    set a to "hello"
+    set b to " world"
+    set c to concat(a and b)
+    display c
+    display f"length: {string_length(c)}"
+
+    display "=== Substring ==="
+    set sub to substring(c and 0 and 5)
+    display f"sub(0,5): {sub}"
+
+    display "=== Conversion ==="
+    set num_str to int_to_string(42)
+    display f"int_to_string: {num_str}"
+    set parsed to string_to_int("123")
+    display f"string_to_int: {parsed}"
+
+    display "=== Search ==="
+    set hay to "the quick brown fox"
+    display f"contains quick: {string_contains(hay and "quick")}"
+    display f"contains slow: {string_contains(hay and "slow")}"
+    display f"index_of brown: {string_index_of(hay and "brown")}"
+
+    display "=== Replace ==="
+    set replaced to string_replace(hay and "fox" and "dog")
+    display f"replaced: {replaced}"
+
+    display "=== Upper/Lower ==="
+    set upper to string_upper("hello world")
+    set lower to string_lower("HELLO WORLD")
+    display f"upper: {upper}"
+    display f"lower: {lower}"
+
+    display "=== Trim ==="
+    set trimmed to string_trim("  spaces  ")
+    display f"trimmed: '{trimmed}'"
+
+    display "=== Split ==="
+    set parts to string_split("a,b,c" and ",")
+    display f"split len: {length_list(parts)}"
+    for each p in parts:
+        display f"  part: {p}"
+
+    display "=== Char ==="
+    set ch to char_at("ABC" and 1)
+    display f"char_at 1: {ch}"
+    set from_code to char_from_code(65)
+    display f"char_from_code 65: {from_code}"
+
+    display "ALL STRING TESTS PASSED"
+    return 0

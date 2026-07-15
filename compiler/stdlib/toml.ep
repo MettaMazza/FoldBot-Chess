@@ -1,0 +1,159 @@
+# ErnosPlain TOML Parser Library
+# Minimal TOML parser for configuration files
+# Supports: key = "value", key = 123, key = true/false, [sections]
+# Note: For complex TOML, consider using JSON config instead (stdlib/json.ep)
+
+import "string"
+
+# ───────────── TOML Data Structure ─────────────
+# TOML is stored as parallel key/value lists within sections:
+#   sections list: [section_name1, section_name2, ...]
+#   keys list:     [key1, key2, ...]  (prefixed with section: "section.key")
+#   values list:   [value1, value2, ...] (all stored as strings)
+
+define toml_create:
+    set store to create_list()
+    set ok to append_list(store and create_list())
+    set ok to append_list(store and create_list())
+    return store
+
+define toml_set with store and section and key and value:
+    set keys to get_list(store and 0)
+    set values to get_list(store and 1)
+    set full_key to concat(section and concat("." and key))
+    # Check if key already exists
+    set len to length_list(keys)
+    set idx to 0
+    repeat while idx < len:
+        set existing to get_list(keys and idx)
+        if concat(existing and "") equals full_key:
+            set ok to set_list(values and idx and value)
+            return 1
+        set idx to idx + 1
+    # Add new key
+    set ok to append_list(keys and full_key)
+    set ok to append_list(values and value)
+    return 1
+
+define toml_get with store and section and key:
+    set keys to get_list(store and 0)
+    set values to get_list(store and 1)
+    set full_key to concat(section and concat("." and key))
+    set len to length_list(keys)
+    set idx to 0
+    repeat while idx < len:
+        set existing to get_list(keys and idx)
+        if concat(existing and "") equals full_key:
+            return get_list(values and idx)
+        set idx to idx + 1
+    return ""
+
+define toml_get_string with store and section and key:
+    return toml_get(store and section and key)
+
+define toml_get_int with store and section and key:
+    set val to toml_get(store and section and key)
+    if string_length(val) < 1:
+        return 0
+    return string_to_int(val)
+
+define toml_get_bool with store and section and key:
+    set val to toml_get(store and section and key)
+    if concat(val and "") equals "true":
+        return 1
+    return 0
+
+# ───────────── TOML Parser ─────────────
+
+define toml_trim with s:
+    # Trim leading and trailing whitespace
+    set start to 0
+    set len to string_length(s)
+    repeat while start < len:
+        set ch to get_character(s and start)
+        if ch == 32 || ch == 9:
+            set start to start + 1
+        else:
+            set start to start
+            set len to len
+            set ch to 0
+            set start to start
+            # break out — use a flag
+            set len to 0
+    # re-get length
+    set len to string_length(s)
+    set end_pos to len - 1
+    repeat while end_pos >= start:
+        set ch to get_character(s and end_pos)
+        if ch == 32 || ch == 9:
+            set end_pos to end_pos - 1
+        else:
+            set end_pos to end_pos
+            set ch to 0
+            set end_pos to end_pos
+            set ch to 0
+    if end_pos < start:
+        return ""
+    return substring(s and start and end_pos - start + 1)
+
+define toml_parse_line with store and line and current_section:
+    # Skip empty lines and comments
+    set trimmed to toml_trim(line)
+    if string_length(trimmed) < 1:
+        return current_section
+    set first_char to get_character(trimmed and 0)
+    if first_char == 35:
+        return current_section
+    
+    # Check for section header: [section_name]
+    if first_char == 91:
+        set end_bracket to string_index_of(trimmed and "]")
+        if end_bracket > 1:
+            set section_name to substring(trimmed and 1 and end_bracket - 1)
+            return section_name
+        return current_section
+    
+    # Parse key = value
+    set eq_pos to string_index_of(trimmed and "=")
+    if eq_pos < 1:
+        return current_section
+    
+    set key to substring(trimmed and 0 and eq_pos)
+    set key to toml_trim(key)
+    
+    set val_start to eq_pos + 1
+    set raw_val to substring(trimmed and val_start and string_length(trimmed) - val_start)
+    set raw_val to toml_trim(raw_val)
+    
+    # Strip quotes from string values
+    set val_len to string_length(raw_val)
+    if val_len >= 2:
+        set first to get_character(raw_val and 0)
+        set last to get_character(raw_val and val_len - 1)
+        if first == 34 and last == 34:
+            set raw_val to substring(raw_val and 1 and val_len - 2)
+    
+    # Strip inline comments (# after value)
+    set comment_pos to string_index_of(raw_val and " #")
+    if comment_pos >= 0:
+        set raw_val to substring(raw_val and 0 and comment_pos)
+        set raw_val to toml_trim(raw_val)
+    
+    set ok to toml_set(store and current_section and key and raw_val)
+    return current_section
+
+define toml_parse with content:
+    set store to toml_create()
+    set current_section to ""
+    set lines to split(content and "\n")
+    set len to length_list(lines)
+    set idx to 0
+    repeat while idx < len:
+        set line to get_list(lines and idx)
+        set current_section to toml_parse_line(store and line and current_section)
+        set idx to idx + 1
+    return store
+
+define toml_parse_file with path:
+    set content to file_read(path)
+    return toml_parse(content)

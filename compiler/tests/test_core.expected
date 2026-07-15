@@ -1,0 +1,47 @@
+=== Arithmetic ===
+30
+63
+42
+25
+2
+=== Variables ===
+42
+Ernos
+true
+=== Comparisons ===
+eq ok
+neq ok
+lt ok
+gt ok
+le ok
+ge ok
+=== Logical ===
+and ok
+or ok
+not ok
+=== If/Else ===
+small
+=== Loops ===
+0
+1
+2
+while ended at j=3
+=== Break/Continue ===
+0
+1
+2
+1
+2
+4
+5
+=== Functions ===
+30
+55
+=== F-strings ===
+Score: 99
+Calc: 8
+=== For-each ===
+10
+20
+30
+ALL CORE TESTS PASSED

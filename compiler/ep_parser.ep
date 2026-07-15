@@ -1,0 +1,1410 @@
+# ErnosPlain Self-Hosted Parser Module
+
+# AST Node Type Constants
+# NODE_INT = 1
+# NODE_STR = 2
+# NODE_IDENT = 3
+# NODE_BINARY = 4
+# NODE_COMP = 5
+# NODE_CALL = 6
+# NODE_SET = 7
+# NODE_RETURN = 8
+# NODE_DISPLAY = 9
+# NODE_IF = 10
+# NODE_REPEAT_WHILE = 11
+# NODE_FUNC = 12
+# NODE_PROGRAM = 13
+# NODE_LOGICAL = 14
+# NODE_SPAWN = 15
+# NODE_SEND = 16
+# NODE_CHANNEL = 17
+# NODE_RECEIVE = 18
+# NODE_EXTERNAL = 19
+# NODE_BORROW = 20
+# NODE_AWAIT = 21
+# NODE_FIELD_ACCESS = 22
+# NODE_FIELD_SET = 23
+# NODE_STRUCT_CREATE = 24
+# NODE_METHOD_CALL = 25
+# NODE_ENUM_CREATE = 26
+# NODE_MATCH = 27
+# NODE_FOR_EACH = 28
+# NODE_BREAK = 29
+# NODE_CONTINUE = 30
+# NODE_BOOL_LIT = 31
+# NODE_UNARY_NOT = 32
+# NODE_TRY = 33
+# NODE_CLOSURE = 34
+# NODE_LIST_LIT = 35
+# NODE_EXPR_STMT = 36
+# NODE_STRUCT_DEF = 37
+# NODE_ENUM_DEF = 38
+# NODE_METHOD_DEF = 39
+# NODE_TRAIT_DEF = 40
+# NODE_TRAIT_IMPL = 41
+
+# Helper: parse integer from string
+define parse_int with s:
+    set val to 0
+    set len to string_length(s)
+    set idx to 0
+    repeat while idx < len:
+        set ch to get_character(s and idx)
+        set digit to ch - 48
+        set val to val * 10 + digit
+        set idx to idx + 1
+    return val
+
+# AST Node Constructors
+define make_node_int with val:
+    set node to create_list()
+    set ok to append_list(node and 1)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_str with val:
+    set node to create_list()
+    set ok to append_list(node and 2)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_ident with name:
+    set node to create_list()
+    set ok to append_list(node and 3)
+    set ok to append_list(node and name)
+    return node
+
+define make_node_binary with left and op and right:
+    set node to create_list()
+    set ok to append_list(node and 4)
+    set ok to append_list(node and left)
+    set ok to append_list(node and op)
+    set ok to append_list(node and right)
+    return node
+
+define make_node_comp with left and op and right:
+    set node to create_list()
+    set ok to append_list(node and 5)
+    set ok to append_list(node and left)
+    set ok to append_list(node and op)
+    set ok to append_list(node and right)
+    return node
+
+define make_node_call with name and args:
+    set node to create_list()
+    set ok to append_list(node and 6)
+    set ok to append_list(node and name)
+    set ok to append_list(node and args)
+    return node
+
+define make_node_set with var and expr:
+    set node to create_list()
+    set ok to append_list(node and 7)
+    set ok to append_list(node and var)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_return with expr:
+    set node to create_list()
+    set ok to append_list(node and 8)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_display with expr:
+    set node to create_list()
+    set ok to append_list(node and 9)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_if with cond and then_b and else_b:
+    set node to create_list()
+    set ok to append_list(node and 10)
+    set ok to append_list(node and cond)
+    set ok to append_list(node and then_b)
+    set ok to append_list(node and else_b)
+    return node
+
+define make_node_repeat_while with cond and body:
+    set node to create_list()
+    set ok to append_list(node and 11)
+    set ok to append_list(node and cond)
+    set ok to append_list(node and body)
+    return node
+
+define make_node_func with name and params and body and is_async:
+    set node to create_list()
+    set ok to append_list(node and 12)
+    set ok to append_list(node and name)
+    set ok to append_list(node and params)
+    set ok to append_list(node and body)
+    set ok to append_list(node and is_async)
+    return node
+
+define make_node_program with imports and externals and funcs and struct_defs and enum_defs and method_defs and trait_defs and trait_impls:
+    set node to create_list()
+    set ok to append_list(node and 13)
+    set ok to append_list(node and imports)
+    set ok to append_list(node and externals)
+    set ok to append_list(node and funcs)
+    set ok to append_list(node and struct_defs)
+    set ok to append_list(node and enum_defs)
+    set ok to append_list(node and method_defs)
+    set ok to append_list(node and trait_defs)
+    set ok to append_list(node and trait_impls)
+    return node
+
+define make_node_spawn with func_name and args:
+    set node to create_list()
+    set ok to append_list(node and 15)
+    set ok to append_list(node and func_name)
+    set ok to append_list(node and args)
+    return node
+
+define make_node_send with chan and val:
+    set node to create_list()
+    set ok to append_list(node and 16)
+    set ok to append_list(node and chan)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_channel:
+    set node to create_list()
+    set ok to append_list(node and 17)
+    return node
+
+define make_node_receive with chan:
+    set node to create_list()
+    set ok to append_list(node and 18)
+    set ok to append_list(node and chan)
+    return node
+
+define make_node_external with name and params and ret_type:
+    set node to create_list()
+    set ok to append_list(node and 19)
+    set ok to append_list(node and name)
+    set ok to append_list(node and params)
+    set ok to append_list(node and ret_type)
+    return node
+
+define make_node_borrow with target:
+    set node to create_list()
+    set ok to append_list(node and 20)
+    set ok to append_list(node and target)
+    return node
+
+define make_node_await with target:
+    set node to create_list()
+    set ok to append_list(node and 21)
+    set ok to append_list(node and target)
+    return node
+
+define make_node_logical with left and op and right:
+    set node to create_list()
+    set ok to append_list(node and 14)
+    set ok to append_list(node and left)
+    set ok to append_list(node and op)
+    set ok to append_list(node and right)
+    return node
+
+define make_node_field_access with obj and field_name:
+    set node to create_list()
+    set ok to append_list(node and 22)
+    set ok to append_list(node and obj)
+    set ok to append_list(node and field_name)
+    return node
+
+define make_node_field_set with obj and field_name and val:
+    set node to create_list()
+    set ok to append_list(node and 23)
+    set ok to append_list(node and obj)
+    set ok to append_list(node and field_name)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_struct_create with struct_name and fields:
+    set node to create_list()
+    set ok to append_list(node and 24)
+    set ok to append_list(node and struct_name)
+    set ok to append_list(node and fields)
+    return node
+
+define make_node_method_call with obj and method_name and args:
+    set node to create_list()
+    set ok to append_list(node and 25)
+    set ok to append_list(node and obj)
+    set ok to append_list(node and method_name)
+    set ok to append_list(node and args)
+    return node
+
+define make_node_enum_create with variant_name and args:
+    set node to create_list()
+    set ok to append_list(node and 26)
+    set ok to append_list(node and variant_name)
+    set ok to append_list(node and args)
+    return node
+
+define make_node_match with expr and arms:
+    set node to create_list()
+    set ok to append_list(node and 27)
+    set ok to append_list(node and expr)
+    set ok to append_list(node and arms)
+    return node
+
+define make_node_for_each with var_name and iter_expr and body:
+    set node to create_list()
+    set ok to append_list(node and 28)
+    set ok to append_list(node and var_name)
+    set ok to append_list(node and iter_expr)
+    set ok to append_list(node and body)
+    return node
+
+define make_node_break:
+    set node to create_list()
+    set ok to append_list(node and 29)
+    return node
+
+define make_node_continue:
+    set node to create_list()
+    set ok to append_list(node and 30)
+    return node
+
+define make_node_bool with val:
+    set node to create_list()
+    set ok to append_list(node and 31)
+    set ok to append_list(node and val)
+    return node
+
+define make_node_unary_not with expr:
+    set node to create_list()
+    set ok to append_list(node and 32)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_try with expr:
+    set node to create_list()
+    set ok to append_list(node and 33)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_closure with params and body:
+    set node to create_list()
+    set ok to append_list(node and 34)
+    set ok to append_list(node and params)
+    set ok to append_list(node and body)
+    return node
+
+define make_node_list_lit with elements:
+    set node to create_list()
+    set ok to append_list(node and 35)
+    set ok to append_list(node and elements)
+    return node
+
+define make_node_expr_stmt with expr:
+    set node to create_list()
+    set ok to append_list(node and 36)
+    set ok to append_list(node and expr)
+    return node
+
+define make_node_struct_def with name and fields:
+    set node to create_list()
+    set ok to append_list(node and 37)
+    set ok to append_list(node and name)
+    set ok to append_list(node and fields)
+    return node
+
+define make_node_enum_def with name and variants:
+    set node to create_list()
+    set ok to append_list(node and 38)
+    set ok to append_list(node and name)
+    set ok to append_list(node and variants)
+    return node
+
+define make_node_method_def with method_name and struct_name and params and body:
+    set node to create_list()
+    set ok to append_list(node and 39)
+    set ok to append_list(node and method_name)
+    set ok to append_list(node and struct_name)
+    set ok to append_list(node and params)
+    set ok to append_list(node and body)
+    return node
+
+define make_node_trait_def with name and method_sigs:
+    set node to create_list()
+    set ok to append_list(node and 40)
+    set ok to append_list(node and name)
+    set ok to append_list(node and method_sigs)
+    return node
+
+define make_node_trait_impl with trait_name and type_name and methods:
+    set node to create_list()
+    set ok to append_list(node and 41)
+    set ok to append_list(node and trait_name)
+    set ok to append_list(node and type_name)
+    set ok to append_list(node and methods)
+    return node
+
+# Parser State Helpers
+define create_parser_state with tokens:
+    set state to create_list()
+    set ok to append_list(state and tokens)
+    set ok to append_list(state and 0)
+    set ok to append_list(state and 0)   # error flag (slot 2): set when a parse error occurs
+    return state
+
+# Records that a parse error occurred. Parser functions return placeholder
+# values and continue, but this flag lets the driver abort compilation instead
+# of emitting code from a desynchronized AST.
+define set_parser_error with state:
+    set ok to set_list(state and 2 and 1)
+    return 0
+
+define get_parser_error with state:
+    return get_list(state and 2)
+
+define get_state_tokens with state:
+    return get_list(state and 0)
+
+define get_state_pos with state:
+    return get_list(state and 1)
+
+define set_state_pos with state and new_pos:
+    return set_list(state and 1 and new_pos)
+
+define get_eof_token:
+    set tok to create_token(31 and "EOF" and 1 and 1) + 0
+    return tok
+
+define peek_token with state:
+    set tokens to get_state_tokens(state)
+    set pos to get_state_pos(state)
+    set tokens_len to length_list(tokens)
+    if pos < tokens_len:
+        return get_list(tokens and pos)
+    return get_eof_token()
+
+define peek_token_at with state and offset:
+    set tokens to get_state_tokens(state)
+    set pos to get_state_pos(state) + offset
+    set tokens_len to length_list(tokens)
+    if pos < tokens_len:
+        return get_list(tokens and pos)
+    return get_eof_token()
+
+define advance_token with state:
+    set tokens to get_state_tokens(state)
+    set pos to get_state_pos(state)
+    set tokens_len to length_list(tokens)
+    if pos < tokens_len:
+        set tok to get_list(tokens and pos)
+        set ok to set_state_pos(state and pos + 1)
+        return tok
+    return get_eof_token()
+
+define expect_token_type with state and expected_type:
+    set tok to advance_token(state)
+    set actual_type to get_token_type(tok)
+    if actual_type == expected_type:
+        return 1
+    display "Parser Error: Expected token type:"
+    display expected_type
+    display "Found type:"
+    display actual_type
+    display "At line:"
+    display get_token_line(tok)
+    set ok to set_parser_error(state)
+    return 0
+
+define get_token_precedence with tok:
+    set t to get_token_type(tok)
+    if t == 21: # ||
+        return 1
+    if t == 20: # &&
+        return 2
+    if t == 16 || t == 17 || t == 18 || t == 19 || t == 67 || t == 68: # <, >, equals/==, !=, <=, >=
+        return 3
+    if t == 12 || t == 13: # plus/+, minus/-
+        return 4
+    if t == 14 || t == 15 || t == 41: # multiplied by/*, divided by//, modulo/%
+        return 5
+    if t == 23: # (
+        return 6
+    if t == 40: # . (dot) — highest precedence for field access/method call
+        return 7
+    return 0
+
+define skip_newlines with state:
+    set loop to 1
+    repeat while loop == 1:
+        set tok to peek_token(state)
+        if get_token_type(tok) == 28:
+            set dummy to advance_token(state)
+        else:
+            set loop to 0
+    return 0
+
+# Check if an identifier starts with uppercase (for enum variant detection)
+define is_uppercase_start with name:
+    set ch to get_character(name and 0)
+    if ch > 64 && ch < 91:
+        return 1
+    return 0
+
+# Parse parameter list (shared by function/method/external parsing)
+define parse_param_list with state:
+    set params to create_list() + 0
+    set next_tok to peek_token(state)
+    if get_token_type(next_tok) == 10: # with
+        set dummy to advance_token(state) # consume "with"
+        set next_tok2 to peek_token(state)
+        set is_borrow to 0
+        if get_token_type(next_tok2) == 39: # borrow
+            set dummy to advance_token(state)
+            set is_borrow to 1
+        set tok_param to advance_token(state)
+        set param_name to get_token_value(tok_param)
+        # Optional type annotation: as Type
+        set next_as to peek_token(state)
+        if get_token_type(next_as) == 42: # as
+            set dummy to advance_token(state)
+            set dummy to advance_token(state) # consume type name
+        set param_node to create_list() + 0
+        set ok to append_list(param_node and param_name)
+        set ok to append_list(param_node and is_borrow)
+        set ok to append_list(params and param_node)
+        set loop to 1
+        repeat while loop == 1:
+            set tok_and to peek_token(state)
+            if get_token_type(tok_and) == 11: # and
+                set dummy to advance_token(state) # consume "and"
+                set next_tok3 to peek_token(state)
+                set is_borrow3 to 0
+                if get_token_type(next_tok3) == 39: # borrow
+                    set dummy to advance_token(state)
+                    set is_borrow3 to 1
+                set tok_param to advance_token(state)
+                set param_name to get_token_value(tok_param)
+                # Optional type annotation
+                set next_as to peek_token(state)
+                if get_token_type(next_as) == 42: # as
+                    set dummy to advance_token(state)
+                    set dummy to advance_token(state)
+                set param_node to create_list() + 0
+                set ok to append_list(param_node and param_name)
+                set ok to append_list(param_node and is_borrow3)
+                set ok to append_list(params and param_node)
+            else:
+                set loop to 0
+    return params
+
+# Parsing Functions
+define parse_program with state:
+    set imports to create_list() + 0
+    set externals to create_list() + 0
+    set funcs to create_list() + 0
+    set struct_defs to create_list() + 0
+    set enum_defs to create_list() + 0
+    set method_defs to create_list() + 0
+    set trait_defs to create_list() + 0
+    set trait_impls to create_list() + 0
+    set loop to 1
+    repeat while loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 31: # EOF
+            set loop to 0
+        else:
+            if t == 28: # Newline
+                set dummy to advance_token(state)
+            else:
+                if t == 32: # import
+                    set dummy to advance_token(state)
+                    set tok_path to advance_token(state)
+                    set path_type to get_token_type(tok_path)
+                    if path_type == 26: # string
+                        set path_val to get_token_value(tok_path)
+                        set ok to append_list(imports and path_val)
+                    else:
+                        display "Parser Error: Expected string literal after import at line:"
+                        display get_token_line(tok_path)
+                        set loop to 0
+                else:
+                    if t == 38: # external
+                        set dummy to advance_token(state)
+                        set ok to expect_token_type(state and 1) # define
+                        set tok_name to advance_token(state)
+                        set name to get_token_value(tok_name)
+                        set params to parse_param_list(state) + 0
+                        # Optional returning Type
+                        set ret_type to ""
+                        set next_tok to peek_token(state)
+                        if get_token_type(next_tok) == 43: # returning
+                            set dummy to advance_token(state)
+                            set ret_tok to advance_token(state)
+                            set ret_type to get_token_value(ret_tok)
+                        # Skip colon if present
+                        set next_tok to peek_token(state)
+                        if get_token_type(next_tok) == 22: # :
+                            set dummy to advance_token(state)
+                        set next_tok to peek_token(state)
+                        if get_token_type(next_tok) == 28: # Newline
+                            set dummy to advance_token(state)
+                        set ext_node to make_node_external(name and params and ret_type) + 0
+                        set ok to append_list(externals and ext_node)
+                    else:
+                        if t == 65: # async
+                            set dummy to advance_token(state)
+                            set func to parse_function_async(state and 1) + 0
+                            set ok to append_list(funcs and func)
+                        else:
+                            if t == 1: # define
+                                # Peek ahead to see if this is a struct, method, trait, or regular function
+                                set tok2 to peek_token_at(state and 1)
+                                set t2 to get_token_type(tok2)
+                                if t2 == 44: # structure
+                                    set struct_def to parse_struct_def(state) + 0
+                                    set ok to append_list(struct_defs and struct_def)
+                                else:
+                                    if t2 == 47: # choice (enum)
+                                        set enum_def to parse_enum_def(state) + 0
+                                        set ok to append_list(enum_defs and enum_def)
+                                    else:
+                                        if t2 == 57: # trait
+                                            set trait_def to parse_trait_def(state) + 0
+                                            set ok to append_list(trait_defs and trait_def)
+                                        else:
+                                            # Check if it's a method: define name on StructName
+                                            set tok3 to peek_token_at(state and 2)
+                                            set t3 to get_token_type(tok3)
+                                            if t3 == 56: # on
+                                                set method_def to parse_method_def(state) + 0
+                                                set ok to append_list(method_defs and method_def)
+                                            else:
+                                                set func to parse_function_async(state and 0) + 0
+                                                set ok to append_list(funcs and func)
+                            else:
+                                if t == 58: # implement
+                                    set impl_node to parse_trait_impl(state) + 0
+                                    set ok to append_list(trait_impls and impl_node)
+                                else:
+                                    display "Parser Error: Unexpected token at top level:"
+                                    display t
+                                    set ok to set_parser_error(state)
+                                    set loop to 0
+                    
+    set prog to make_node_program(imports and externals and funcs and struct_defs and enum_defs and method_defs and trait_defs and trait_impls) + 0
+    return prog
+
+# define structure Name:
+#     field x as Type
+#     field y as Type is default_val
+define parse_struct_def with state:
+    set ok to expect_token_type(state and 1) # define
+    set ok to expect_token_type(state and 44) # structure
+    set tok_name to advance_token(state)
+    set name to get_token_value(tok_name)
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set ok to expect_token_type(state and 29) # INDENT
+    set fields to create_list() + 0
+    set field_loop to 1
+    repeat while field_loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 30 || t == 31: # DEDENT or EOF
+            set field_loop to 0
+        else:
+            if t == 28: # Newline
+                set dummy to advance_token(state)
+            else:
+                if t == 45: # field
+                    set dummy to advance_token(state)
+                    set field_name_tok to advance_token(state)
+                    set field_name to get_token_value(field_name_tok)
+                    set field_type to "Int"
+                    set field_default to 0
+                    set next to peek_token(state)
+                    if get_token_type(next) == 42: # as
+                        set dummy to advance_token(state)
+                        set type_tok to advance_token(state)
+                        set field_type to get_token_value(type_tok)
+                    set next to peek_token(state)
+                    if get_token_type(next) == 72: # is (default)
+                        set dummy to advance_token(state)
+                        set field_default to parse_expr(state and 0) + 0
+                    set field_node to create_list() + 0
+                    set ok to append_list(field_node and field_name)
+                    set ok to append_list(field_node and field_type)
+                    set ok to append_list(field_node and field_default)
+                    set ok to append_list(fields and field_node)
+                else:
+                    set dummy to advance_token(state) # skip unknown
+    set tok_ded to peek_token(state)
+    if get_token_type(tok_ded) == 30:
+        set dummy to advance_token(state)
+    return make_node_struct_def(name and fields)
+
+# define choice Name:
+#     variant V1 with x as Type
+#     variant V2
+define parse_enum_def with state:
+    set ok to expect_token_type(state and 1) # define
+    set ok to expect_token_type(state and 47) # choice
+    set tok_name to advance_token(state)
+    set name to get_token_value(tok_name)
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set ok to expect_token_type(state and 29) # INDENT
+    set variants to create_list() + 0
+    set var_loop to 1
+    repeat while var_loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 30 || t == 31:
+            set var_loop to 0
+        else:
+            if t == 28:
+                set dummy to advance_token(state)
+            else:
+                if t == 48: # variant
+                    set dummy to advance_token(state)
+                    set vname_tok to advance_token(state)
+                    set vname to get_token_value(vname_tok)
+                    set vfields to create_list() + 0
+                    set next to peek_token(state)
+                    if get_token_type(next) == 10: # with
+                        set dummy to advance_token(state)
+                        set vf_tok to advance_token(state)
+                        set vf_name to get_token_value(vf_tok)
+                        set vf_type to "Int"
+                        set next_as to peek_token(state)
+                        if get_token_type(next_as) == 42: # as
+                            set dummy to advance_token(state)
+                            set vt_tok to advance_token(state)
+                            set vf_type to get_token_value(vt_tok)
+                        set vf_node to create_list() + 0
+                        set ok to append_list(vf_node and vf_name)
+                        set ok to append_list(vf_node and vf_type)
+                        set ok to append_list(vfields and vf_node)
+                        set vf_loop to 1
+                        repeat while vf_loop == 1:
+                            set next_and to peek_token(state)
+                            if get_token_type(next_and) == 11: # and
+                                set dummy to advance_token(state)
+                                set vf_tok to advance_token(state)
+                                set vf_name to get_token_value(vf_tok)
+                                set vf_type to "Int"
+                                set next_as to peek_token(state)
+                                if get_token_type(next_as) == 42:
+                                    set dummy to advance_token(state)
+                                    set vt_tok to advance_token(state)
+                                    set vf_type to get_token_value(vt_tok)
+                                set vf_node to create_list() + 0
+                                set ok to append_list(vf_node and vf_name)
+                                set ok to append_list(vf_node and vf_type)
+                                set ok to append_list(vfields and vf_node)
+                            else:
+                                set vf_loop to 0
+                    set v_node to create_list() + 0
+                    set ok to append_list(v_node and vname)
+                    set ok to append_list(v_node and vfields)
+                    set ok to append_list(variants and v_node)
+                else:
+                    set dummy to advance_token(state)
+    set tok_ded to peek_token(state)
+    if get_token_type(tok_ded) == 30:
+        set dummy to advance_token(state)
+    return make_node_enum_def(name and variants)
+
+# define method_name on StructName with params:
+define parse_method_def with state:
+    set ok to expect_token_type(state and 1) # define
+    set tok_method to advance_token(state)
+    set method_name to get_token_value(tok_method)
+    set ok to expect_token_type(state and 56) # on
+    set tok_struct to advance_token(state)
+    set struct_name to get_token_value(tok_struct)
+    set params to parse_param_list(state) + 0
+    # Skip optional returning Type
+    set next_ret to peek_token(state)
+    if get_token_type(next_ret) == 43: # returning
+        set dummy to advance_token(state)
+        set dummy to advance_token(state)
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set body to parse_block(state) + 0
+    return make_node_method_def(method_name and struct_name and params and body)
+
+# define trait Name:
+#     define method_name with params:
+define parse_trait_def with state:
+    set ok to expect_token_type(state and 1) # define
+    set ok to expect_token_type(state and 57) # trait
+    set tok_name to advance_token(state)
+    set name to get_token_value(tok_name)
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set ok to expect_token_type(state and 29) # INDENT
+    set method_sigs to create_list() + 0
+    set t_loop to 1
+    repeat while t_loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 30 || t == 31:
+            set t_loop to 0
+        else:
+            if t == 28:
+                set dummy to advance_token(state)
+            else:
+                if t == 1: # define
+                    set dummy to advance_token(state)
+                    set sig_tok to advance_token(state)
+                    set sig_name to get_token_value(sig_tok)
+                    set sig_params to parse_param_list(state) + 0
+                    # Skip optional returning Type
+                    set next_ret to peek_token(state)
+                    if get_token_type(next_ret) == 43:
+                        set dummy to advance_token(state)
+                        set dummy to advance_token(state)
+                    # Skip colon if present
+                    set next to peek_token(state)
+                    if get_token_type(next) == 22:
+                        set dummy to advance_token(state)
+                    set sig_node to create_list() + 0
+                    set ok to append_list(sig_node and sig_name)
+                    set ok to append_list(sig_node and sig_params)
+                    set ok to append_list(method_sigs and sig_node)
+                else:
+                    set dummy to advance_token(state)
+    set tok_ded to peek_token(state)
+    if get_token_type(tok_ded) == 30:
+        set dummy to advance_token(state)
+    return make_node_trait_def(name and method_sigs)
+
+# implement TraitName for TypeName:
+#     define method_name ...
+define parse_trait_impl with state:
+    set ok to expect_token_type(state and 58) # implement
+    set tok_trait to advance_token(state)
+    set trait_name to get_token_value(tok_trait)
+    set ok to expect_token_type(state and 53) # for
+    set tok_type to advance_token(state)
+    set type_name to get_token_value(tok_type)
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set ok to expect_token_type(state and 29) # INDENT
+    set methods to create_list() + 0
+    set impl_loop to 1
+    repeat while impl_loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 30 || t == 31:
+            set impl_loop to 0
+        else:
+            if t == 28:
+                set dummy to advance_token(state)
+            else:
+                if t == 1: # define
+                    set method to parse_function_async(state and 0) + 0
+                    set ok to append_list(methods and method)
+                else:
+                    set dummy to advance_token(state)
+    set tok_ded to peek_token(state)
+    if get_token_type(tok_ded) == 30:
+        set dummy to advance_token(state)
+    return make_node_trait_impl(trait_name and type_name and methods)
+
+define parse_function_async with state and is_async:
+    set ok to expect_token_type(state and 1) # define
+    
+    set tok_name to advance_token(state)
+    set name to get_token_value(tok_name)
+    
+    set params to parse_param_list(state) + 0
+        
+    # Skip optional 'returning Type' clause
+    set next_ret to peek_token(state)
+    if get_token_type(next_ret) == 43: # returning
+        set dummy to advance_token(state) # consume "returning"
+        set dummy to advance_token(state) # consume the type name
+        
+    set ok to expect_token_type(state and 22) # :
+    
+    set tok_nl to peek_token(state)
+    if get_token_type(tok_nl) == 28: # Newline
+        set dummy to advance_token(state)
+        
+    set body to parse_block(state) + 0
+    
+    return make_node_func(name and params and body and is_async)
+
+define parse_block with state:
+    set ok to expect_token_type(state and 29) # INDENT
+    
+    set statements to create_list() + 0
+    
+    set loop to 1
+    repeat while loop == 1:
+        set tok to peek_token(state)
+        set t to get_token_type(tok)
+        if t == 30 || t == 31: # DEDENT or EOF
+            set loop to 0
+        else:
+            if t == 28: # Newline
+                set dummy to advance_token(state)
+            else:
+                set stmt to parse_statement(state) + 0
+                set ok to append_list(statements and stmt)
+                
+    set tok_dedent to peek_token(state)
+    if get_token_type(tok_dedent) == 30: # DEDENT
+        set dummy to advance_token(state)
+    else:
+        display "Parser Error: Expected DEDENT, found:"
+        display get_token_type(tok_dedent)
+        
+    return statements
+
+define parse_statement with state:
+    set tok to peek_token(state)
+    set t to get_token_type(tok)
+    
+    if t == 2: # set
+        set dummy to advance_token(state)
+        set tok_var to advance_token(state)
+        set var_name to get_token_value(tok_var)
+        # Check for field set: set obj.field to expr
+        set next to peek_token(state)
+        if get_token_type(next) == 40: # dot
+            set dummy to advance_token(state) # consume dot
+            set field_tok to advance_token(state)
+            set field_name to get_token_value(field_tok)
+            set ok to expect_token_type(state and 3) # to
+            set val to parse_expr(state and 0) + 0
+            set obj to make_node_ident(var_name) + 0
+            set ok to skip_newlines(state)
+            return make_node_field_set(obj and field_name and val)
+        else:
+            set ok to expect_token_type(state and 3) # to
+            set expr to parse_expr(state and 0) + 0
+            # Skip optional 'as Type' annotation
+            set next_as to peek_token(state)
+            if get_token_type(next_as) == 42: # as
+                set dummy to advance_token(state)
+                set dummy to advance_token(state)
+            set ok to skip_newlines(state)
+            return make_node_set(var_name and expr)
+    else:
+        if t == 4: # if
+            return parse_if_statement(state)
+        else:
+            if t == 8 || t == 9: # repeat or while
+                set dummy to advance_token(state)
+                if t == 8:
+                    set ok to expect_token_type(state and 9) # while
+                
+                set cond to parse_expr(state and 0) + 0
+                set ok to expect_token_type(state and 22) # :
+                set ok to skip_newlines(state)
+                set body to parse_block(state) + 0
+                return make_node_repeat_while(cond and body)
+            else:
+                if t == 6: # return
+                    set dummy to advance_token(state)
+                    set expr to parse_expr(state and 0) + 0
+                    set ok to skip_newlines(state)
+                    return make_node_return(expr)
+                else:
+                    if t == 7: # display
+                        set dummy to advance_token(state)
+                        set expr to parse_expr(state and 0) + 0
+                        set ok to skip_newlines(state)
+                        return make_node_display(expr)
+                    else:
+                        if t == 33: # spawn
+                            set dummy to advance_token(state)
+                            set tok_func to advance_token(state)
+                            set func_name to get_token_value(tok_func)
+                            set ok to expect_token_type(state and 23) # (
+                            set args to create_list() + 0
+                            set next_tok to peek_token(state)
+                            if get_token_type(next_tok) != 24: # not ")"
+                                set arg to parse_expr(state and 0) + 0
+                                set ok to append_list(args and arg)
+                                set loop_args to 1
+                                repeat while loop_args == 1:
+                                    set next_tok3 to peek_token(state)
+                                    if get_token_type(next_tok3) == 11: # and
+                                        set dummy to advance_token(state)
+                                        set arg to parse_expr(state and 0) + 0
+                                        set ok to append_list(args and arg)
+                                    else:
+                                        set loop_args to 0
+                            set ok to expect_token_type(state and 24) # )
+                            set ok to skip_newlines(state)
+                            return make_node_spawn(func_name and args)
+                        else:
+                            if t == 35: # send
+                                set dummy to advance_token(state)
+                                set val to parse_expr(state and 0) + 0
+                                set ok to expect_token_type(state and 3) # to
+                                set chan to parse_expr(state and 0) + 0
+                                set ok to skip_newlines(state)
+                                return make_node_send(chan and val)
+                            else:
+                                if t == 49: # check (pattern match)
+                                    return parse_match_statement(state)
+                                else:
+                                    if t == 53: # for (for each)
+                                        return parse_for_each_statement(state)
+                                    else:
+                                        if t == 61: # break
+                                            set dummy to advance_token(state)
+                                            set ok to skip_newlines(state)
+                                            return make_node_break()
+                                        else:
+                                            if t == 62: # continue
+                                                set dummy to advance_token(state)
+                                                set ok to skip_newlines(state)
+                                                return make_node_continue()
+                                            else:
+                                                # Expression statement: func_call() or any expr on its own
+                                                set expr to parse_expr(state and 0) + 0
+                                                set ok to skip_newlines(state)
+                                                return make_node_expr_stmt(expr)
+
+define parse_if_statement with state:
+    set dummy to advance_token(state) # consume 'if'
+    set cond to parse_expr(state and 0) + 0
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set then_branch to parse_block(state) + 0
+    
+    set else_branch to 0
+    set next to peek_token(state)
+    if get_token_type(next) == 5: # else
+        set dummy to advance_token(state)
+        set next2 to peek_token(state)
+        if get_token_type(next2) == 4: # else if -> chained
+            # Parse else-if as a single-statement else block containing an if
+            set chained_if to parse_if_statement(state) + 0
+            set else_branch to create_list() + 0
+            set ok to append_list(else_branch and chained_if)
+        else:
+            set ok to expect_token_type(state and 22) # :
+            set ok to skip_newlines(state)
+            set else_branch to parse_block(state) + 0
+            
+    return make_node_if(cond and then_branch and else_branch)
+
+# check expr:
+#     if VariantName with x and y:
+#         ...
+#     if OtherVariant:
+#         ...
+define parse_match_statement with state:
+    set dummy to advance_token(state) # consume 'check'
+    set expr to parse_expr(state and 0) + 0
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set ok to expect_token_type(state and 29) # INDENT
+    set arms to create_list() + 0
+    set arm_loop to 1
+    repeat while arm_loop == 1:
+        set tok to peek_token(state)
+        set tok_t to get_token_type(tok)
+        if tok_t == 30 || tok_t == 31:
+            set arm_loop to 0
+        else:
+            if tok_t == 28:
+                set dummy to advance_token(state)
+            else:
+                if tok_t == 4: # if
+                    set dummy to advance_token(state)
+                    set variant_tok to advance_token(state)
+                    set variant_name to get_token_value(variant_tok)
+                    set bindings to create_list() + 0
+                    set next to peek_token(state)
+                    if get_token_type(next) == 10: # with
+                        set dummy to advance_token(state)
+                        set bind_tok to advance_token(state)
+                        set ok to append_list(bindings and get_token_value(bind_tok))
+                        set b_loop to 1
+                        repeat while b_loop == 1:
+                            set next_and to peek_token(state)
+                            if get_token_type(next_and) == 11: # and
+                                set dummy to advance_token(state)
+                                set bind_tok to advance_token(state)
+                                set ok to append_list(bindings and get_token_value(bind_tok))
+                            else:
+                                set b_loop to 0
+                    set ok to expect_token_type(state and 22) # :
+                    set ok to skip_newlines(state)
+                    set arm_body to parse_block(state) + 0
+                    set arm_node to create_list() + 0
+                    set ok to append_list(arm_node and variant_name)
+                    set ok to append_list(arm_node and bindings)
+                    set ok to append_list(arm_node and arm_body)
+                    set ok to append_list(arms and arm_node)
+                else:
+                    set dummy to advance_token(state)
+    set tok_ded to peek_token(state)
+    if get_token_type(tok_ded) == 30:
+        set dummy to advance_token(state)
+    return make_node_match(expr and arms)
+
+# for each x in expr:
+define parse_for_each_statement with state:
+    set dummy to advance_token(state) # consume 'for'
+    set ok to expect_token_type(state and 54) # each
+    set var_tok to advance_token(state)
+    set var_name to get_token_value(var_tok)
+    set ok to expect_token_type(state and 55) # in
+    set iter_expr to parse_expr(state and 0) + 0
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set body to parse_block(state) + 0
+    return make_node_for_each(var_name and iter_expr and body)
+
+define parse_expr with state and precedence:
+    set left to parse_prefix(state) + 0
+    
+    set climbing to 1
+    repeat while climbing == 1:
+        set next_tok to peek_token(state)
+        set next_t to get_token_type(next_tok)
+        set next_prec to get_token_precedence(next_tok)
+        
+        # Handle dot (field access / method call) as highest-precedence infix
+        if next_t == 40 && precedence < 7: # . (dot)
+            set dummy to advance_token(state) # consume dot
+            set member_tok to advance_token(state)
+            set member_name to get_token_value(member_tok)
+            # Check if it's a method call: obj.method(args)
+            set next2 to peek_token(state)
+            if get_token_type(next2) == 23: # (
+                set dummy to advance_token(state) # consume (
+                set args to create_list() + 0
+                set next3 to peek_token(state)
+                if get_token_type(next3) != 24: # not )
+                    set arg to parse_expr(state and 0) + 0
+                    set ok to append_list(args and arg)
+                    set arg_loop to 1
+                    repeat while arg_loop == 1:
+                        set next4 to peek_token(state)
+                        if get_token_type(next4) == 11: # and
+                            set dummy to advance_token(state)
+                            set arg to parse_expr(state and 0) + 0
+                            set ok to append_list(args and arg)
+                        else:
+                            if get_token_type(next4) == 71: # comma
+                                set dummy to advance_token(state)
+                                set arg to parse_expr(state and 0) + 0
+                                set ok to append_list(args and arg)
+                            else:
+                                set arg_loop to 0
+                set ok to expect_token_type(state and 24) # )
+                set left to make_node_method_call(left and member_name and args) + 0
+            else:
+                set left to make_node_field_access(left and member_name) + 0
+        else:
+            if precedence < next_prec:
+                set op_tok to advance_token(state)
+                set op_type to get_token_type(op_tok)
+                
+                set is_math to op_type == 12 || op_type == 13 || op_type == 14 || op_type == 15 || op_type == 41
+                if is_math == 1:
+                    set op to 0
+                    if op_type == 12:
+                        set op to 1 # OP_ADD
+                    if op_type == 13:
+                        set op to 2 # OP_SUB
+                    if op_type == 14:
+                        set op to 3 # OP_MUL
+                    if op_type == 15:
+                        set op to 4 # OP_DIV
+                    if op_type == 41:
+                        set op to 5 # OP_MOD
+                        
+                    set right_prec to get_token_precedence(op_tok)
+                    set right to parse_expr(state and right_prec) + 0
+                    set left to make_node_binary(left and op and right) + 0
+                else:
+                    set is_comp to op_type == 16 || op_type == 17 || op_type == 18 || op_type == 19 || op_type == 67 || op_type == 68
+                    if is_comp == 1:
+                        set op to 0
+                        if op_type == 16:
+                            set op to 1 # COMP_LT
+                        if op_type == 17:
+                            set op to 2 # COMP_GT
+                        if op_type == 18:
+                            set op to 3 # COMP_EQ
+                        if op_type == 19:
+                            set op to 4 # COMP_NE
+                        if op_type == 67:
+                            set op to 5 # COMP_LE
+                        if op_type == 68:
+                            set op to 6 # COMP_GE
+                            
+                        set right_prec to get_token_precedence(op_tok)
+                        set right to parse_expr(state and right_prec) + 0
+                        set left to make_node_comp(left and op and right) + 0
+                    else:
+                        set is_logical to op_type == 20 || op_type == 21
+                        if is_logical == 1:
+                            set op to 0
+                            if op_type == 20:
+                                set op to 1 # LOGICAL_AND
+                            if op_type == 21:
+                                set op to 2 # LOGICAL_OR
+                                
+                            set right_prec to get_token_precedence(op_tok)
+                            set right to parse_expr(state and right_prec) + 0
+                            set left to make_node_logical(left and op and right) + 0
+                        else:
+                            # Function call via ( in infix position
+                            if op_type == 23: # (
+                                # left must be identifier for function call
+                                set args to create_list() + 0
+                                set next3 to peek_token(state)
+                                if get_token_type(next3) != 24:
+                                    set arg to parse_expr(state and 0) + 0
+                                    set ok to append_list(args and arg)
+                                    set a_loop to 1
+                                    repeat while a_loop == 1:
+                                        set next4 to peek_token(state)
+                                        if get_token_type(next4) == 11 || get_token_type(next4) == 71:
+                                            set dummy to advance_token(state)
+                                            set arg to parse_expr(state and 0) + 0
+                                            set ok to append_list(args and arg)
+                                        else:
+                                            set a_loop to 0
+                                set ok to expect_token_type(state and 24) # )
+                                # Extract name from left node (must be ident)
+                                set left_type to get_list(left and 0)
+                                if left_type == 3:
+                                    set call_name to get_list(left and 1)
+                                    set left to make_node_call(call_name and args) + 0
+                                else:
+                                    display "Parser Error: Expected function name before ("
+            else:
+                set climbing to 0
+            
+    return left
+
+define parse_prefix with state:
+    set tok to advance_token(state)
+    set t to get_token_type(tok)
+    
+    if t == 25: # TOK_INTEGER
+        set val to parse_int(get_token_value(tok))
+        return make_node_int(val) + 0
+    
+    if t == 26: # TOK_STRING_LITERAL
+        return make_node_str(get_token_value(tok)) + 0
+    
+    if t == 34: # TOK_CHANNEL
+        return make_node_channel() + 0
+    
+    if t == 36: # TOK_RECEIVE
+        set ok to expect_token_type(state and 37) # from
+        set chan to parse_expr(state and 0) + 0
+        return make_node_receive(chan) + 0
+    
+    if t == 39: # TOK_BORROW
+        set target to parse_expr(state and 0) + 0
+        return make_node_borrow(target) + 0
+    
+    if t == 66: # TOK_AWAIT
+        set target to parse_expr(state and 0) + 0
+        return make_node_await(target) + 0
+    
+    if t == 63: # TOK_TRUE
+        return make_node_bool(1) + 0
+    
+    if t == 64: # TOK_FALSE
+        return make_node_bool(0) + 0
+    
+    if t == 52: # TOK_NOT (unary not)
+        set operand to parse_expr(state and 6) + 0
+        return make_node_unary_not(operand) + 0
+    
+    if t == 51: # TOK_TRY
+        set try_expr to parse_expr(state and 0) + 0
+        return make_node_try(try_expr) + 0
+    
+    if t == 13: # minus (unary negative)
+        set operand to parse_expr(state and 6) + 0
+        return make_node_binary(make_node_int(0) and 2 and operand) + 0
+    
+    if t == 50: # TOK_GIVEN (closure)
+        return parse_closure(state) + 0
+    
+    if t == 46: # TOK_CREATE (struct creation)
+        return parse_struct_create(state) + 0
+    
+    if t == 69: # [ (list literal)
+        return parse_list_literal(state) + 0
+    
+    if t == 27: # TOK_IDENTIFIER
+        set name to get_token_value(tok)
+        # Check for function call: name(args)
+        set next_tok to peek_token(state)
+        if get_token_type(next_tok) == 23: # (
+            set dummy to advance_token(state) # consume (
+            set args to create_list() + 0
+            set next_tok2 to peek_token(state)
+            if get_token_type(next_tok2) != 24: # not ")"
+                set arg to parse_expr(state and 0) + 0
+                set ok to append_list(args and arg)
+                set loop_args to 1
+                repeat while loop_args == 1:
+                    set next_tok3 to peek_token(state)
+                    set nt3_type to get_token_type(next_tok3)
+                    if nt3_type == 11 || nt3_type == 71: # and or comma
+                        set dummy to advance_token(state)
+                        set arg to parse_expr(state and 0) + 0
+                        set ok to append_list(args and arg)
+                    else:
+                        set loop_args to 0
+            set ok to expect_token_type(state and 24) # )
+            return make_node_call(name and args) + 0
+        else:
+            # Check for enum variant creation: UpperCase with args or UpperCase(args)
+            if is_uppercase_start(name) == 1:
+                set next2 to peek_token(state)
+                set nt2 to get_token_type(next2)
+                if nt2 == 10: # with
+                    set dummy to advance_token(state)
+                    set vargs to create_list() + 0
+                    set varg to parse_expr(state and 0) + 0
+                    set ok to append_list(vargs and varg)
+                    set va_loop to 1
+                    repeat while va_loop == 1:
+                        set next3 to peek_token(state)
+                        if get_token_type(next3) == 11: # and
+                            set dummy to advance_token(state)
+                            set varg to parse_expr(state and 0) + 0
+                            set ok to append_list(vargs and varg)
+                        else:
+                            set va_loop to 0
+                    return make_node_enum_create(name and vargs) + 0
+            return make_node_ident(name) + 0
+    
+    if t == 23: # ( — parenthesized expression
+        set expr to parse_expr(state and 0) + 0
+        set ok to expect_token_type(state and 24) # )
+        return expr
+    
+    if t == 60: # range keyword
+        set ok to expect_token_type(state and 23) # (
+        set start_expr to parse_expr(state and 0) + 0
+        set ok to expect_token_type(state and 71) # comma  (or 'and')
+        set end_expr to parse_expr(state and 0) + 0
+        set ok to expect_token_type(state and 24) # )
+        set range_args to create_list() + 0
+        set ok to append_list(range_args and start_expr)
+        set ok to append_list(range_args and end_expr)
+        return make_node_call("range" and range_args) + 0
+
+    display "Parser Error: Expected expression, found token type:"
+    display t
+    set ok to set_parser_error(state)
+    return make_node_int(0) + 0
+
+# given x and y:
+#     body
+define parse_closure with state:
+    set params to create_list() + 0
+    set next to peek_token(state)
+    if get_token_type(next) != 22: # not immediately ':'
+        set p_tok to advance_token(state)
+        set p_name to get_token_value(p_tok)
+        set p_node to create_list() + 0
+        set ok to append_list(p_node and p_name)
+        set ok to append_list(p_node and 0) # not borrowed
+        set ok to append_list(params and p_node)
+        set p_loop to 1
+        repeat while p_loop == 1:
+            set next_and to peek_token(state)
+            if get_token_type(next_and) == 11: # and
+                set dummy to advance_token(state)
+                set p_tok to advance_token(state)
+                set p_name to get_token_value(p_tok)
+                set p_node to create_list() + 0
+                set ok to append_list(p_node and p_name)
+                set ok to append_list(p_node and 0)
+                set ok to append_list(params and p_node)
+            else:
+                set p_loop to 0
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    # Check if body is indented block or single expression
+    set next to peek_token(state)
+    if get_token_type(next) == 29: # INDENT — block body
+        set body to parse_block(state) + 0
+    else:
+        # Single expression body
+        set single to parse_statement(state) + 0
+        set body to create_list() + 0
+        set ok to append_list(body and single)
+    return make_node_closure(params and body)
+
+# create StructName:
+#     field_name is expr
+define parse_struct_create with state:
+    set tok_name to advance_token(state)
+    set struct_name to get_token_value(tok_name)
+    set ok to expect_token_type(state and 22) # :
+    set ok to skip_newlines(state)
+    set fields to create_list() + 0
+    # Check if next is INDENT (block-style create)
+    set next to peek_token(state)
+    if get_token_type(next) == 29: # INDENT
+        set ok to expect_token_type(state and 29)
+        set cf_loop to 1
+        repeat while cf_loop == 1:
+            set tok to peek_token(state)
+            set tok_t to get_token_type(tok)
+            if tok_t == 30 || tok_t == 31:
+                set cf_loop to 0
+            else:
+                if tok_t == 28:
+                    set dummy to advance_token(state)
+                else:
+                    set fname_tok to advance_token(state)
+                    set fname to get_token_value(fname_tok)
+                    set ok to expect_token_type(state and 72) # is
+                    set fval to parse_expr(state and 0) + 0
+                    set fpair to create_list() + 0
+                    set ok to append_list(fpair and fname)
+                    set ok to append_list(fpair and fval)
+                    set ok to append_list(fields and fpair)
+        set tok_ded to peek_token(state)
+        if get_token_type(tok_ded) == 30:
+            set dummy to advance_token(state)
+    return make_node_struct_create(struct_name and fields)
+
+# [expr, expr, ...]
+define parse_list_literal with state:
+    set elements to create_list() + 0
+    set next to peek_token(state)
+    if get_token_type(next) != 70: # not ]
+        set elem to parse_expr(state and 0) + 0
+        set ok to append_list(elements and elem)
+        set el_loop to 1
+        repeat while el_loop == 1:
+            set next to peek_token(state)
+            set nt to get_token_type(next)
+            if nt == 71: # comma
+                set dummy to advance_token(state)
+                set elem to parse_expr(state and 0) + 0
+                set ok to append_list(elements and elem)
+            else:
+                if nt == 11: # and
+                    set dummy to advance_token(state)
+                    set elem to parse_expr(state and 0) + 0
+                    set ok to append_list(elements and elem)
+                else:
+                    set el_loop to 0
+    set ok to expect_token_type(state and 70) # ]
+    return make_node_list_lit(elements)

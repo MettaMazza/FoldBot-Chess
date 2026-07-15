@@ -1,0 +1,48 @@
+# Test 8: Closures
+# Tests: closure creation, closure with params, passing closures to functions
+
+define apply with f and x as Int returning Int:
+    set result to f(x)
+    return result
+
+define apply2 with f and a as Int and b as Int returning Int:
+    set result to f(a and b)
+    return result
+
+define main:
+    display "=== TEST CLOSURES ==="
+
+    # --- Simple closure ---
+    display "-- simple closure --"
+    set doubler to given x:
+        return x * 2
+    set r1 to doubler(5)
+    display r1
+
+    # --- Closure passed to higher-order function ---
+    display "-- higher-order --"
+    set tripler to given x:
+        return x * 3
+    set r2 to apply(tripler and 7)
+    display r2
+
+    # --- Two-parameter closure ---
+    display "-- two-param closure --"
+    set adder to given a and b:
+        return a + b
+    set r3 to adder(10 and 20)
+    display r3
+
+    # --- Closure passed as argument ---
+    display "-- closure as arg --"
+    set r4 to apply2(adder and 100 and 200)
+    display r4
+
+    # --- Closure with subtraction ---
+    display "-- closure subtraction --"
+    set subber to given a and b:
+        return a - b
+    display apply2(subber and 50 and 30)
+
+    display "=== CLOSURES TESTS COMPLETE ==="
+    return 0

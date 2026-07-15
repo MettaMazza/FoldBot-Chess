@@ -1,0 +1,56 @@
+# Test 7: Error Handling
+# Tests: try expression, Result enum, error propagation
+
+define choice Result:
+    variant Ok with value as Int
+    variant Error with message as Str
+
+define safe_divide with a as Int and b as Int returning Result:
+    if b equals 0:
+        return Error with "Division by zero"
+    set answer to a / b
+    return Ok with answer
+
+define compute with x as Int and y as Int returning Result:
+    set result to try safe_divide(x and y)
+    return Ok with result * 2
+
+define main:
+    display "=== TEST ERROR HANDLING ==="
+
+    # --- Successful try ---
+    display "-- successful try --"
+    set r1 to compute(10 and 2)
+    check r1:
+        if Ok with value:
+            display value
+        if Error with message:
+            display message
+
+    # --- Error propagation via try ---
+    display "-- error propagation --"
+    set r2 to compute(10 and 0)
+    check r2:
+        if Ok with value:
+            display value
+        if Error with message:
+            display message
+
+    # --- Direct use (no try) ---
+    display "-- direct result --"
+    set r3 to safe_divide(15 and 3)
+    check r3:
+        if Ok with value:
+            display value
+        if Error with message:
+            display message
+
+    set r4 to safe_divide(15 and 0)
+    check r4:
+        if Ok with value:
+            display value
+        if Error with message:
+            display message
+
+    display "=== ERROR HANDLING TESTS COMPLETE ==="
+    return 0

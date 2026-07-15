@@ -1,0 +1,4 @@
+define main:
+    set x to 10 plas 5
+    display x
+    return 0

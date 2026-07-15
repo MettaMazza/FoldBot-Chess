@@ -1,0 +1,7 @@
+# ErnosPlain Hashing Standard Library
+
+define md5 with s:
+    return ep_md5(s)
+
+define sha256 with s:
+    return ep_sha256(s)

@@ -1,0 +1,30 @@
+# expected_compile_error
+define choice State:
+    variant Idle
+    variant Working with progress as Int
+
+define choice R:
+    variant Ok with state as Int
+    variant Error with msg as Str
+
+define advance with cur as State returning R:
+    check cur:
+        if Idle:
+            return Ok with Working with 10
+        if Working with progress:
+            return Ok with Working with progress + 1
+    return Error with "unknown"
+
+define main:
+    set s to Idle
+    check advance(s):
+        if Ok with new_state:
+            set s to new_state
+        if Error with msg:
+            display msg
+    check s:
+        if Working with progress:
+            display progress
+        if Idle:
+            display "idle"
+    return 0

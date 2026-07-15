@@ -1,0 +1,17 @@
+# Parameterized queries must bind values, not concatenate them: a SQL-injection
+# payload passed as a parameter is stored literally and cannot drop the table.
+import "sql"
+define main:
+    set db to sql_open(":memory:")
+    set ok to sql_execute(db and "CREATE TABLE users(id INTEGER, name TEXT)")
+    set p1 to create_list()
+    set ok2 to append_list(p1 and 1)
+    set ok3 to append_list(p1 and "robert'); DROP TABLE users;--")
+    set rc to sql_execute_params(db and "INSERT INTO users(id, name) VALUES(?, ?)" and p1)
+    set q to create_list()
+    set ok4 to append_list(q and 1)
+    set rows to sql_query_params(db and "SELECT name FROM users WHERE id = ?" and q)
+    display length_list(rows)
+    set row0 to get_list(rows and 0)
+    display get_list(row0 and 0)
+    return 0

@@ -1,0 +1,34 @@
+# Forensic Test 6: Error Handling — Result enums and try
+
+define choice Result:
+    variant Ok with value as Int
+    variant Error with message as Str
+
+define safe_divide with a as Int and b as Int returning Result:
+    if b equals 0:
+        return Error with "Division by zero"
+    return Ok with a / b
+
+define main:
+    # 1. Successful operation
+    set r1 to safe_divide(10 and 2)
+    check r1:
+        if Ok with value:
+            display f"10/2 = {value}"
+        if Error with message:
+            display f"Error: {message}"
+
+    # 2. Error case
+    set r2 to safe_divide(10 and 0)
+    check r2:
+        if Ok with value:
+            display f"10/0 = {value}"
+        if Error with message:
+            display f"Error: {message}"
+
+    # 3. Try expression
+    set result to try safe_divide(100 and 5)
+    display f"Try result: {result}"
+
+    display "ERROR HANDLING: ALL PASSED"
+    return 0

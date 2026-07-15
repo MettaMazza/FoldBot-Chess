@@ -1,0 +1,129 @@
+import "../ep_lexer"
+import "../ep_parser"
+
+define print_ast with node:
+    display "print_ast called with node:"
+    display node
+    if node == 0:
+        display "NULL"
+        return 0
+        
+    set type to get_list(node and 0)
+    display "Node type is:"
+    display type
+    
+    if type == 1: # NODE_INT
+        display "INT:"
+        display get_list(node and 1)
+    if type == 2: # NODE_STR
+        display "STR:"
+        set ok to display_string(get_list(node and 1))
+    if type == 3: # NODE_IDENT
+        display "IDENT:"
+        set ok to display_string(get_list(node and 1))
+    if type == 4: # NODE_BINARY
+        display "BINARY OP:"
+        display get_list(node and 2)
+        display "LEFT:"
+        set ok to print_ast(get_list(node and 1))
+        display "RIGHT:"
+        set ok to print_ast(get_list(node and 3))
+    if type == 5: # NODE_COMP
+        display "COMP OP:"
+        display get_list(node and 2)
+        display "LEFT:"
+        set ok to print_ast(get_list(node and 1))
+        display "RIGHT:"
+        set ok to print_ast(get_list(node and 3))
+    if type == 14: # NODE_LOGICAL
+        display "LOGICAL OP:"
+        display get_list(node and 2)
+        display "LEFT:"
+        set ok to print_ast(get_list(node and 1))
+        display "RIGHT:"
+        set ok to print_ast(get_list(node and 3))
+    if type == 6: # NODE_CALL
+        display "CALL:"
+        set ok to display_string(get_list(node and 1))
+        display "ARGS COUNT:"
+        set args to get_list(node and 2)
+        set len to length_list(args)
+        display len
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(args and idx))
+            set idx to idx + 1
+    if type == 7: # NODE_SET
+        display "SET:"
+        set ok to display_string(get_list(node and 1))
+        set ok to print_ast(get_list(node and 2))
+    if type == 8: # NODE_RETURN
+        display "RETURN:"
+        set ok to print_ast(get_list(node and 1))
+    if type == 9: # NODE_DISPLAY
+        display "DISPLAY:"
+        set ok to print_ast(get_list(node and 1))
+    if type == 10: # NODE_IF
+        display "IF COND:"
+        set ok to print_ast(get_list(node and 1))
+        display "THEN:"
+        set then_b to get_list(node and 2)
+        set len to length_list(then_b)
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(then_b and idx))
+            set idx to idx + 1
+        display "ELSE:"
+        set else_b to get_list(node and 3)
+        if else_b != 0:
+            set len to length_list(else_b)
+            set idx to 0
+            repeat while idx < len:
+                set ok to print_ast(get_list(else_b and idx))
+                set idx to idx + 1
+    if type == 11: # NODE_REPEAT_WHILE
+        display "REPEAT WHILE COND:"
+        set ok to print_ast(get_list(node and 1))
+        display "BODY:"
+        set body to get_list(node and 2)
+        set len to length_list(body)
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(body and idx))
+            set idx to idx + 1
+    if type == 12: # NODE_FUNC
+        display "FUNC:"
+        set ok to display_string(get_list(node and 1))
+        display "PARAMS COUNT:"
+        set params to get_list(node and 2)
+        display length_list(params)
+        display "BODY:"
+        set body to get_list(node and 3)
+        set len to length_list(body)
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(body and idx))
+            set idx to idx + 1
+    if type == 13: # NODE_PROGRAM
+        display "PROGRAM:"
+        set funcs to get_list(node and 1)
+        set len to length_list(funcs)
+        display len
+        set idx to 0
+        repeat while idx < len:
+            set ok to print_ast(get_list(funcs and idx))
+            set idx to idx + 1
+    return 0
+
+define main:
+    set source to "define test with x and y:\n    set z to x plus y\n    if z > 10:\n        display z\n    return z\n"
+    display "Tokenizing..."
+    set tokens to tokenize_source(source)
+    
+    display "Parsing..."
+    set state to create_parser_state(tokens)
+    set program_ast to parse_program(state)
+    
+    display "AST Result:"
+    set ok to print_ast(program_ast)
+    return 0

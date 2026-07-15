@@ -1,0 +1,27 @@
+# ErnosPlain Structured Concurrency Standard Library
+
+# ---- External C Runtime Functions ----
+external define create_task_group returning Int:
+external define add_task_group with group as Int and fut as Int:
+external define wait_task_group with group as Int returning List:
+external define async_timeout with timeout_ms as Int and fut as Int returning Int:
+external define cancel_task with fut as Int:
+
+# ---- API ----
+
+define create_group:
+    return create_task_group()
+
+define add_task with group and fut:
+    add_task_group(group and fut)
+    return 0
+
+define wait_group with group:
+    return wait_task_group(group)
+
+define timeout with ms and fut:
+    return async_timeout(ms and fut)
+
+define cancel with fut:
+    cancel_task(fut)
+    return 0

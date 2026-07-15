@@ -1,0 +1,51 @@
+# Forensic Test 2: Ownership and Borrowing
+
+define structure Point:
+    field x as Int
+    field y as Int
+
+define sum_list with borrow items:
+    set total to 0
+    set i to 0
+    repeat while i is less than 5:
+        set val to get_list(items and i)
+        set total to total plus val
+        set i to i plus 1
+    return total
+
+define show_point with borrow p as Point:
+    display f"Point: {p.x}, {p.y}"
+    return 0
+
+define worker with ch:
+    send 100 to ch
+    return 0
+
+define main:
+    # 1. Borrow list — data remains usable after call
+    set data to [1, 2, 3, 4, 5]
+    set sum to sum_list(borrow data)
+    display f"Sum via borrow: {sum}"
+    display f"Data still accessible after borrow"
+
+    # 2. Struct borrow with type annotation
+    set origin to create Point:
+        x is 3
+        y is 4
+    show_point(borrow origin)
+    display f"Origin still usable: {origin.x}"
+
+    # 3. Channel send/receive
+    set ch to channel
+    send 42 to ch
+    set received to receive from ch
+    display f"Channel received: {received}"
+
+    # 4. Spawn
+    set ch2 to channel
+    spawn worker(ch2)
+    set result to receive from ch2
+    display f"Spawn result: {result}"
+
+    display "OWNERSHIP: ALL PASSED"
+    return 0
