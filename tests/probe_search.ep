@@ -1,0 +1,18 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    display "perft3:"
+    display int_to_string(perft(state and 3))
+    set s2 to starting_state()
+    display "search depth 1:"
+    set a to search_best(s2 and 1)
+    display int_to_string(get_list(a and 0))
+    display "search depth 2:"
+    set s3 to starting_state()
+    set b to search_best(s3 and 2)
+    display int_to_string(get_list(b and 0))
+    display "search depth 3:"
+    set s4 to starting_state()
+    set c to search_best(s4 and 3)
+    display int_to_string(get_list(c and 0))
+    return 0

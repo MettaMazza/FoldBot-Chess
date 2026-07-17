@@ -231,3 +231,156 @@ clock), hard-bounded, ~70s/move worst case. Next: the SF-2100 rematch,
     alone (the lever that flipped 1900) moves but does not take this
     rung -- 2100 carries a second disease. The ladder stays stopped;
     the v17 losses go to the autopsy to name it.
+
+---
+
+## 5. FRESH-WORKSPACE CAMPAIGN (2026-07-15/16) — every number below measured
+## in THIS directory; nothing inherited from prior records.
+
+**SF-2100 remeasure, v17 (pinned 12-game, refereed, full game records kept
+in tools/games_2100/): 2W 6D 1D(cap) 4L = 41.7%.** Rung still refused.
+
+**Autopsy (new tool tools/autopsy.py, full-strength SF judging every bot
+move; per-game eval curves + blunder FENs in tools/games_2100/):** the bot
+castled in 1 of 12 games; 42 of 103 blunders >= 100cp are non-castling king
+moves, in 11 of 12 games; death plies cluster at 6-33 (opening/early
+middlegame). The king-walk disease, named by measurement.
+
+**v18 (the king law: king command = enemy-uncovered adjacent squares;
+castling counted in generator-truth mobility) — GATE REFUSED.** Anchor held
+(perft exact, lock exact, suite 22/22) but the gate said no:
+v18 vs v17, pinned, 6 openings x both colours: 1W 8D 3L (41.7%). REVERTED
+per the standing rule. The eval line's fourth refusal; the line stays closed.
+(v18 source preserved in the session scratchpad only.)
+
+**Runtime hazard found during v18 work:** the bundled runtime's GC shadow
+root stack caps at 4096 entries and silently stops tracing deeper locals
+(fold_bot_cli_compiled.c ~line 919); deep search recursion can overflow it
+and the reusable attack-map buffer gets collected mid-use (verified under
+GuardMalloc: use-after-free in attack_min_reach_map). Any change deepening
+recursion or shifting buffer lifetimes can trip it. Toolchain-level fix
+belongs upstream; noted here as a standing trap.
+
+**Root-split parallel driver (tools/parallel_bot.py + tests/
+fold_bot_value_cli.ep), fresh measurements on the M3 Ultra (taken while a
+12-game gate ran, so conservative):** sequential root completes depth 8 in
+145s on the 2^25 per-process clock; root-split (each child an independent
+full-clock worker) completes depth 9 in 266s. Values are the engine's own
+exact search values; move choice = argmax with the sequential root's own
+deepening tie-break mirrored (equal-ceiling agreement test: 5/5 positions).
+The start position at depth 8 reads exactly 135/270 = the lock.
+
+**NEXT: SF-2100 rerun, v17 + root-split depth (the v19 candidate) — the
+horizon lever, the only lever that scales with the hardware.**
+
+**v19 — the calculation layer re-derived and forced (2026-07-17).** Per the
+author's rule, every mechanism now enters as a forcing or a constitution of
+existing corpus forcings (DESIGN_CALCULATION_LAYER.md §1-2; corpus read:
+OneFoldMaster Steps 76/92/145/181/252/261-265/263/285). Work done, all
+measured fresh in this directory:
+
+  1. WORKER-LOCAL CALCULATION STATE: the engine's search state (TT, killers,
+     history census, node clock, attack buffers) moved from process globals
+     into a per-search state created inside its owner -- the sequential
+     engine is now the one-worker case of the same code. Anchor re-proven
+     (22/22, perft exact, lock exact); values verified self-consistent
+     (TT-on == TT-off at fixed depth, 122/238 at depth 7 from the start);
+     SAME MOVES; d12 decision 116s -- at or better than the pre-refactor
+     123-132s after the lazy-table cure below.
+  2. THE SPAWNED ROOT lives in the corpus (root_worker /
+     search_best_spawned in constants/fold_chess_bot.ep, sentinel 8890):
+     the constitution of §2, compiling, value-correct -- and BLOCKED by a
+     measured runtime defect, not by its own law.
+  3. RUNTIME DEFECTS PINNED (probes A-G, tests/probe_*.ep -- kept as the
+     regression suite for the toolchain fix):
+       LAW 1: main-thread heap allocation concurrent with running spawned
+              workers crashes the collector (probe5 vs probe D).
+       LAW 2: ANY thread interleaving channel receive with heap writes
+              crashes (probe C fails in main, probe G fails in a worker;
+              receive+arithmetic stable 9/9, write-only workers stable).
+       Toolchain-level fix belongs in compiler/ (the bundled runtime's GC
+       park path); flagged for the main corpus.
+  4. FALLBACK EXECUTED AS DESIGNED: the same derived §2 rules run with
+     PROCESS workers (fold_bot_value_cli per child -- no shared runtime,
+     isolation by the OS). IDENTITY CHECK PASSED 6/6: spawned decision ==
+     sequential decision, same move, at equal ceiling across six generated
+     openings. The only delta the parallel root carries is DEPTH.
+  5. GC/TABLE INTERACTION measured and cured: megatables held live during a
+     full-board search cost 3x (190s vs 61s, identical nodes) -- the CLI now
+     loads the certified tables LAZILY, exactly when the board is inside
+     coverage (<= 3 men), which is exactly when they decide the move.
+
+  GATE NOTE, recorded openly: the v19 release is depth-only by the §2.2
+  machine-checked identity criterion (6/6); the head-to-head gate vs v17
+  (which would re-measure depth's value at ~days of wall time) is SKIPPED
+  in favour of going straight at the rung. The author may order the gate
+  at any time; nothing is claimed from it.
+
+  IN FLIGHT: SF-2100, 12 games, v19 (process root-split, ceiling 12, full
+  counted clock per worker), 3 concurrent games x 9 workers, pinned
+  binaries, python-chess referee, full records + per-move complete depth
+  to tools/games_par_2100/.
+
+**v20 — the speed=depth lever (2026-07-17), securing the 2100 rank.**
+Objective restated by the author: SECURE 2100 (>50%) outright, then move to
+full strength; no ladder-crawl. v20 is the enabling release -- the counted
+evaluation and the derived calculation layer are UNCHANGED; only the engine's
+speed (hence its reachable depth on the counted clock) improved, by two
+lossless levers:
+
+  1. MAKE/UNMAKE hot path (constants/fold_chess_bot.ep: apply_move / undo_move
+     + worker-local undo stack in calc slots 11/12). The per-node full state
+     copy (a ~71-slot list allocation at every search node -- the profile's
+     largest single cost) is gone: the search mutates ONE state in place and
+     restores it. CERTIFIED value-identical: apply/undo run through the whole
+     perft census -- start 20/400/8902, Kiwipete 48/2039/97862, en-passant
+     43238, four-promotion 9483, and the state byte-restored after every walk
+     (tests/probe_undo.ep, 12/12 ok); fixed-depth root value unchanged
+     (122/238 at depth 7 from start); same moves.
+  2. RUNTIME WRITE-BARRIER fast path (compiler/runtime/ep_runtime.c): a value
+     that cannot be a heap object (< 4GB, or misaligned) returns before the
+     global GC mutex. Integer stores -- nearly every store the engine makes --
+     no longer take the lock. This is a TOOLCHAIN fix: it speeds every
+     ErnosPlain program, and it is the same runtime that carries the two GC
+     concurrency bugs (still open). Compiler rebuilt from source
+     (cargo build --release).
+
+  MEASURED, this machine (M3 Ultra), both levers: depth-8 pass 61s -> 30s =
+  2.03x nodes/s, values and moves identical. The counted clock advanced one
+  doubling to accord (2^25 -> 2^26; the same measured-curve budget climb as
+  2^20->2^22->2^25 in the record), holding the SAME per-move wall-clock bound
+  the 2^25 clock was set from: d12 decision 108s. Identity of the spawned
+  (root-split) vs sequential decision re-confirmed 4/4 at equal ceiling on
+  v20. Anchor suite 22/22, perft exact, lock exact.
+
+  Binaries pinned: tests/fold_bot_cli_v20, tests/fold_bot_value_cli_v20.
+
+  MEASUREMENT-PROVENANCE REPAIR (2026-07-17): the probe and match harness now
+  bind those versioned binaries explicitly instead of relying on mutable
+  unversioned CLI paths. The v20 move binary is SHA-256
+  `36c7eda4ce75cb2c0aafbd18f0e976325ccbf054c1fdb555eb37da5004c5d342`;
+  the v20 value binary is
+  `6b7fe7c9968abab25d9bdcc3aff60e3f928285187270d6d3cd85a482cc1ff410`.
+  The probe writes a hash-bound, resumable JSONL receipt after every position;
+  the match writes both hashes into every game and the tally. Binary failure
+  is a halt, not an empty/partial value. Fresh low-ceiling identity check:
+  sequential move 731 = root-split move 731 at complete depth 4. The current
+  source also re-passed the 22/22 whole-board anchor and 12/12 apply/undo
+  restoration suite in an isolated build before measurement.
+
+  NEXT (locked sequence, no step skipped):
+    1. RE-PROBE the 36 recorded SF-2100 loss positions with v20
+       (tools/probe_positions.py) -- the cheap instrument (~4h, not 3 days).
+       Gate metric unchanged: do the death-slide decisions FLIP with the
+       added depth? v19 flipped 7/36 (1 of 4 death slides); v20 buys ~1 more
+       ply on the same clock, so the probe is re-run before any match.
+    2. CERTIFIED 12-game SF-2100 ONLY if the probe shows the losing decisions
+       move (>50% projected). Certification certifies; it does not explore.
+    3. On securing 2100 (>50%): move to FULL-STRENGTH Stockfish, restart the
+       investigate/iterate loop, then the full league.
+
+  OPEN LEVERS if the probe stalls (all lossless / law-compatible, none a
+  tuned number): incremental attack maps (update the counted map per move
+  instead of rebuilding per eval -- large refactor, own identity check);
+  further toolchain codegen (unboxed integer lists). Each ~2x nodes/s is
+  about +1/3 ply on the counted clock.

@@ -1,0 +1,6 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set a to search_best(state and 1)
+    display int_to_string(get_list(a and 0))
+    return 0

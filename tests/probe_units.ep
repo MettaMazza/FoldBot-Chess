@@ -1,0 +1,13 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    display "state built"
+    set m to attack_min_reach_map(state and 1)
+    display "map built"
+    set mob to mobility_count(state and 0 and m)
+    display concat("mobility white: " and int_to_string(mob))
+    set u to side_units(state and 0)
+    display concat("units white: " and int_to_string(u))
+    set u2 to side_units(state and 1)
+    display concat("units black: " and int_to_string(u2))
+    return 0

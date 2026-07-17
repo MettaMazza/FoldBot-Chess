@@ -1,0 +1,30 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set seen to state_signature(state)
+    set moves to ordered_moves(state)
+    set count to length_list(moves)
+    set orbit_flag to create_list()
+    set i to 0
+    repeat while i < count:
+        set child to make_move(state and get_list(moves and i))
+        set signature to state_signature(child)
+        if string_index_of(seen and signature) < 0:
+            set ok to append_list(orbit_flag and 0)
+        else:
+            set ok to append_list(orbit_flag and 1)
+        set i to i + 1
+    set chan to create_channel()
+    set i to 0
+    repeat while i < count:
+        set hand to make_move(state and get_list(moves and i))
+        spawn root_worker(hand and 4 and i and chan)
+        set i to i + 1
+    set done to 0
+    repeat while done < count:
+        set msg to receive from chan
+        set d to (msg - (msg / 1099511627776) * 1099511627776) / 4294967296
+        if d == 255:
+            set done to done + 1
+    display "A: orbit-preloop + spawn ok"
+    return 0

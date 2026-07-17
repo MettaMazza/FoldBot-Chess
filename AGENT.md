@@ -86,6 +86,10 @@ any change — a new piece rule, a deeper search, a new endgame, a new evaluatio
 There is no "temporarily fit it and clean up later." A fitted number that plays well is a
 regression, because the entire claim of this engine is that it carries none.
 
+### Repository and release boundary
+
+Completed Chess work is committed locally in this repository with only the intended Chess paths staged. Never sweep unrelated probes, binaries, games, or live author changes into a commit. A local commit does not authorize publication or a push. Push only when Maria explicitly requests it. If she requests **sync and push**, first re-prove this file's engine standards, synchronize any required derivation and the established Chess result into the main SFT corpus, master, registry, certificates, evidence links, and related papers, then commit and push the Chess and main-theory repositories separately to their own remotes.
+
 ---
 
 ## 3. How to validate — in THIS directory

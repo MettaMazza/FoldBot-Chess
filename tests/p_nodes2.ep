@@ -1,0 +1,20 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set kqk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/kqk_packed.txt")
+    set krk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/krk_packed.txt")
+    set state to starting_state()
+    set seen to state_signature(state)
+    set calc to calc_create()
+    set ok to set_list(calc and 3 and 1)
+    set remaining to thinking_budget()
+    set pre_move to 0 - 1
+    set depth to 2
+    repeat while depth < 9:
+        set ok to set_list(calc and 7 and remaining)
+        set ok to set_list(calc and 8 and 0)
+        set pass_result to root_pass(state and depth and seen and pre_move and calc)
+        set remaining to get_list(calc and 7)
+        set pre_move to get_list(pass_result and 0)
+        set depth to depth + 1
+    display concat("done, tables still sized " and int_to_string(length_list(kqk) + length_list(krk)))
+    return 0

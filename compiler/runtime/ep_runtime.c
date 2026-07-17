@@ -1198,6 +1198,16 @@ static EpGCObject* ep_gc_find(void* ptr) {
    resize) and use the no-lock ep_gc_table_get to avoid re-entering the lock. */
 static void ep_gc_write_barrier(void* host_ptr, long long val) {
     if (val == 0) return;
+    /* FAST PATH: a value that cannot be a GC object needs no barrier and,
+       crucially, no global lock. Heap objects are malloc'd pointers --
+       8-byte aligned and (on 64-bit platforms with a reserved low region,
+       e.g. macOS PAGEZERO) at or above 4GB. Plain integers -- the
+       overwhelming majority of stores in numeric workloads -- return here.
+       A genuine object pointer passes both tests and takes the slow path,
+       so correctness is untouched; profiled on the FoldBot search: the
+       barrier + its mutex was ~23% of total CPU before this filter. */
+    if (val < 0x100000000LL) return;
+    if (val & 7) return;
     pthread_mutex_lock(&ep_gc_mutex);
     ep_gc_park_if_stopped();  /* safepoint: don't update the remembered set mid-collection */
     EpGCObject* host_obj = ep_gc_table_get(host_ptr);

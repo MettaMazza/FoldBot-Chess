@@ -1,0 +1,56 @@
+# The fold chess bot, VALUE protocol (stateless per call) -- the root-split
+# worker. Same engine, same counted values; this CLI only exposes them.
+#   line 1: depth ceiling
+#   then: move integers applied in order
+#   sentinel 8887: print the legal moves of the current position in the
+#                  engine's own root order (count first, then one per line)
+#   sentinel 8889: budgeted iterative deepening on the current position;
+#                  print every COMPLETED pass as "depth num den" (the exact
+#                  value for the side to move), then "done". A pass that
+#                  cannot finish inside the budget is discarded, exactly as
+#                  the sequential driver discards it.
+import "../constants/fold_chess_bot.ep"
+define main:
+    set ceiling to read_int()
+    set state to starting_state()
+    set running to 1
+    repeat while running == 1:
+        set token to read_int()
+        if token == 8887:
+            set moves to ordered_moves(state)
+            set count to length_list(moves)
+            display int_to_string(count)
+            set i to 0
+            repeat while i < count:
+                display int_to_string(get_list(moves and i))
+                set i to i + 1
+            set running to 0
+        else:
+            if token == 8889:
+                set calc to calc_create()
+                set ok to set_list(calc and 3 and 1)
+                set budget to thinking_budget()
+                set remaining to budget
+                set depth to 1
+                set climbing to 1
+                repeat while climbing == 1:
+                    set ok to set_list(calc and 7 and remaining)
+                    set ok to set_list(calc and 8 and 0)
+                    set packed to search_value(state and depth and 0 and 1 and 1 and 1 and calc)
+                    set remaining to get_list(calc and 7)
+                    if get_list(calc and 8) == 1:
+                        set climbing to 0
+                    else:
+                        set num to packed / 65536
+                        set den to packed - num * 65536
+                        display concat(int_to_string(depth) and concat(" " and concat(int_to_string(num) and concat(" " and int_to_string(den)))))
+                        set depth to depth + 1
+                        if depth > ceiling:
+                            set climbing to 0
+                        if remaining < 1:
+                            set climbing to 0
+                display "done"
+                set running to 0
+            else:
+                set state to make_move(state and token)
+    return 0

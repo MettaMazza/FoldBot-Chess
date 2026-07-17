@@ -1,0 +1,6 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set answer to search_best(state and 7)
+    display concat(concat(int_to_string(get_list(answer and 0)) and " ") and concat(int_to_string(get_list(answer and 1)) and concat("/" and int_to_string(get_list(answer and 2)))))
+    return 0

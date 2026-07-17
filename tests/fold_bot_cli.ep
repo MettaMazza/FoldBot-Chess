@@ -1,28 +1,65 @@
 # The fold chess bot, command-line protocol (stateless per call):
 #   line 1: search depth
 #   then: move integers (promo*4096 + from*64 + to) applied in order
-#   sentinel 8888: compute and print the bot's move for the side to move, exit
+#   sentinel 8888: compute and print the bot's move (sequential), exit
+#   sentinel 8890: compute and print the bot's move (spawned root), exit
 # The bot tracks every position of the game: a repeated position is a closed
 # orbit, priced at the lock 1/2 by chess's own repetition rule.
+# The certified endgame tables are loaded LAZILY -- only when the board is
+# inside table coverage (3 men or fewer), which is exactly when they are
+# consulted. A megatable held live during a full-board search costs the
+# collector a re-trace of every slot per cycle (measured: 3x the search
+# time); a table loaded only when it decides the move costs nothing.
 import "../constants/fold_chess_bot.ep"
 define main:
     set depth to read_int()
-    set kqk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/kqk_packed.txt")
-    set krk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/krk_packed.txt")
     set state to starting_state()
     set seen to state_signature(state)
     set running to 1
     repeat while running == 1:
         set token to read_int()
         if token == 8888:
-            set endgame to endgame_best_move(state and kqk and krk)
-            if get_list(endgame and 0) == 1:
-                display int_to_string(get_list(endgame and 1))
+            set men to 0
+            set sq to 0
+            repeat while sq < 64:
+                if get_list(state and sq) > 0:
+                    set men to men + 1
+                set sq to sq + 1
+            set table_move to 0 - 1
+            if men < 4:
+                set kqk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/kqk_packed.txt")
+                set krk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/krk_packed.txt")
+                set endgame to endgame_best_move(state and kqk and krk)
+                if get_list(endgame and 0) == 1:
+                    set table_move to get_list(endgame and 1)
+            if table_move > 0 - 1:
+                display int_to_string(table_move)
             else:
                 set answer to search_best_seen(state and depth and seen)
                 display int_to_string(get_list(answer and 0))
             set running to 0
         else:
-            set state to make_move(state and token)
-            set seen to concat(seen and state_signature(state))
+            if token == 8890:
+                set men to 0
+                set sq to 0
+                repeat while sq < 64:
+                    if get_list(state and sq) > 0:
+                        set men to men + 1
+                    set sq to sq + 1
+                set table_move to 0 - 1
+                if men < 4:
+                    set kqk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/kqk_packed.txt")
+                    set krk to load_packed_table("/Users/mettamazza/Desktop/FoldBot Chess/data/krk_packed.txt")
+                    set endgame to endgame_best_move(state and kqk and krk)
+                    if get_list(endgame and 0) == 1:
+                        set table_move to get_list(endgame and 1)
+                if table_move > 0 - 1:
+                    display int_to_string(table_move)
+                else:
+                    set answer to search_best_spawned(state and depth and seen)
+                    display int_to_string(get_list(answer and 0))
+                set running to 0
+            else:
+                set state to make_move(state and token)
+                set seen to concat(seen and state_signature(state))
     return 0

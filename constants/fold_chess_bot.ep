@@ -61,45 +61,72 @@ import "../foundation/exact_fractions.ep"
 
 
 # ---------- the calculation state (ordering + hard bound; zero knobs) --------
-# THE TRANSPOSITION TABLE: position -> best move found there. ORDERING ONLY --
-# values are always recomputed by full search, so the move played is
-# unchanged; the table just makes each deepening pass search the previous
-# pass's refutation FIRST, so beta cutoffs land immediately instead of being
-# rediscovered (measured: ~3.3x fewer nodes to the same depth). Keys are a
-# rolling INTEGER hash of the position (pure arithmetic, zero allocation --
-# the earlier string-signature keys built ~140 heap strings per stored node,
-# which the GC profiler exposed as the hot path's biggest remaining cost).
-# Open-addressed, single-probe: a hash collision merely tries a different
-# move first, so correctness is untouched by construction. A generation
-# stamp makes the per-decision reset O(1) instead of a 2^18-slot sweep.
-set TT_KEYS to create_list()
-set TT_MOVES to create_list()
-set TT_STAMP to create_list()
-set TT_GEN to 0
-# KILLER MOVES: per-depth, the last two QUIET moves that refuted a sibling
-# line (caused a beta cutoff). Tried right after the captures -- the same
-# refutation usually kills the neighbouring lines too. Pure bookkeeping of
-# the search's own cutoffs: no weights, no constants, ordering only.
-set KILLER_A to create_list()
-set KILLER_B to create_list()
-# HISTORY: per (from,to) square path, HOW MANY TIMES a quiet move along it
-# has refuted a line -- remaining quiets are then searched in descending
-# refutation count. A counted census of the search's own cutoffs (every
-# increment is 1): no weights, ordering only, lossless.
-set HIST to create_list()
-# NODES_LEFT / PASS_ABORTED: the HARD in-pass bound. Every search node
-# decrements NODES_LEFT; at zero the whole pass aborts instantly (every
-# recursive call returns at once) and the driver discards the partial pass,
-# playing the last COMPLETED iteration's move. Move time is bounded by
-# construction -- no position, however deep its tree, can run away.
-set NODES_LEFT to 0
-set PASS_ABORTED to 0
-# Reusable attack-map buffers, one per colour: the map is built and fully
-# consumed inside ONE side_units call before any other map is needed, so a
-# single preallocated 64-slot buffer per colour serves every evaluation --
-# the hot path allocates nothing (the GC profiler demanded this).
-set WHITE_REACH_BUF to create_list()
-set BLACK_REACH_BUF to create_list()
+# WORKER-LOCAL, by the corpus's own laws (DESIGN_CALCULATION_LAYER.md): one
+# calculation state per counted search -- one focus fully holds one lock
+# (attention capacity), and workers share nothing (the channel law: no
+# smuggled signal; the borrow rules make sharing across spawn a compile
+# error). The slots:
+#   0 TT keys, 1 TT moves, 2 TT stamps, 3 TT generation -- THE TRANSPOSITION
+#     TABLE: position -> best move found there. ORDERING ONLY -- values are
+#     always recomputed by full search, so the move played is unchanged; the
+#     table just makes each deepening pass search the previous pass's
+#     refutation FIRST (a held orbit of the search's own refutations). Keys
+#     are a rolling INTEGER hash (pure arithmetic, zero allocation).
+#     Open-addressed, single-probe: a collision merely tries a different
+#     move first, so correctness is untouched by construction.
+#   4/5 KILLER MOVES: per-depth, the last two QUIET moves that refuted a
+#     sibling line -- tried right after the captures. Pure bookkeeping of
+#     the search's own cutoffs: no weights, no constants, ordering only.
+#   6 HISTORY: per (from,to) square path, HOW MANY TIMES a quiet move along
+#     it refuted a line -- a counted census (every increment is 1): no
+#     weights, ordering only, lossless.
+#   7 NODES_LEFT, 8 PASS_ABORTED: the HARD in-pass bound. Every search node
+#     decrements the count; at zero the whole pass aborts instantly and the
+#     driver discards the partial pass, playing the last COMPLETED
+#     iteration's move. Move time is bounded by construction.
+#   9/10 attack-map buffers, one per colour: the map is built and fully
+#     consumed inside ONE side_units call before any other map is needed,
+#     so the worker's preallocated pair serves every evaluation -- the hot
+#     path allocates nothing (the GC profiler demanded this).
+define calc_create:
+    set tt_keys to create_list()
+    set tt_moves to create_list()
+    set tt_stamp to create_list()
+    repeat while length_list(tt_keys) < 262144:
+        set ok to append_list(tt_keys and 0)
+        set ok to append_list(tt_moves and 0)
+        set ok to append_list(tt_stamp and 0)
+    set killer_a to create_list()
+    set killer_b to create_list()
+    repeat while length_list(killer_a) < 64:
+        set ok to append_list(killer_a and 0 - 1)
+        set ok to append_list(killer_b and 0 - 1)
+    set hist to create_list()
+    repeat while length_list(hist) < 4096:
+        set ok to append_list(hist and 0)
+    #   11 the undo stack (8 ints per applied move, 128 plies), 12 its
+    #     stack pointer: apply_move records what it changes, undo_move
+    #     restores it -- the hot path mutates ONE state in place and
+    #     allocates nothing (the collector profile demanded this: the
+    #     per-node state copy was ~a quarter of all match CPU).
+    set undo to create_list()
+    repeat while length_list(undo) < 1024:
+        set ok to append_list(undo and 0)
+    set calc to create_list()
+    set ok to append_list(calc and tt_keys)
+    set ok to append_list(calc and tt_moves)
+    set ok to append_list(calc and tt_stamp)
+    set ok to append_list(calc and 0)
+    set ok to append_list(calc and killer_a)
+    set ok to append_list(calc and killer_b)
+    set ok to append_list(calc and hist)
+    set ok to append_list(calc and 0)
+    set ok to append_list(calc and 0)
+    set ok to append_list(calc and create_list())
+    set ok to append_list(calc and create_list())
+    set ok to append_list(calc and undo)
+    set ok to append_list(calc and 0)
+    return calc
 
 
 # ---------- the board ------------------------------------------------------
@@ -402,13 +429,13 @@ define lesser_attacker_exists with state and square as Int and defender_reach as
 # The attack map of one side: for every square, the smallest counted reach
 # among that side's pieces attacking it (0 = unattacked). One build per
 # evaluation replaces per-destination scans -- identical counts, precomputed.
-define attack_min_reach_map with state and by_black as Int:
-    # Reuse the per-colour buffer; grow it to 64 slots on first use, then
-    # zero it in place -- no allocation at any later evaluation.
+define attack_min_reach_map with state and by_black as Int and calc:
+    # Reuse the worker's per-colour buffer; grow it to 64 slots on first
+    # use, then zero it in place -- no allocation at any later evaluation.
     if by_black == 1:
-        set reach_map to BLACK_REACH_BUF
+        set reach_map to get_list(calc and 10)
     else:
-        set reach_map to WHITE_REACH_BUF
+        set reach_map to get_list(calc and 9)
     repeat while length_list(reach_map) < 64:
         set ok to append_list(reach_map and 0)
     set i to 0
@@ -668,6 +695,151 @@ define make_move with state and move as Int:
     # the move passes to the other side
     set ok to set_list(fresh and 64 and 1 - side)
     return fresh
+
+# ---------- making a move IN PLACE (the hot path) ---------------------------
+# apply_move performs exactly make_move's transitions on the SAME state,
+# recording everything it changes (8 ints) on the worker's undo stack;
+# undo_move restores it exactly. Same rules, same transitions, zero
+# allocation -- verified value-identical by the perft census run through
+# apply/undo (castling, en passant, promotions all crossed) and by
+# fixed-depth search identity.
+define apply_move with state and move as Int and calc:
+    set undo to get_list(calc and 11)
+    set sp to get_list(calc and 12)
+    set promo to move / 4096
+    set rest to move - promo * 4096
+    set from_sq to rest / 64
+    set to_sq to rest - from_sq * 64
+    set code to get_list(state and from_sq)
+    set side to get_list(state and 64)
+    set kind to piece_kind(code)
+    set ep_square to get_list(state and 69)
+    set ok to set_list(undo and sp and code)
+    set ok to set_list(undo and sp + 1 and get_list(state and to_sq))
+    set ok to set_list(undo and sp + 2 and get_list(state and 65))
+    set ok to set_list(undo and sp + 3 and get_list(state and 66))
+    set ok to set_list(undo and sp + 4 and get_list(state and 67))
+    set ok to set_list(undo and sp + 5 and get_list(state and 68))
+    set ok to set_list(undo and sp + 6 and ep_square)
+    set ok to set_list(undo and sp + 7 and get_list(state and 70))
+    set ok to set_list(calc and 12 and sp + 8)
+    set clock to get_list(state and 70) + 1
+    if kind == 1:
+        set clock to 0
+    if get_list(state and to_sq) > 0:
+        set clock to 0
+    set ok to set_list(state and 70 and clock)
+    # en passant capture: pawn moves diagonally onto the empty ep square
+    if kind == 1:
+        if to_sq == ep_square:
+            if side == 0:
+                set ok to set_list(state and to_sq - 8 and 0)
+            else:
+                set ok to set_list(state and to_sq + 8 and 0)
+    # move the piece
+    set ok to set_list(state and from_sq and 0)
+    set ok to set_list(state and to_sq and code)
+    # promotion: place the encoded piece (queen when unencoded)
+    if kind == 1:
+        set to_rank to to_sq / 8
+        set landed to promo
+        if landed == 0:
+            set landed to 5
+        if side == 0:
+            if to_rank == 7:
+                set ok to set_list(state and to_sq and landed)
+        else:
+            if to_rank == 0:
+                set ok to set_list(state and to_sq and landed + 6)
+    # castling: king moved two files -> bring the rook across
+    if kind == 6:
+        set from_file to from_sq - (from_sq / 8) * 8
+        set to_file to to_sq - (to_sq / 8) * 8
+        if to_file == from_file + 2:
+            set ok to set_list(state and to_sq - 1 and get_list(state and to_sq + 1))
+            set ok to set_list(state and to_sq + 1 and 0)
+        if from_file == to_file + 2:
+            set ok to set_list(state and to_sq + 1 and get_list(state and to_sq - 2))
+            set ok to set_list(state and to_sq - 2 and 0)
+    # castling rights: king or rook leaving home, or rook captured at home
+    if code == 6:
+        set ok to set_list(state and 65 and 0)
+        set ok to set_list(state and 66 and 0)
+    if code == 12:
+        set ok to set_list(state and 67 and 0)
+        set ok to set_list(state and 68 and 0)
+    if from_sq == 7:
+        set ok to set_list(state and 65 and 0)
+    if from_sq == 0:
+        set ok to set_list(state and 66 and 0)
+    if from_sq == 63:
+        set ok to set_list(state and 67 and 0)
+    if from_sq == 56:
+        set ok to set_list(state and 68 and 0)
+    if to_sq == 7:
+        set ok to set_list(state and 65 and 0)
+    if to_sq == 0:
+        set ok to set_list(state and 66 and 0)
+    if to_sq == 63:
+        set ok to set_list(state and 67 and 0)
+    if to_sq == 56:
+        set ok to set_list(state and 68 and 0)
+    # en-passant availability: only a double pawn push opens it
+    set ok to set_list(state and 69 and 64)
+    if kind == 1:
+        if side == 0:
+            if to_sq == from_sq + 16:
+                set ok to set_list(state and 69 and from_sq + 8)
+        else:
+            if to_sq + 16 == from_sq:
+                set ok to set_list(state and 69 and from_sq - 8)
+    # the move passes to the other side
+    set ok to set_list(state and 64 and 1 - side)
+    return 0
+
+define undo_move with state and move as Int and calc:
+    set undo to get_list(calc and 11)
+    set sp to get_list(calc and 12) - 8
+    set ok to set_list(calc and 12 and sp)
+    set rest to move - (move / 4096) * 4096
+    set from_sq to rest / 64
+    set to_sq to rest - from_sq * 64
+    set from_code to get_list(undo and sp)
+    set to_code to get_list(undo and sp + 1)
+    set ep_before to get_list(undo and sp + 6)
+    set side_before to 1 - get_list(state and 64)
+    set ok to set_list(state and 65 and get_list(undo and sp + 2))
+    set ok to set_list(state and 66 and get_list(undo and sp + 3))
+    set ok to set_list(state and 67 and get_list(undo and sp + 4))
+    set ok to set_list(state and 68 and get_list(undo and sp + 5))
+    set ok to set_list(state and 69 and ep_before)
+    set ok to set_list(state and 70 and get_list(undo and sp + 7))
+    set ok to set_list(state and 64 and side_before)
+    set kind to piece_kind(from_code)
+    # castling: bring the rook home first (its squares are disjoint from
+    # from/to, so order is safe either way)
+    if kind == 6:
+        set from_file to from_sq - (from_sq / 8) * 8
+        set to_file to to_sq - (to_sq / 8) * 8
+        if to_file == from_file + 2:
+            set ok to set_list(state and to_sq + 1 and get_list(state and to_sq - 1))
+            set ok to set_list(state and to_sq - 1 and 0)
+        if from_file == to_file + 2:
+            set ok to set_list(state and to_sq - 2 and get_list(state and to_sq + 1))
+            set ok to set_list(state and to_sq + 1 and 0)
+    # the board squares (this also undoes a promotion: from_code is the pawn)
+    set ok to set_list(state and from_sq and from_code)
+    set ok to set_list(state and to_sq and to_code)
+    # en passant capture: the captured pawn comes back (a pawn arriving on
+    # the empty ep square is necessarily the diagonal ep take)
+    if kind == 1:
+        if to_sq == ep_before:
+            if to_code == 0:
+                if side_before == 0:
+                    set ok to set_list(state and to_sq - 8 and 7)
+                else:
+                    set ok to set_list(state and to_sq + 8 and 1)
+    return 0
 
 # ---------- move generation --------------------------------------------------
 define push_move with moves and from_sq as Int and to_sq as Int:
@@ -1320,7 +1492,7 @@ define pawn_promotion_potential with state and sq as Int and for_black as Int re
     set promo_sq to promo_rank * 8 + file
     return counted_reach(5 and promo_sq and for_black)
 
-define side_units with state and for_black as Int returning Int:
+define side_units with state and for_black as Int and calc returning Int:
     set units to 0
     set sq to 0
     repeat while sq < 64:
@@ -1338,7 +1510,7 @@ define side_units with state and for_black as Int returning Int:
             if kind == 1:
                 set units to units + pawn_promotion_potential(state and sq and for_black)
         set sq to sq + 1
-    set enemy_map to attack_min_reach_map(state and 1 - for_black)
+    set enemy_map to attack_min_reach_map(state and 1 - for_black and calc)
     set units to units + mobility_count(state and for_black and enemy_map)
     return units
 
@@ -1347,11 +1519,13 @@ define side_units with state and for_black as Int returning Int:
 # (numerator, denominator), compared by exact cross-multiplication.
 define share_numerator with state returning Int:
     set side to get_list(state and 64)
-    return side_units(state and side)
+    set calc to calc_create()
+    return side_units(state and side and calc)
 
 define share_denominator with state returning Int:
-    set mine to side_units(state and get_list(state and 64))
-    set theirs to side_units(state and 1 - get_list(state and 64))
+    set calc to calc_create()
+    set mine to side_units(state and get_list(state and 64) and calc)
+    set theirs to side_units(state and 1 - get_list(state and 64) and calc)
     return mine + theirs
 
 # ---------- the endgame probe: the certified tables, live -------------------
@@ -1587,12 +1761,13 @@ define could_check_from with kind as Int and to_sq as Int and enemy_king as Int 
 # 2^16, so the pack is exact -- and the search's inner loop allocates
 # NOTHING, which is what keeps the collector out of the hot path (the
 # profiler measured 91% of match CPU inside the GC before this change).
-define quiescence with state and alpha_num as Int and alpha_den as Int and beta_num as Int and beta_den as Int and fresh as Int returning Int:
+define quiescence with state and alpha_num as Int and alpha_den as Int and beta_num as Int and beta_den as Int and fresh as Int and calc returning Int:
     # THE HARD BOUND, counted here too: a pass's nodes are mostly quiescence,
     # so the cap must include them to be a true bound on move time.
-    set NODES_LEFT to NODES_LEFT - 1
-    if NODES_LEFT < 0:
-        set PASS_ABORTED to 1
+    set nodes_now to get_list(calc and 7) - 1
+    set ok to set_list(calc and 7 and nodes_now)
+    if nodes_now < 0:
+        set ok to set_list(calc and 8 and 1)
         return 65536 + 2
     if get_list(state and 70) > 99:
         return 65536 + 2
@@ -1607,8 +1782,8 @@ define quiescence with state and alpha_num as Int and alpha_den as Int and beta_
     if checked:
         set best_num to best_num
     else:
-        set stand_mine to side_units(state and side)
-        set stand_theirs to side_units(state and 1 - side)
+        set stand_mine to side_units(state and side and calc)
+        set stand_theirs to side_units(state and 1 - side and calc)
         set stand_num to stand_mine
         set stand_den to stand_mine + stand_theirs
         if stand_num * beta_den > beta_num * stand_den:
@@ -1679,13 +1854,13 @@ define quiescence with state and alpha_num as Int and alpha_den as Int and beta_
                     if worth_building == 0:
                         set worth_building to worth_building
                     else:
-                        set child to make_move(state and move)
+                        set ok to apply_move(state and move and calc)
                         set king_now to king_from
                         if from_sq == king_from:
                             set king_now to to_sq
-                        set exposed to square_attacked(child and king_now and 1 - side)
+                        set exposed to square_attacked(state and king_now and 1 - side)
                         if exposed:
-                            set exposed to exposed
+                            set ok to undo_move(state and move and calc)
                         else:
                             set legal_seen to legal_seen + 1
                             set read_this to 1
@@ -1695,15 +1870,16 @@ define quiescence with state and alpha_num as Int and alpha_den as Int and beta_
                                 if checked:
                                     set read_this to 1
                                 else:
-                                    set gives_check to square_attacked(child and enemy_king and side)
+                                    set gives_check to square_attacked(state and enemy_king and side)
                                     if gives_check:
                                         set read_this to 1
                                     else:
                                         set read_this to 0
                             if read_this == 0:
-                                set read_this to read_this
+                                set ok to undo_move(state and move and calc)
                             else:
-                                set deeper to quiescence(child and beta_den - beta_num and beta_den and a_den - a_num and a_den and 1 - 1)
+                                set deeper to quiescence(state and beta_den - beta_num and beta_den and a_den - a_num and a_den and 1 - 1 and calc)
+                                set ok to undo_move(state and move and calc)
                                 set child_num to deeper / 65536
                                 set child_den to deeper - child_num * 65536
                                 set my_num to child_den - child_num
@@ -1735,33 +1911,21 @@ define tt_key with state returning Int:
         set i to i + 1
     return k
 
-# Grow the table to its 2^18 slots once; every later call is a no-op.
-define tt_ensure:
-    repeat while length_list(TT_KEYS) < 262144:
-        set ok to append_list(TT_KEYS and 0)
-        set ok to append_list(TT_MOVES and 0)
-        set ok to append_list(TT_STAMP and 0)
-    repeat while length_list(KILLER_A) < 64:
-        set ok to append_list(KILLER_A and 0 - 1)
-        set ok to append_list(KILLER_B and 0 - 1)
-    repeat while length_list(HIST) < 4096:
-        set ok to append_list(HIST and 0)
-    return 0
-
 # The exact alpha-beta value of a node for the side to move, PACKED as
 # num*65536 + den (see quiescence) -- the inner loop allocates nothing.
-define search_value with state and depth as Int and alpha_num as Int and alpha_den as Int and beta_num as Int and beta_den as Int returning Int:
+define search_value with state and depth as Int and alpha_num as Int and alpha_den as Int and beta_num as Int and beta_den as Int and calc returning Int:
     # THE HARD BOUND: out of budget mid-pass -> abort the pass instantly.
     # The returned value is a placeholder; the driver DISCARDS the whole
     # aborted pass, so no placeholder ever reaches play.
-    set NODES_LEFT to NODES_LEFT - 1
-    if NODES_LEFT < 0:
-        set PASS_ABORTED to 1
+    set nodes_now to get_list(calc and 7) - 1
+    set ok to set_list(calc and 7 and nodes_now)
+    if nodes_now < 0:
+        set ok to set_list(calc and 8 and 1)
         return 65536 + 2
     if get_list(state and 70) > 99:
         return 65536 + 2
     if depth == 0:
-        return quiescence(state and alpha_num and alpha_den and beta_num and beta_den and 1)
+        return quiescence(state and alpha_num and alpha_den and beta_num and beta_den and 1 and calc)
     set side to get_list(state and 64)
     set king_from to king_square(state and side)
     set pseudo to pseudo_moves(state)
@@ -1778,22 +1942,29 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
     set key to 0
     set slot to 0
     set tt_move to 0 - 1
+    set tt_keys to get_list(calc and 0)
+    set tt_moves to get_list(calc and 1)
+    set tt_stamp to get_list(calc and 2)
+    set tt_gen to get_list(calc and 3)
+    set killer_a to get_list(calc and 4)
+    set killer_b to get_list(calc and 5)
+    set hist to get_list(calc and 6)
     if depth > 1:
-        if TT_GEN > 0:
+        if tt_gen > 0:
             set use_tt to 1
             set key to tt_key(state)
             set slot to key - (key / 262144) * 262144
-            if get_list(TT_STAMP and slot) == TT_GEN:
-                if get_list(TT_KEYS and slot) == key:
-                    set tt_move to get_list(TT_MOVES and slot)
+            if get_list(tt_stamp and slot) == tt_gen:
+                if get_list(tt_keys and slot) == key:
+                    set tt_move to get_list(tt_moves and slot)
     # The killer pair for this depth (quiet refuters of sibling lines).
     set k1 to 0 - 1
     set k2 to 0 - 1
-    if length_list(KILLER_A) > 63:
-        set k1 to get_list(KILLER_A and depth)
-        set k2 to get_list(KILLER_B and depth)
+    if length_list(killer_a) > 63:
+        set k1 to get_list(killer_a and depth)
+        set k2 to get_list(killer_b and depth)
     set hist_ready to 0
-    if length_list(HIST) > 4095:
+    if length_list(hist) > 4095:
         set hist_ready to 1
     # bucket -1 is the table's move, searched first; 0..1 the counted
     # captures (heavy then light); 2 the killers; 3 the remaining quiets in
@@ -1828,7 +1999,7 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                                     else:
                                         set h to 0
                                         if hist_ready == 1:
-                                            set h to get_list(HIST and cand - (cand / 4096) * 4096)
+                                            set h to get_list(hist and cand - (cand / 4096) * 4096)
                                         if h > best_h:
                                             set best_h to h
                                             set move to cand
@@ -1875,13 +2046,13 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                     if move == tt_move:
                         set wanted to 0
                 if wanted == 1:
-                    set child to make_move(state and move)
+                    set ok to apply_move(state and move and calc)
                     set king_now to king_from
                     if from_sq == king_from:
                         set king_now to to_sq
-                    set exposed to square_attacked(child and king_now and 1 - side)
+                    set exposed to square_attacked(state and king_now and 1 - side)
                     if exposed:
-                        set exposed to exposed
+                        set ok to undo_move(state and move and calc)
                     else:
                         set legal_seen to legal_seen + 1
                         # PVS: the first legal move is read with the full
@@ -1893,13 +2064,14 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                         # plain search: lossless, not one constant added.
                         set deeper to 0
                         if legal_seen == 1:
-                            set deeper to search_value(child and depth - 1 and beta_den - beta_num and beta_den and a_den - a_num and a_den)
+                            set deeper to search_value(state and depth - 1 and beta_den - beta_num and beta_den and a_den - a_num and a_den and calc)
                         else:
-                            set deeper to search_value(child and depth - 1 and a_den - a_num and a_den and a_den - a_num and a_den)
+                            set deeper to search_value(state and depth - 1 and a_den - a_num and a_den and a_den - a_num and a_den and calc)
                             set probe_num to (deeper - (deeper / 65536) * 65536) - deeper / 65536
                             set probe_den to deeper - (deeper / 65536) * 65536
                             if probe_num * a_den > a_num * probe_den:
-                                set deeper to search_value(child and depth - 1 and beta_den - beta_num and beta_den and a_den - a_num and a_den)
+                                set deeper to search_value(state and depth - 1 and beta_den - beta_num and beta_den and a_den - a_num and a_den and calc)
+                        set ok to undo_move(state and move and calc)
                         set child_num to deeper / 65536
                         set child_den to deeper - child_num * 65536
                         set my_num to child_den - child_num
@@ -1910,21 +2082,21 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                             set best_move to move
                         if my_num * beta_den > beta_num * my_den:
                             if use_tt == 1:
-                                set ok to set_list(TT_KEYS and slot and key)
-                                set ok to set_list(TT_MOVES and slot and move)
-                                set ok to set_list(TT_STAMP and slot and TT_GEN)
+                                set ok to set_list(tt_keys and slot and key)
+                                set ok to set_list(tt_moves and slot and move)
+                                set ok to set_list(tt_stamp and slot and tt_gen)
                             if taking:
                                 set taking to taking
                             else:
-                                if length_list(KILLER_A) > 63:
+                                if length_list(killer_a) > 63:
                                     if move == k1:
                                         set k1 to k1
                                     else:
-                                        set ok to set_list(KILLER_B and depth and k1)
-                                        set ok to set_list(KILLER_A and depth and move)
+                                        set ok to set_list(killer_b and depth and k1)
+                                        set ok to set_list(killer_a and depth and move)
                                 if hist_ready == 1:
                                     set hslot to move - (move / 4096) * 4096
-                                    set ok to set_list(HIST and hslot and get_list(HIST and hslot) + 1)
+                                    set ok to set_list(hist and hslot and get_list(hist and hslot) + 1)
                             return best_num * 65536 + best_den
                         if my_num * a_den > a_num * my_den:
                             set a_num to my_num
@@ -1933,9 +2105,9 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
         set bucket to bucket + 1
     if use_tt == 1:
         if best_move > 0 - 1:
-            set ok to set_list(TT_KEYS and slot and key)
-            set ok to set_list(TT_MOVES and slot and best_move)
-            set ok to set_list(TT_STAMP and slot and TT_GEN)
+            set ok to set_list(tt_keys and slot and key)
+            set ok to set_list(tt_moves and slot and best_move)
+            set ok to set_list(tt_stamp and slot and tt_gen)
     if legal_seen == 0:
         set checked to side_in_check(state)
         if checked:
@@ -1958,9 +2130,9 @@ define state_signature with state returning Str:
 # prices it at the draw value, the lock 1/2, exactly. The previous
 # iteration's best move (pre_move) is searched first -- the shallower read
 # orders the deeper one. Returns [move, num, den, nodes].
-define root_pass with state and depth as Int and seen as Str and pre_move as Int:
+define root_pass with state and depth as Int and seen as Str and pre_move as Int and calc:
     set result to create_list()
-    set left_at_entry to NODES_LEFT
+    set left_at_entry to get_list(calc and 7)
     set moves to ordered_moves(state)
     set count to length_list(moves)
     if count == 0:
@@ -1998,7 +2170,7 @@ define root_pass with state and depth as Int and seen as Str and pre_move as Int
             set signature to state_signature(child)
             set visited to string_index_of(seen and signature)
             if visited < 0:
-                set deeper to search_value(child and depth - 1 and 1 - 1 and 1 and best_den - best_num and best_den)
+                set deeper to search_value(child and depth - 1 and 1 - 1 and 1 and best_den - best_num and best_den and calc)
                 set child_num to deeper / 65536
                 set child_den to deeper - child_num * 65536
                 set my_num to child_den - child_num
@@ -2011,7 +2183,7 @@ define root_pass with state and depth as Int and seen as Str and pre_move as Int
     set ok to append_list(result and best_move)
     set ok to append_list(result and best_num)
     set ok to append_list(result and best_den)
-    set ok to append_list(result and 1 + left_at_entry - NODES_LEFT)
+    set ok to append_list(result and 1 + left_at_entry - get_list(calc and 7))
     return result
 
 # BUDGETED ITERATIVE DEEPENING: deepen one level at a time until the counted
@@ -2028,22 +2200,28 @@ define root_pass with state and depth as Int and seen as Str and pre_move as Int
 # depth-7 pass costs 17.7M nodes -- a second whole ply beyond the 2^20
 # budget's sight, ~70s/move worst case at the measured 258K nodes/s;
 # simplified positions automatically read far deeper on the same budget.
+# 2^26 (was 2^25): the clock follows the measured curve, as at every prior
+# budget climb (2^20 -> 2^22 -> 2^25 in the record). The 2026-07-17 releases
+# (make/unmake hot path; the runtime write-barrier fast path) measured the
+# engine at 2.03x nodes/s (d8 pass: 61s -> 30s, identical values and moves),
+# so one further doubling of the counted budget holds the SAME wall-clock
+# bound per move the 2^25 clock was set from.
 define thinking_budget returning Int:
     set base to 2
     set budget to 1
     set k to 0
-    repeat while k < 25:
+    repeat while k < 26:
         set budget to budget * base
         set k to k + 1
     return budget
 
 define search_best_seen with state and ceiling as Int and seen as Str:
     set result to create_list()
-    # Fresh transposition generation for this move decision (O(1) reset);
-    # the table persists across the deepening passes below so each pass
+    # A fresh worker-local calculation state for this move decision; the
+    # table persists across the deepening passes below so each pass
     # reuses the last one's cutoff moves.
-    set ok to tt_ensure()
-    set TT_GEN to TT_GEN + 1
+    set calc to calc_create()
+    set ok to set_list(calc and 3 and 1)
     set budget to thinking_budget()
     set remaining to budget
     set pre_move to 0 - 1
@@ -2053,11 +2231,11 @@ define search_best_seen with state and ceiling as Int and seen as Str:
     set depth to 2
     set climbing to 1
     repeat while climbing == 1:
-        set NODES_LEFT to remaining
-        set PASS_ABORTED to 0
-        set pass_result to root_pass(state and depth and seen and pre_move)
-        set remaining to NODES_LEFT
-        if PASS_ABORTED == 1:
+        set ok to set_list(calc and 7 and remaining)
+        set ok to set_list(calc and 8 and 0)
+        set pass_result to root_pass(state and depth and seen and pre_move and calc)
+        set remaining to get_list(calc and 7)
+        if get_list(calc and 8) == 1:
             # Partial pass: its values are placeholders -- discard it and
             # play the deepest completed pass's move. If NO pass ever
             # completed (never at this budget: depth 2 costs ~10^4), fall
@@ -2090,8 +2268,8 @@ define search_best_seen with state and ceiling as Int and seen as Str:
 # certifications' exact searches run to completion exactly as before.
 define search_best with state and depth as Int:
     set result to create_list()
-    set NODES_LEFT to 1152921504606846976
-    set PASS_ABORTED to 0
+    set calc to calc_create()
+    set ok to set_list(calc and 7 and 1152921504606846976)
     set moves to ordered_moves(state)
     set count to length_list(moves)
     if count == 0:
@@ -2111,7 +2289,7 @@ define search_best with state and depth as Int:
     repeat while i < count:
         set move to get_list(moves and i)
         set child to make_move(state and move)
-        set deeper to search_value(child and depth - 1 and 1 - 1 and 1 and best_den - best_num and best_den)
+        set deeper to search_value(child and depth - 1 and 1 - 1 and 1 and best_den - best_num and best_den and calc)
         set child_num to deeper / 65536
         set child_den to deeper - child_num * 65536
         set my_num to child_den - child_num
@@ -2252,4 +2430,185 @@ define endgame_best_move with state and kqk and krk:
         set i to i + 1
     set r to append_list(result and 1)
     set r to append_list(result and best_move)
+    return result
+
+# ---------- the spawned root (the constitution, DESIGN_CALCULATION_LAYER §2) --
+# Root-child subtrees are disjoint derivations: by the corpus's composition
+# law (the joint of independent components is the product; the fold commutes
+# with composition) their evaluation order is a non-fact, so computing them
+# concurrently can change NO value. Each worker is ONE counted search (one
+# focus fully holds one lock) with its own worker-local calculation state and
+# the full counted clock; workers speak only over the channel, and only
+# COMPLETED passes (no smuggled signal -- the borrow rules make shared state
+# a compile error). Message packing, exact by construction: den and num are
+# both far below 2^16 (the pack already used by the search), depth below 2^8,
+# so message = index*2^40 + depth*2^32 + num*65536 + den, and the done marker
+# uses the impossible depth field 255.
+define root_worker with child and ceiling as Int and index as Int and chan:
+    set calc to calc_create()
+    set ok to set_list(calc and 3 and 1)
+    set budget to thinking_budget()
+    set remaining to budget
+    set depth to 1
+    set climbing to 1
+    repeat while climbing == 1:
+        set ok to set_list(calc and 7 and remaining)
+        set ok to set_list(calc and 8 and 0)
+        set packed to search_value(child and depth and 1 - 1 and 1 and 1 and 1 and calc)
+        set remaining to get_list(calc and 7)
+        if get_list(calc and 8) == 1:
+            set climbing to 0
+        else:
+            send index * 1099511627776 + depth * 4294967296 + packed to chan
+            set depth to depth + 1
+            if depth > ceiling:
+                set climbing to 0
+            if remaining < 1:
+                set climbing to 0
+    send index * 1099511627776 + 255 * 4294967296 to chan
+    return 0
+
+# The spawned root decision. The decision depth d* is FORCED, not chosen:
+# exact values at different depths are different measurements and
+# measurements never mix (the sealed-measurement law), so the root argmax
+# exists only at depths EVERY child has completed -- the deepest such depth.
+# The argmax replays the sequential root's own deepening rule: each pass
+# considers the previous pass's winner FIRST, then the engine's generated
+# order; strictly-greater replaces. A root child repeating a game position
+# is a closed orbit, priced exactly at the lock 1/2 without search (the
+# existing rule). Returns [move, num, den, d_star_plus_one].
+define search_best_spawned with state and ceiling as Int and seen as Str:
+    set result to create_list()
+    set moves to ordered_moves(state)
+    set count to length_list(moves)
+    if count == 0:
+        set checked to side_in_check(state)
+        set ok to append_list(result and 0 - 1)
+        if checked:
+            set ok to append_list(result and 1)
+            set ok to append_list(result and 1024 + ceiling)
+        else:
+            set ok to append_list(result and 1)
+            set ok to append_list(result and 2)
+        set ok to append_list(result and 0)
+        return result
+    # EVERY main-thread allocation happens BEFORE the first spawn: children,
+    # orbit flags, and the whole collection matrix. Between the first spawn
+    # and the last done-marker the main thread performs only arithmetic and
+    # writes into preallocated slots -- the isolation law applied to the
+    # collector itself (measured: concurrent main-thread allocation trips
+    # the runtime's collector; this layout removes the exposure entirely).
+    set orbit_flag to create_list()
+    set i to 0
+    repeat while i < count:
+        set move to get_list(moves and i)
+        set child to make_move(state and move)
+        set signature to state_signature(child)
+        if string_index_of(seen and signature) < 0:
+            set ok to append_list(orbit_flag and 0)
+        else:
+            set ok to append_list(orbit_flag and 1)
+        set i to i + 1
+    set values to create_list()
+    set deepest to create_list()
+    set i to 0
+    repeat while i < count:
+        set row to create_list()
+        set d to 0
+        repeat while d < 64:
+            set ok to append_list(row and 0)
+            set d to d + 1
+        set ok to append_list(values and row)
+        set ok to append_list(deepest and 0)
+        set i to i + 1
+    # One worker per child, unconditionally (the ownership rule wants the
+    # handoff unconditional). An orbit child's worker runs too, but its
+    # messages are never read as values: the orbit flag prices that move at
+    # the lock 1/2 in the argmax and excludes it from d* -- values untouched.
+    set chan to create_channel()
+    set spawned to count
+    set i to 0
+    repeat while i < count:
+        set hand to make_move(state and get_list(moves and i))
+        spawn root_worker(hand and ceiling - 1 and i and chan)
+        set i to i + 1
+    # Collect every completed pass from every worker.
+    set done_count to 0
+    repeat while done_count < spawned:
+        set msg to receive from chan
+        set idx to msg / 1099511627776
+        set rest to msg - idx * 1099511627776
+        set d to rest / 4294967296
+        set packed to rest - d * 4294967296
+        if d == 255:
+            set done_count to done_count + 1
+        else:
+            set row to get_list(values and idx)
+            set ok to set_list(row and d and packed)
+            if d > get_list(deepest and idx):
+                set ok to set_list(deepest and idx and d)
+    # d* -- the deepest depth ALL searched children completed (forced).
+    set d_star to 63
+    set any_child to 0
+    set i to 0
+    repeat while i < count:
+        if get_list(orbit_flag and i) == 0:
+            set any_child to 1
+            if get_list(deepest and i) < d_star:
+                set d_star to get_list(deepest and i)
+        set i to i + 1
+    if any_child == 0:
+        set d_star to 1
+    # The deepening argmax, previous winner first -- the root's own rule.
+    set pre_idx to 0 - 1
+    set final_move to get_list(moves and 0)
+    set final_num to 1
+    set final_den to 2
+    set d to 1
+    repeat while d < d_star + 1:
+        set best_move to 0 - 1
+        set best_num to 0
+        set best_den to 1
+        set best_idx to 0 - 1
+        set i to 0 - 1
+        repeat while i < count:
+            set skip_this to 0
+            set use_idx to pre_idx
+            if i > 0 - 1:
+                set use_idx to i
+                if use_idx == pre_idx:
+                    set skip_this to 1
+            else:
+                if pre_idx < 0:
+                    set skip_this to 1
+            if skip_this == 0:
+                set move to get_list(moves and use_idx)
+                set my_num to 1
+                set my_den to 2
+                if get_list(orbit_flag and use_idx) == 0:
+                    set packed to get_list(get_list(values and use_idx) and d)
+                    if packed == 0:
+                        set my_num to 0
+                        set my_den to 1
+                    else:
+                        set child_num to packed / 65536
+                        set child_den to packed - child_num * 65536
+                        set my_num to child_den - child_num
+                        set my_den to child_den
+                if my_num * best_den > best_num * my_den:
+                    set best_num to my_num
+                    set best_den to my_den
+                    set best_move to move
+                    set best_idx to use_idx
+            set i to i + 1
+        if best_idx > 0 - 1:
+            set pre_idx to best_idx
+            set final_move to best_move
+            set final_num to best_num
+            set final_den to best_den
+        set d to d + 1
+    set ok to append_list(result and final_move)
+    set ok to append_list(result and final_num)
+    set ok to append_list(result and final_den)
+    set ok to append_list(result and d_star + 1)
     return result

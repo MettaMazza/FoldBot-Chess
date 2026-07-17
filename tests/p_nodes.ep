@@ -1,0 +1,20 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set seen to state_signature(state)
+    set calc to calc_create()
+    set ok to set_list(calc and 3 and 1)
+    set budget to thinking_budget()
+    set remaining to budget
+    set pre_move to 0 - 1
+    set depth to 2
+    repeat while depth < 9:
+        set ok to set_list(calc and 7 and remaining)
+        set ok to set_list(calc and 8 and 0)
+        set pass_result to root_pass(state and depth and seen and pre_move and calc)
+        set remaining to get_list(calc and 7)
+        set aborted to get_list(calc and 8)
+        display concat(concat("pass " and int_to_string(depth)) and concat(concat(" nodes " and int_to_string(get_list(pass_result and 3))) and concat(" aborted " and int_to_string(aborted))))
+        set pre_move to get_list(pass_result and 0)
+        set depth to depth + 1
+    return 0

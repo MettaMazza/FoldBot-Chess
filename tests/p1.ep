@@ -1,0 +1,5 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    display int_to_string(perft(state and 3))
+    return 0

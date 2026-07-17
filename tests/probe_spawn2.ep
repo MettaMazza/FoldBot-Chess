@@ -1,0 +1,23 @@
+import "../constants/fold_chess_bot.ep"
+define search_worker with child and index as Int and chan:
+    set calc to calc_create()
+    set ok to set_list(calc and 3 and 1)
+    set ok to set_list(calc and 7 and 1000000)
+    set packed to search_value(child and 2 and 1 - 1 and 1 and 1 and 1 and calc)
+    send index * 1099511627776 + 2 * 4294967296 + packed to chan
+    return 0
+define main:
+    set state to starting_state()
+    set moves to ordered_moves(state)
+    set chan to create_channel()
+    set i to 0
+    repeat while i < 20:
+        set child to make_move(state and get_list(moves and i))
+        spawn search_worker(child and i and chan)
+        set i to i + 1
+    set done to 0
+    repeat while done < 20:
+        set msg to receive from chan
+        set done to done + 1
+    display "20 search workers ok"
+    return 0

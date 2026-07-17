@@ -1,0 +1,8 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set seen to state_signature(state)
+    set answer to search_best_spawned(state and 5 and seen)
+    display int_to_string(get_list(answer and 0))
+    display int_to_string(get_list(answer and 3))
+    return 0

@@ -1,0 +1,145 @@
+import "../constants/fold_chess_bot.ep"
+define perft_fast with state and depth as Int and calc returning Int:
+    if depth == 0:
+        return 1
+    set side to get_list(state and 64)
+    set king_from to king_square(state and side)
+    set pseudo to pseudo_moves(state)
+    set count to length_list(pseudo)
+    set total to 0
+    set i to 0
+    repeat while i < count:
+        set move to get_list(pseudo and i)
+        set rest to move - (move / 4096) * 4096
+        set from_sq to rest / 64
+        set to_sq to rest - from_sq * 64
+        set ok to apply_move(state and move and calc)
+        set king_now to king_from
+        if from_sq == king_from:
+            set king_now to to_sq
+        set exposed to square_attacked(state and king_now and 1 - side)
+        if exposed:
+            set ok to undo_move(state and move and calc)
+        else:
+            set total to total + perft_fast(state and depth - 1 and calc)
+            set ok to undo_move(state and move and calc)
+        set i to i + 1
+    return total
+define expect_count with label as Str and got as Int and want as Int:
+    if got == want:
+        display concat("  ok    " and label)
+    else:
+        display concat("  FAIL  " and concat(label and concat(" got " and int_to_string(got))))
+    return 0
+define main:
+    set calc to calc_create()
+    set state to starting_state()
+    set sig_before to state_signature(state)
+    set ok to expect_count("APPLY/UNDO perft: start d1 = 20" and perft_fast(state and 1 and calc) and 20)
+    set ok to expect_count("APPLY/UNDO perft: start d2 = 400" and perft_fast(state and 2 and calc) and 400)
+    set ok to expect_count("APPLY/UNDO perft: start d3 = 8902" and perft_fast(state and 3 and calc) and 8902)
+    set sig_now to state_signature(state)
+    if sig_now equals sig_before:
+        display "  ok    state EXACTLY restored after 9302 apply/undo walks"
+    else:
+        display "  FAIL  state corrupted"
+    set kiwi to empty_state()
+    set ok to set_list(kiwi and 0 and 4)
+    set ok to set_list(kiwi and 4 and 6)
+    set ok to set_list(kiwi and 7 and 4)
+    set ok to set_list(kiwi and 8 and 1)
+    set ok to set_list(kiwi and 9 and 1)
+    set ok to set_list(kiwi and 10 and 1)
+    set ok to set_list(kiwi and 11 and 3)
+    set ok to set_list(kiwi and 12 and 3)
+    set ok to set_list(kiwi and 13 and 1)
+    set ok to set_list(kiwi and 14 and 1)
+    set ok to set_list(kiwi and 15 and 1)
+    set ok to set_list(kiwi and 18 and 2)
+    set ok to set_list(kiwi and 21 and 5)
+    set ok to set_list(kiwi and 23 and 7)
+    set ok to set_list(kiwi and 25 and 7)
+    set ok to set_list(kiwi and 28 and 1)
+    set ok to set_list(kiwi and 35 and 1)
+    set ok to set_list(kiwi and 36 and 2)
+    set ok to set_list(kiwi and 40 and 9)
+    set ok to set_list(kiwi and 41 and 8)
+    set ok to set_list(kiwi and 44 and 7)
+    set ok to set_list(kiwi and 45 and 8)
+    set ok to set_list(kiwi and 46 and 7)
+    set ok to set_list(kiwi and 48 and 7)
+    set ok to set_list(kiwi and 50 and 7)
+    set ok to set_list(kiwi and 51 and 7)
+    set ok to set_list(kiwi and 52 and 11)
+    set ok to set_list(kiwi and 53 and 7)
+    set ok to set_list(kiwi and 54 and 9)
+    set ok to set_list(kiwi and 56 and 10)
+    set ok to set_list(kiwi and 60 and 12)
+    set ok to set_list(kiwi and 63 and 10)
+    set ok to set_list(kiwi and 64 and 0)
+    set ok to set_list(kiwi and 65 and 1)
+    set ok to set_list(kiwi and 66 and 1)
+    set ok to set_list(kiwi and 67 and 1)
+    set ok to set_list(kiwi and 68 and 1)
+    set ok to set_list(kiwi and 69 and 64)
+    set sig_kiwi to state_signature(kiwi)
+    set ok to expect_count("APPLY/UNDO perft: Kiwipete d1 = 48" and perft_fast(kiwi and 1 and calc) and 48)
+    set ok to expect_count("APPLY/UNDO perft: Kiwipete d2 = 2039" and perft_fast(kiwi and 2 and calc) and 2039)
+    set ok to expect_count("APPLY/UNDO perft: Kiwipete d3 = 97862" and perft_fast(kiwi and 3 and calc) and 97862)
+    set sig_know to state_signature(kiwi)
+    if sig_know equals sig_kiwi:
+        display "  ok    Kiwipete EXACTLY restored (castling paths crossed)"
+    else:
+        display "  FAIL  Kiwipete corrupted"
+    set endgame to empty_state()
+    set ok to set_list(endgame and 12 and 1)
+    set ok to set_list(endgame and 14 and 1)
+    set ok to set_list(endgame and 25 and 4)
+    set ok to set_list(endgame and 29 and 7)
+    set ok to set_list(endgame and 31 and 12)
+    set ok to set_list(endgame and 32 and 6)
+    set ok to set_list(endgame and 33 and 1)
+    set ok to set_list(endgame and 39 and 10)
+    set ok to set_list(endgame and 43 and 7)
+    set ok to set_list(endgame and 50 and 7)
+    set ok to set_list(endgame and 64 and 0)
+    set ok to set_list(endgame and 65 and 0)
+    set ok to set_list(endgame and 66 and 0)
+    set ok to set_list(endgame and 67 and 0)
+    set ok to set_list(endgame and 68 and 0)
+    set ok to set_list(endgame and 69 and 64)
+    set sig_eg to state_signature(endgame)
+    set ok to expect_count("APPLY/UNDO perft: en-passant-pin d4 = 43238" and perft_fast(endgame and 4 and calc) and 43238)
+    set sig_egnow to state_signature(endgame)
+    if sig_egnow equals sig_eg:
+        display "  ok    en-passant endgame EXACTLY restored"
+    else:
+        display "  FAIL  en-passant endgame corrupted"
+    set promo_pos to empty_state()
+    set ok to set_list(promo_pos and 5 and 2)
+    set ok to set_list(promo_pos and 7 and 2)
+    set ok to set_list(promo_pos and 12 and 6)
+    set ok to set_list(promo_pos and 13 and 7)
+    set ok to set_list(promo_pos and 14 and 7)
+    set ok to set_list(promo_pos and 15 and 7)
+    set ok to set_list(promo_pos and 48 and 1)
+    set ok to set_list(promo_pos and 49 and 1)
+    set ok to set_list(promo_pos and 50 and 1)
+    set ok to set_list(promo_pos and 51 and 12)
+    set ok to set_list(promo_pos and 56 and 8)
+    set ok to set_list(promo_pos and 58 and 8)
+    set ok to set_list(promo_pos and 64 and 1)
+    set ok to set_list(promo_pos and 65 and 0)
+    set ok to set_list(promo_pos and 66 and 0)
+    set ok to set_list(promo_pos and 67 and 0)
+    set ok to set_list(promo_pos and 68 and 0)
+    set ok to set_list(promo_pos and 69 and 64)
+    set sig_pr to state_signature(promo_pos)
+    set ok to expect_count("APPLY/UNDO perft: four-promotion d3 = 9483" and perft_fast(promo_pos and 3 and calc) and 9483)
+    set sig_prnow to state_signature(promo_pos)
+    if sig_prnow equals sig_pr:
+        display "  ok    promotion position EXACTLY restored"
+    else:
+        display "  FAIL  promotion position corrupted"
+    display "=== apply/undo certified against the census ==="
+    return 0

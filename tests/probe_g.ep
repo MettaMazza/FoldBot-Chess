@@ -1,0 +1,35 @@
+import "../constants/fold_chess_bot.ep"
+define collector with count as Int and chan and out:
+    set values to create_list()
+    set i to 0
+    repeat while i < count * 64 + count:
+        set ok to append_list(values and 0)
+        set i to i + 1
+    set done to 0
+    repeat while done < count:
+        set msg to receive from chan
+        set idx to msg / 1099511627776
+        set rest to msg - idx * 1099511627776
+        set d to rest / 4294967296
+        set packed to rest - d * 4294967296
+        if d == 255:
+            set done to done + 1
+        else:
+            set ok to set_list(values and idx * 64 + d and packed)
+    send get_list(values and 0 * 64 + 1) to out
+    return 0
+define main:
+    set state to starting_state()
+    set moves to ordered_moves(state)
+    set count to length_list(moves)
+    set chan to create_channel()
+    set out to create_channel()
+    spawn collector(count and chan and out)
+    set i to 0
+    repeat while i < count:
+        set hand to make_move(state and get_list(moves and i))
+        spawn root_worker(hand and 4 and i and chan)
+        set i to i + 1
+    set first_val to receive from out
+    display concat("G ok, child0 d1 packed = " and int_to_string(first_val))
+    return 0

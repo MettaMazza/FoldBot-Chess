@@ -1,0 +1,21 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set moves to ordered_moves(state)
+    set count to length_list(moves)
+    set chan to create_channel()
+    set i to 0
+    repeat while i < count:
+        set child to make_move(state and get_list(moves and i))
+        spawn root_worker(child and 4 and i and chan)
+        set i to i + 1
+    set done to 0
+    set msgs to 0
+    repeat while done < count:
+        set msg to receive from chan
+        set msgs to msgs + 1
+        set d to (msg - (msg / 1099511627776) * 1099511627776) / 4294967296
+        if d == 255:
+            set done to done + 1
+    display concat("all workers done, messages: " and int_to_string(msgs))
+    return 0

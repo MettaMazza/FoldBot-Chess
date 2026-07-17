@@ -1,0 +1,40 @@
+import "../constants/fold_chess_bot.ep"
+define main:
+    set state to starting_state()
+    set moves to ordered_moves(state)
+    set count to length_list(moves)
+    set chan to create_channel()
+    set i to 0
+    repeat while i < count:
+        set child to make_move(state and get_list(moves and i))
+        spawn root_worker(child and 4 and i and chan)
+        set i to i + 1
+    # allocate the collection matrix WHILE workers run (as search_best_spawned does)
+    set values to create_list()
+    set deepest to create_list()
+    set i to 0
+    repeat while i < count:
+        set row to create_list()
+        set d to 0
+        repeat while d < 64:
+            set ok to append_list(row and 0)
+            set d to d + 1
+        set ok to append_list(values and row)
+        set ok to append_list(deepest and 0)
+        set i to i + 1
+    set done to 0
+    repeat while done < count:
+        set msg to receive from chan
+        set idx to msg / 1099511627776
+        set rest to msg - idx * 1099511627776
+        set d to rest / 4294967296
+        set packed to rest - d * 4294967296
+        if d == 255:
+            set done to done + 1
+        else:
+            set row to get_list(values and idx)
+            set ok to set_list(row and d and packed)
+            if d > get_list(deepest and idx):
+                set ok to set_list(deepest and idx and d)
+    display "matrix collection ok"
+    return 0

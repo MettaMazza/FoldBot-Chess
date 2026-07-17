@@ -1,0 +1,17 @@
+import "../constants/fold_chess_bot.ep"
+define alloc_worker with index as Int and chan:
+    set calc to calc_create()
+    send index * 1099511627776 + 255 * 4294967296 to chan
+    return 0
+define main:
+    set chan to create_channel()
+    set i to 0
+    repeat while i < 20:
+        spawn alloc_worker(i and chan)
+        set i to i + 1
+    set done to 0
+    repeat while done < 20:
+        set msg to receive from chan
+        set done to done + 1
+    display "20 alloc workers ok"
+    return 0
