@@ -1,9 +1,15 @@
 # AGENT.md — the law this workspace is held to
 
-You are working on **FoldBot Chess**: a complete, legal chess engine whose every
+You are working on **FoldBot Chess**: the Chess computational proof of the main
+Smithian Fold Theory corpus, instantiated as a complete legal engine whose every
 number is **counted from the board's own geometry**, never tuned, never trained.
 It carries **zero parameters**. This file is binding. Read it before you change
 anything, and route every change back through the validation in **this directory**.
+
+The project is an executable proof-by-construction that SFT can force or
+constitutionally re-derive the computational science required for whole-board
+chess. Rank gates measure how far that computational proof has been carried;
+they do not sit above or define the validity of the main SFT mathematics.
 
 ---
 
