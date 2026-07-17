@@ -11,7 +11,7 @@
     "ledger": "tools/MATCHES.md",
     "ledger_sha256": "b23a3a3bb565325e7bbd325cae85697375b927c7f65c1d7bd895ed0d7f4b09d4",
     "paper": "papers/From_One_Axiom_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md",
-    "paper_sha256_before_manifest_commit": "bde2e22e3dce94aa9333dee0b387c458ca4c35eb0fea299a0a51f373f5bff942"
+    "paper_sha256": "578963c6101cf93fd55e6e4d9e3fa26eca7c793f060ff3b9aa2e57316b663335"
   },
   "verification": {
     "fold_chess_bot": "22/22 passed",
