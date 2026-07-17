@@ -10,12 +10,15 @@ A piece is worth the squares it commands from where it stands. A position's valu
 mover's exact share of the One. The search depth is the counted colour, three. Nothing is
 tuned; nothing is trained; every evaluation is an exact rational.
 
-### What it does — measured, and reproducible in under a minute
+### What it does — measured and replayable
 
-- ♟️ **Held full-strength Stockfish to five draws in six games** at its minimum exposed
-  strength (Elo floor, skill 0, 1-node search), zero illegal moves — and went **10–0 against
-  a random legal mover** on both colours, every move refereed by an independent implementation
-  (python-chess).
+- ♟️ **Secured the Stockfish Elo-1900 rung at 62.5%** in the pinned 12-game protocol
+  (6W–3D–3L), after the preceding engine scored 20.8% at the same rung. Elo 1700 is also
+  held at 54.2%. The 2100 rung remains the active competitive objective: the latest completed
+  v17 remeasurement scored 41.7%, below the project's strictly-over-50% victory gate.
+- 📜 Earlier anchors remain preserved: 10–0 against a uniform-random legal mover and five
+  draws in six games against Stockfish's minimum exposed configuration, every bot move
+  checked by the independent python-chess referee.
 - ✅ **Rules certified against the published perft census, zero disagreements:**
   20 / 400 / 8,902 · Kiwipete 48 / 2,039 / 97,862 · en-passant pins 43,238 · four-way promotion 9,483.
 - 🎯 **Finds mate, plays whole legal games** — castling, en passant, promotion, check, stalemate —
@@ -41,6 +44,10 @@ cd ../tests && ernos fold_bot_cli.ep && printf '3\n8888\n' | ./fold_bot_cli     
 - **Search is exact negamax** at the counted depth (colour = 3 plies), values complemented
   through the antipode `mine = 1 − theirs` — the fold's own involution as the minimax step.
 
+Competitive parity is defined at each registered rung as **strictly over 50%**. Securing 1900
+does not claim that 2100 is already secured; the open 2100 work is a development objective,
+not a theoretical wall on the engine or the theory.
+
 ## The rule that governs this workspace
 
 **Read [`AGENT.md`](AGENT.md) first.** Every derivation and expansion must route through the
@@ -53,6 +60,7 @@ this engine carries none.
 
 - **[From the Self-Proven Theorem to Master-Level Chess — and the Law Inside Neural Networks](papers/From_One_Axiom_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md)**
 - Full match record: [`tools/MATCHES.md`](tools/MATCHES.md)
+- Release manifest: [`release/chess_release_manifest_v2.1.json`](release/chess_release_manifest_v2.1.json)
 
 ## Layout
 
