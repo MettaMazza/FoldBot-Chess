@@ -51,7 +51,7 @@ this engine carries none.
 
 ## Papers & findings
 
-- **[From One Axiom to Master-Level Chess — and the Law Inside Neural Networks](papers/From_One_Axiom_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md)**
+- **[From the Self-Proven Theorem to Master-Level Chess — and the Law Inside Neural Networks](papers/From_One_Axiom_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md)**
 - Full match record: [`tools/MATCHES.md`](tools/MATCHES.md)
 
 ## Layout
@@ -68,4 +68,4 @@ this engine carries none.
 
 ---
 
-Part of the **[Smithian Fold Theory of Everything](https://github.com/MettaMazza/Smithian-Fold-Theory-Of-Everything)** — one axiom, zero parameters, everything forced from the One.
+Part of the **[Smithian Fold Theory of Everything](https://github.com/MettaMazza/Smithian-Fold-Theory-Of-Everything)** — one machine-checked, self-proven theorem (*there is no nothing*), zero parameters, with the One and fold forced rather than assumed.

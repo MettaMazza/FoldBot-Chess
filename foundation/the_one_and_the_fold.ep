@@ -1,12 +1,12 @@
 # ============================================================================
-#  THE ONE AND THE FOLD  --  the whole theory's single axiom and two moves.
+#  THE ONE AND THE FOLD  --  the theory's self-proven foundation and two moves.
 # ============================================================================
 #
 #  WHAT THIS IS
 #  ------------
-#  The Smithian Fold Theory begins from one thing only -- the One -- and two
-#  permitted moves upon it. Everything else in the theory is built from these
-#  with nothing added. This module is that beginning, written out plainly.
+#  The Smithian Fold Theory begins from one machine-checked, self-proven theorem:
+#  there is no nothing. The theorem forces the One and its fold; this module
+#  implements that forced foundation and its two permitted moves.
 #
 #  THE DOMAIN
 #  ----------
@@ -17,7 +17,8 @@
 #
 #  THE ONE
 #  -------
-#  The One is the single axiom: the value one. It is the only thing assumed.
+#  The One is the unique unison reached and fixed by the forced fold. It is
+#  derived from "there is no nothing"; it is not an assumption or axiom.
 #
 #  THE TWO MOVES
 #  -------------
@@ -101,7 +102,7 @@ define fold_value_from_size with size as Fraction and derivation as Str returnin
 #  The One, and injected starting values
 # ----------------------------------------------------------------------------
 
-# The One: the single axiom of the theory, the value one, deriving from itself.
+# The One: the theorem-forced fixed point of the fold, derived rather than assumed.
 define the_one returning FoldValue:
     set one_size to fraction_from_whole_number(1)
     return fold_value_from_size(one_size and "ONE")
