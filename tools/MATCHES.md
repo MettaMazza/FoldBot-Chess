@@ -421,3 +421,10 @@ lossless levers:
   independently verified at
   `tools/parallel_identity_v20_common_depth_20260718.json`. This is calculation
   identity evidence; Maria Smith decides match timing and rank conclusions.
+
+  The 2100 runner now requires a new output directory, writes a hash-bound
+  registration before play, binds both v20 binaries and the Stockfish executable
+  and UCI identity, and writes each completed game without overwrite. A separate
+  verifier replays every legal move, terminal result, telemetry count, game hash,
+  and final tally. An interrupted run therefore retains its registration and
+  completed game receipts rather than silently replacing an older batch.

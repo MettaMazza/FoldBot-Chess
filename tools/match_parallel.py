@@ -1,11 +1,13 @@
 """N games vs SF at a given Elo, bot = pinned v20 (engine + root-split process
 driver, the derived rules). Pinned binaries, full recording, python-chess
 referee on every bot move, per-move telemetry (seconds + complete depth).
-Usage: python3 tools/match_parallel.py <elo> [concurrent_games=3] [workers_per_game=9] [games=12]
+Usage: python3 tools/match_parallel.py <elo> <concurrent_games> <workers_per_game> <games> <output_dir>
 Games run <concurrent_games> at a time; each bot move fans its root moves
 across <workers_per_game> full-clock workers. 3-man endings route to the
 sequential CLI (certified table probe), as the sequential bot does."""
-import subprocess, sys, os, json, shutil, tempfile, atexit, time, hashlib
+import subprocess, sys, os, json, shutil, tempfile, atexit, time, hashlib, platform
+from datetime import datetime, timezone
+from pathlib import Path
 import chess, chess.engine
 from concurrent.futures import ProcessPoolExecutor
 
@@ -14,8 +16,8 @@ ELO = int(sys.argv[1]) if len(sys.argv) > 1 else 2100
 CONC = int(sys.argv[2]) if len(sys.argv) > 2 else 3
 WORKERS = int(sys.argv[3]) if len(sys.argv) > 3 else 9
 GAMES = int(sys.argv[4]) if len(sys.argv) > 4 else 12
-OUT = os.path.join(HERE, f"games_par_{ELO}")
-os.makedirs(OUT, exist_ok=True)
+OUT = os.path.abspath(sys.argv[5]) if len(sys.argv) > 5 else \
+    os.path.join(HERE, f"games_par_{ELO}")
 SF = "/opt/homebrew/bin/stockfish"
 CEILING = 12
 ENGINE_TAG = "v20"
@@ -42,6 +44,28 @@ def sha256(path):
 
 MOVE_SHA256 = sha256(MOVE_SOURCE)
 VALUE_SHA256 = sha256(VALUE_SOURCE)
+
+def json_bytes(record):
+    return (json.dumps(record, indent=2, sort_keys=True) + "\n").encode()
+
+def write_new_json(path, record):
+    with open(path, "xb") as handle:
+        handle.write(json_bytes(record))
+
+def git_commit():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=os.path.join(HERE, ".."),
+            text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+def stockfish_identity():
+    engine = chess.engine.SimpleEngine.popen_uci(SF)
+    try:
+        return dict(engine.id)
+    finally:
+        engine.quit()
 
 PROMO = {chess.QUEEN: 5, chess.ROOK: 4, chess.BISHOP: 3, chess.KNIGHT: 2}
 CP = {v: k for k, v in PROMO.items()}
@@ -89,24 +113,63 @@ def play_one(g):
     return (g, res, uci, bot_white, depths, times)
 
 if __name__ == "__main__":
+    output = Path(OUT)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.mkdir()
+    registration = {
+        "schema": "foldbot-stockfish-registration/v1",
+        "status": "registered",
+        "registered_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source_commit": git_commit(),
+        "source": {"path": "tools/match_parallel.py",
+                   "sha256": sha256(__file__)},
+        "move_cli": {"path": "tests/fold_bot_cli_v20",
+                     "sha256": MOVE_SHA256},
+        "value_cli": {"path": "tests/fold_bot_value_cli_v20",
+                      "sha256": VALUE_SHA256},
+        "opponent": {"path": SF, "sha256": sha256(SF),
+                     "uci_identity": stockfish_identity(),
+                     "limit_strength": True, "uci_elo": ELO,
+                     "move_time_seconds": 0.05},
+        "protocol": {"games": GAMES, "concurrent_games": CONC,
+                     "workers_per_game": WORKERS, "search_ceiling": CEILING,
+                     "colour_schedule": "FoldBot White in odd-numbered games and Black in even-numbered games",
+                     "maximum_plies": 240,
+                     "terminal_rule": "python-chess outcome with claim_draw=True"},
+        "hardware": {"platform": platform.platform(), "machine": platform.machine(),
+                     "logical_cpu_count": os.cpu_count()},
+        "governance_authority": False,
+        "interpretation": "measured match receipt; Maria Smith assigns rank and publication conclusions",
+    }
+    registration_bytes = json_bytes(registration)
+    registration_sha = hashlib.sha256(registration_bytes).hexdigest()
+    with open(output / "registration.json", "xb") as handle:
+        handle.write(registration_bytes)
     tally = {}
+    game_bindings = []
     with ProcessPoolExecutor(max_workers=CONC) as pool:
         for g, res, uci, bot_white, depths, times in pool.map(play_one, range(GAMES)):
+            if res == "ILLEGAL":
+                raise RuntimeError(f"FoldBot emitted an illegal move in game {g + 1}")
             tally[res] = tally.get(res, 0) + 1
-            rec = {"game": g+1, "elo": ELO, "engine": ENGINE_TAG,
+            rec = {"schema": "foldbot-stockfish-game/v1", "status": "completed",
+                   "registration_sha256": registration_sha,
+                   "game": g+1, "elo": ELO, "engine": ENGINE_TAG,
                    "move_cli_sha256": MOVE_SHA256, "value_cli_sha256": VALUE_SHA256,
                    "bot_white": bot_white, "result": res,
                    "plies": len(uci), "moves_uci": uci,
                    "bot_complete_depths": depths, "bot_move_seconds": times}
-            with open(os.path.join(OUT, f"game_{g+1:02d}.json"), "w") as f:
-                json.dump(rec, f, indent=1)
+            game_name = f"game_{g+1:02d}.json"
+            game_path = output / game_name
+            write_new_json(game_path, rec)
+            game_bindings.append({"file": game_name, "sha256": sha256(game_path)})
             md = min((d for d in depths if d), default=0)
             mt = max(times) if times else 0
             print(f"game {g+1} ({'White' if bot_white else 'Black'}): {res} "
                   f"[{len(uci)} plies, min depth {md}, max move {mt}s]", flush=True)
     print(f"MEASUREMENT {ELO} parallel ({GAMES} games):", tally)
-    with open(os.path.join(OUT, "tally.json"), "w") as f:
-        json.dump({"engine": ENGINE_TAG, "elo": ELO, "games": GAMES,
-                   "move_cli_sha256": MOVE_SHA256,
-                   "value_cli_sha256": VALUE_SHA256,
-                   "results": tally}, f, indent=1)
+    match = {"schema": "foldbot-stockfish-match/v1", "status": "completed",
+             "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+             "registration_sha256": registration_sha, "games": game_bindings,
+             "result": tally}
+    write_new_json(output / "match.json", match)
