@@ -64,6 +64,13 @@ def child_passes(hist, move, ceiling):
         passes[int(d)] = Fraction(int(num), int(den))
     return passes
 
+def sequential_move(hist, ceiling):
+    """The one-worker engine decision used when no common root depth exists."""
+    lines = run_cli(MOVE_CLI, ceiling, list(hist) + [8888])
+    if len(lines) != 1:
+        raise RuntimeError(f"sequential engine emitted {len(lines)} decision lines")
+    return int(lines[0])
+
 def parallel_move(hist, ceiling=12, workers=None):
     workers = workers or max(4, (os.cpu_count() or 8) - 4)
     board = chess.Board()
@@ -86,7 +93,20 @@ def parallel_move(hist, ceiling=12, workers=None):
     with ThreadPoolExecutor(max_workers=workers) as pool:
         results = dict(zip(to_search, pool.map(
             lambda m: child_passes(hist, m, ceiling - 1), to_search)))
-    d_star = min((max(p) for p in results.values() if p), default=0)
+    # The root argmax exists only at a depth completed by EVERY searched child.
+    # Omitting a child with no completed pass would silently remove a legal move
+    # from consideration. In that case the exact one-worker engine decides.
+    if any(not results.get(move) for move in to_search):
+        return sequential_move(hist, ceiling), 0
+    if not to_search:
+        return moves[0], 0
+    common_depths = set(results[to_search[0]])
+    for move in to_search[1:]:
+        common_depths.intersection_update(results[move])
+    if not common_depths:
+        return sequential_move(hist, ceiling), 0
+    completed_depths = sorted(common_depths)
+    d_star = completed_depths[-1]
 
     def value_at(m, d):
         if m in orbit:
@@ -98,9 +118,8 @@ def parallel_move(hist, ceiling=12, workers=None):
     # the previous pass's winner FIRST, then the engine's own move order;
     # strictly-greater replaces. Exact values only; ordering only.
     pre = None
-    d_min = min((min(p) for p in results.values() if p), default=1)
     best = None
-    for d in range(d_min, d_star + 1):
+    for d in completed_depths:
         order = ([pre] if pre is not None else []) + [m for m in moves if m != pre]
         best, best_val = None, None
         for m in order:

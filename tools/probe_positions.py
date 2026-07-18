@@ -4,8 +4,8 @@ Usage: python3 tools/probe_positions.py [games_dir=tools/games_2100] [scope=loss
   scope: 'loss' = blunders + death plies of lost games only; 'all' = every game.
 For each probed ply: replay the recorded game to that point, ask the pinned v20
 spawned root (full match settings) for its move, and print it next to the
-recorded move and full-strength Stockfish's best. Diagnosis only -- nothing
-here feeds the engine; it gates whether a certified match is worth its cost.
+recorded move and full-strength Stockfish's best. Auxiliary diagnosis only—
+nothing here feeds the engine or authorizes, delays, or vetoes a real match.
 Every completed position is written immediately to a hash-bound JSONL receipt."""
 import sys, os, json, glob, hashlib
 from datetime import datetime, timezone

@@ -402,3 +402,12 @@ lossless levers:
   is `tools/probe_v20_2100_analysis.json`. The recorded victory measurements remain
   1700 at 54.2% and 1900 at 62.5%. The probe may inform later implementation;
   it is not a prerequisite for Maria's next match.
+
+  ROOT-DECISION CORRECTION (2026-07-18): `tools/parallel_bot.py` previously
+  computed its common depth only across workers that returned a nonempty pass
+  map. A legal root move with no completed worker pass could therefore disappear
+  from the argmax. The driver now delegates the decision to the exact one-worker
+  engine whenever any searched child has no completed pass or no common depth
+  exists. Focused regression tests cover that fallback and confirm that every
+  searched child participates in the common-depth argmax. This is an
+  implementation correctness repair, not a rank declaration or a run gate.

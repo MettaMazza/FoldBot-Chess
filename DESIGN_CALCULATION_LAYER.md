@@ -76,7 +76,10 @@ where a forward forcing must be derived and put under the guards
    different measurements and measurements never mix (the sealed-measurement
    law). The root argmax is defined only at depths every child has completed;
    the deepest such depth d\* is therefore the unique depth at which the
-   decision exists. No choice is available.
+   decision exists. No choice is available. If any searched child completes no
+   pass, or no common root depth exists, the parallel driver must return the
+   exact one-worker engine decision; omitting that legal child from the argmax
+   is forbidden.
 5. **The clock (a):** the budget is defined per counted search; each worker is
    one counted search (Step 181: one whole lock per focus) and carries the
    clock. Inherited definition.
@@ -100,6 +103,8 @@ where a forward forcing must be derived and put under the guards
   own order; one worker per child receives (child state, clock), runs the
   counted deepening, and sends every completed pass `(index, depth, num, den)`
   over its channel; the main thread computes d\* and the forced argmax.
+- The Python driver now enforces the all-child condition directly and has a
+  regression test for both the empty-worker fallback and common-depth argmax.
 - **The runtime trap stands** (MATCHES.md §5): the GC's shadow root stack is
   per-thread (4096 entries each) and silently stops tracing beyond the cap;
   the buffer-collection hazard was verified under GuardMalloc. The threaded
