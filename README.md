@@ -60,7 +60,7 @@ this engine carries none.
 
 - **[From the Self-Proven Theorem to Master-Level Chess — and the Law Inside Neural Networks](papers/From_One_Axiom_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md)**
 - Full match record: [`tools/MATCHES.md`](tools/MATCHES.md)
-- Release manifest: [`release/chess_release_manifest_v2.1.json`](release/chess_release_manifest_v2.1.json)
+- Release manifest: [`release/chess_release_manifest_v2.2.json`](release/chess_release_manifest_v2.2.json)
 
 ## Layout
 

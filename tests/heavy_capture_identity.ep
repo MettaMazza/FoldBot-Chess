@@ -1,0 +1,25 @@
+import "../constants/fold_chess_bot.ep"
+
+define main:
+    set disagreements to 0
+    set code to 1
+    repeat while code < 13:
+        set sq to 0
+        repeat while sq < 64:
+            set direct to counted_reach(piece_kind(code) and sq and 0) > 8
+            set classified to false
+            set kind to piece_kind(code)
+            if kind == 4:
+                set classified to true
+            if kind == 5:
+                set classified to true
+            if kind == 3:
+                set classified to counted_reach(kind and sq and 0) > 8
+            if direct == classified:
+                set disagreements to disagreements
+            else:
+                set disagreements to disagreements + 1
+            set sq to sq + 1
+        set code to code + 1
+    display concat("heavy-capture disagreements: " and int_to_string(disagreements))
+    return disagreements

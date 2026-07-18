@@ -1,0 +1,22 @@
+{
+  "ceiling": 12,
+  "death_slides": 4,
+  "death_slides_changed": 0,
+  "decisions_changed": 9,
+  "decisions_unchanged": 27,
+  "engine": "v20",
+  "agent_identity": "Codex gpt-5.6-sol, high reasoning",
+  "agent_probe_rule": "changed decisions > 50% and changed death slides > 50%",
+  "agent_probe_rule_met": false,
+  "matches_stockfish_best": 4,
+  "move_cli_sha256": "36c7eda4ce75cb2c0aafbd18f0e976325ccbf054c1fdb555eb37da5004c5d342",
+  "governance_authority": false,
+  "interpretation": "measurement only; does not authorize, delay, or veto a match",
+  "positions_completed": 36,
+  "receipt_sha256": "6055655675f620f4d73fa2d9e1ff18bf2a9ce6d86a639cc26ad736b8e0e58459",
+  "result_type": "Codex-authored auxiliary probe",
+  "run_authority": "Maria Smith alone decides when the build receives a real match",
+  "schema": "foldbot-chess-v20-probe-analysis/v1",
+  "value_cli_sha256": "6b7fe7c9968abab25d9bdcc3aff60e3f928285187270d6d3cd85a482cc1ff410",
+  "workers": 26
+}

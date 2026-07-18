@@ -1,17 +1,16 @@
 # DESIGN — the calculation layer, re-derived and forced (the v19 program)
 
-**Date: 2026-07-17. Status: design for rebuild, per the author's ruling.**
+**Date: 2026-07-18. Status: design for rebuild, per the author's ruling.**
 
-## 0. Ruling and scope
+## 0. Provenance and scope
 
-Per the author (2026-07-17): calculation machinery that entered by hand-assembly
-rather than derivation is not admissible, and results produced with it are void.
-Struck from the record accordingly:
-
-- the v18 build and its gate (v18 carried an unforced form choice — a king
-  square counted in two terms without a forcing over the candidate assemblies);
-- all play by the Python root-split driver (its rules were stated but not
-  derived at the time it played).
+The author required calculation machinery to be forced, forward-forced, or
+constitutionally re-derived. Earlier agents incorrectly removed named
+measurements from the evidence record. That agent conclusion is removed.
+Preserve the exact v18 and Python-root-split
+measurements with their producing implementations and provenance; the engine
+alone determines whether a mechanism satisfies the forcing constitution, and
+Maria determines the published conclusion.
 
 The v17 anchor state and its §3 validations stand untouched — they are the
 anchor. The pinned-v17 SF-2100 remeasure and its autopsy used the anchor engine
@@ -20,7 +19,8 @@ rules on their standing.
 
 **Objective:** rebuild the calculation layer so that every mechanism is
 re-derived and forced from the corpus and implemented inside the guarded `.ep`
-engine, then retake the ladder from fresh measurements.
+engine, then continue the benchmark-victory campaign through Maria-authorized
+real matches.
 
 ## 1. The rule, and the derivation obligations
 
@@ -114,10 +114,11 @@ where a forward forcing must be derived and put under the guards
    value on a *generated* position sample (openings × depths — generated,
    not hand-picked). Any mismatch is a stop-the-line event.
 3. **Throughput:** measured fresh on this machine. No inherited numbers.
-4. **Gate:** v19 vs v17, pinned binaries, 12 games, standard protocol.
-5. **Rungs:** SF-2100; then the ladder ground-up (1320 → 2100) on the shipped
-   engine; then the main event — the full-strength loop — per the campaign
-   plan.
+4. **Comparison:** v19 versus v17, pinned binaries, 12 games, when Maria orders
+   that measurement.
+5. **Real matches:** Maria decides whether the next run is SF-2100, a ground-up
+   ladder comparison, or full-strength Stockfish. Every run preserves its named
+   protocol and receipt.
 
 ## 5. Sync with the main corpus
 
@@ -126,3 +127,47 @@ Main project located at `/Users/mettamazza/Desktop/Smithian Fold Theory`
 `MATCHES.md`, `GO_MATCHES.md`). After the rebuild passes §4 here: diff the
 chess artifacts both ways, reconcile the ledgers, and sync under the author's
 direction.
+
+## 6. Measured finite-reach cache variant (2026-07-18)
+
+The complete 2 × 6 × 64 empty-board reach census was tested as a worker-local
+lookup table. It was value-identical at all 768 inputs and preserved the
+starting-position choices through depth 3, but measured slower in the named
+throughput comparison.
+Over the same 76.8 million reads and identical checksum 746,400,000, direct
+`counted_reach` used about 0.12 seconds of CPU and the list-backed cache about
+0.48 seconds. Runtime list access costs more than reconstructing this small
+integer fact, so the cache was removed. These figures select against that
+implementation only; they do not alter the counted reach law or rank evidence.
+
+## 7. Lossless heavy-capture classification (2026-07-18)
+
+The capture buckets ask only whether the victim's empty-board reach is greater
+than eight. The finite piece definitions close most cases without rebuilding a
+reach: rooks and queens always pass; pawns, knights, and kings never pass; only
+bishops depend on their square. The hot ordering sites now express that exact
+classification inline and call `counted_reach` only for bishops.
+
+`tests/heavy_capture_identity.ep` enumerates both colours, all six kinds, and
+all 64 squares: 0/768 disagreements. A 76.8-million-classification microbenchmark
+gave the same heavy count 32,800,000 while reducing measured CPU from about
+0.13 seconds to 0.03 seconds on this machine. This is a local hot-operation
+measurement, not yet a whole-search throughput claim and not a rank result.
+
+## 8. Exact knight-jump generation (2026-07-18)
+
+Five hot geometry sites previously scanned every pair in the 5 × 5 offset box
+and filtered that 25-pair census down to the knight relation: both offsets
+nonzero and `|dr| + |df| = 3`. The engine now generates that same relation
+directly: the four nonzero rank offsets each force `|df| = 3 - |dr|`, with its
+two signs. This visits exactly eight candidate jumps and introduces no table,
+value, weight, or selected constant.
+
+`tests/knight_geometry_identity.ep` exhausts both colours, all 64 origins, and
+all 64 targets. It independently reconstructs the original relation and checks
+`square_attacked`, the minimum-reach attack map, lesser-attacker detection,
+`counted_reach`, and live mobility: zero disagreements. The complete source
+anchor remains 22/22 and the depth-7 starting result remains move 731 at
+122/238. A single before/after depth-7 timing was neutral within noise (3.53 s
+versus 3.52 s user CPU), so this is retained as an exact finite-enumeration
+simplification, not claimed as a whole-search acceleration or rank advance.

@@ -8,8 +8,14 @@ anything, and route every change back through the validation in **this directory
 
 The project is an executable proof-by-construction that SFT can force or
 constitutionally re-derive the computational science required for whole-board
-chess. Rank gates measure how far that computational proof has been carried;
-they do not sit above or define the validity of the main SFT mathematics.
+chess. Benchmark victory and the rank campaign are explicit objectives.
+
+**Maria alone decides when a development build deserves a real match.** An
+agent may report exact readiness facts or recommend a protocol, but no
+agent-created probe or gate may authorize, refuse, delay, or veto the match.
+When Maria orders it, execute the named match and preserve the receipt. Agents
+do not declare development batches to be Maria's findings, losses, rank
+conclusions, or campaign endpoint.
 
 ---
 
@@ -54,7 +60,7 @@ violation is not a style issue — it makes a "forced" number a fitted one, and 
 2. **Exact arithmetic only.** No decimal ever enters a derivation. Everything is an exact
    whole number or exact fraction (`foundation/exact_integers.ep`, `foundation/exact_fractions.ep`).
    A decimal is a human read-out at the very end and is never fed back.
-3. **Every value traces back to the One.** The only assumed thing is the One; everything
+3. **Every value traces back to the One.** The self-proven theorem forces the One; everything
    else is built by the two permitted moves (fold and take) and the two counted generators
    **`b = 2`, `c = 3`**. Nothing is smuggled in — no forward references, no borrowed numbers.
 4. **The form is forced, not just its parts.** An assembled value must be minimal and unique
@@ -68,7 +74,7 @@ violation is not a style issue — it makes a "forced" number a fitted one, and 
    may only be read at the final comparison boundary to take a yes/no difference.
 
 **The guards are the point, not an obstacle.** If the engine halts, a constraint fired.
-You fix the derivation so it is genuinely forced — you never edit, weaken, or route around
+You fix the derivation until the engine's trace and halt standards pass — you never edit, weaken, or route around
 `forced_to_be`, `forbid_form_selection`, `forbid_target_input`, or the perft/oracle checks.
 
 ---
@@ -136,10 +142,10 @@ point at this folder; keep them pointing here.
 - `verify/test_*.c` — the self-contained C proofs (the primary validation).
 - `tests/*.ep` — the runnable CLI and source-level tests.
 - `data/kqk_packed.txt`, `data/krk_packed.txt` — the certified endgame tables the CLI loads.
-- `tools/` — the referee harness and the match record (the findings).
-- `papers/` — the write-up of the findings.
+- `tools/` — the referee harness and the preserved match measurements.
+- `papers/` — the author-directed write-up of proofs and measurements.
 - `compiler/` — the bundled ErnosPlain toolchain (`ernos` is also installed on PATH).
 
-The finding this workspace exists to protect: **a full, legal, competitive chess player whose
+The construction this workspace exists to protect: **a full, legal, competitive chess player whose
 every number is counted and whose every evaluation is an exact rational — zero parameters, zero
 gradient steps.** Keep it that way.

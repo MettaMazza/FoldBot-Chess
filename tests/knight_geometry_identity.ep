@@ -1,0 +1,69 @@
+import "../constants/fold_chess_bot.ep"
+
+define main:
+    set disagreements to 0
+    set calc to calc_create()
+    set blank_map to create_list()
+    repeat while length_list(blank_map) < 64:
+        set ok to append_list(blank_map and 0)
+    set colour to 0
+    repeat while colour < 2:
+        set code to 2
+        if colour == 1:
+            set code to 8
+        set origin to 0
+        repeat while origin < 64:
+            set state to empty_state()
+            set ok to set_list(state and origin and code)
+            set attack_map to attack_min_reach_map(state and colour and calc)
+            set expected_reach to 0
+            set target to 0
+            repeat while target < 64:
+                set origin_rank to origin / 8
+                set origin_file to origin - origin_rank * 8
+                set target_rank to target / 8
+                set target_file to target - target_rank * 8
+                set dr to origin_rank - target_rank
+                if dr < 0:
+                    set dr to 0 - dr
+                set df to origin_file - target_file
+                if df < 0:
+                    set df to 0 - df
+                set expected to false
+                if dr > 0:
+                    if df > 0:
+                        if dr + df == 3:
+                            set expected to true
+                            set expected_reach to expected_reach + 1
+                set attacked to square_attacked(state and target and colour)
+                if attacked == expected:
+                    set disagreements to disagreements
+                else:
+                    set disagreements to disagreements + 1
+                set mapped to get_list(attack_map and target) > 0
+                if mapped == expected:
+                    set disagreements to disagreements
+                else:
+                    set disagreements to disagreements + 1
+                set lesser to lesser_attacker_exists(state and target and 9 and colour)
+                if lesser == expected:
+                    set disagreements to disagreements
+                else:
+                    set disagreements to disagreements + 1
+                if lesser_attacker_exists(state and target and 1 and colour):
+                    set disagreements to disagreements + 1
+                set target to target + 1
+            set direct_reach to counted_reach(2 and origin and colour)
+            if direct_reach == expected_reach:
+                set disagreements to disagreements
+            else:
+                set disagreements to disagreements + 1
+            set mobility to mobility_count(state and colour and blank_map)
+            if mobility == expected_reach:
+                set disagreements to disagreements
+            else:
+                set disagreements to disagreements + 1
+            set origin to origin + 1
+        set colour to colour + 1
+    display concat("knight-geometry disagreements: " and int_to_string(disagreements))
+    return disagreements

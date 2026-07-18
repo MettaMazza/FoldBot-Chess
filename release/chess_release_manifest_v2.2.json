@@ -1,0 +1,47 @@
+{
+  "schema": "foldbot-chess-release/v1",
+  "version": "2.2",
+  "date": "2026-07-18",
+  "foundation": "one machine-checked, self-proven theorem: there is no nothing; zero axioms",
+  "source": {
+    "file": "constants/fold_chess_bot.ep",
+    "sha256": "682d54444c7a15c849098b54a76d4778607913651e6ee9340b43ab06a3c51a19"
+  },
+  "evidence": {
+    "ledger": "tools/MATCHES.md",
+    "ledger_sha256": "c9f20da79510e89bbd50a978ba456cb301d1db8db341320c2da689199b8cbfbd",
+    "paper": "papers/From_The_Self_Proven_Theorem_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md",
+    "paper_sha256": "99381c84e1713dad62350b1563600f23bfb2866cf0c6be5abe628d2474617536",
+    "readme": "README.md",
+    "readme_sha256": "63250fdb0976dca398159abfb0f0542b1e1b8fca27ae96e2febfbd9e9fd54a8a",
+    "recovered_1700_1900_receipts": "tools/recovered_chess_1700_1900_receipts.json",
+    "recovered_1700_1900_receipts_sha256": "bcff4d5d300cbbb2e73e710df554206c468f4bb7ce6b9a8c195652c961649c4a",
+    "latest_2100_tally": "tools/games_2100/tally.json",
+    "latest_2100_tally_sha256": "81ccd4ed6d789fab797dea2ba75eb0808502133edfc9ac81cb518c512e813772",
+    "v20_auxiliary_analysis": "tools/probe_v20_2100_analysis.json",
+    "v20_auxiliary_analysis_sha256": "d085b8a4ef5fcac09502f7bab77631fd92c7e0c33df8daf99f906c3a3ce570bd",
+    "calculation_design": "DESIGN_CALCULATION_LAYER.md",
+    "calculation_design_sha256": "b3b5c7a99d62d44bdb7814428e5eda2b3ff9a663860828969046555edb3656a2"
+  },
+  "verification": {
+    "fold_chess_bot": "22/22 passed",
+    "endgame_oracle": "8/8 passed",
+    "perft": {
+      "start": [20, 400, 8902],
+      "kiwipete": [48, 2039, 97862],
+      "en_passant_pins_depth_4": 43238,
+      "promotion_depth_3": 9483
+    }
+  },
+  "competitive_measurements": {
+    "maria_victory_criterion": "strictly over 50 percent at the point of victory",
+    "run_authority": "Maria Smith alone decides when a development build deserves a real match",
+    "elo_1700": {"result": "3W-7D-2L", "score_percent": 54.2, "result_type": "measured_implementation_result"},
+    "elo_1900": {"result": "6W-3D-3L", "score_percent": 62.5, "result_type": "measured_implementation_result"},
+    "elo_2100_latest_completed": {"result": "2W-5D-1D(cap)-4L", "score_percent": 41.7, "result_type": "measured_implementation_result"},
+    "v20_probe": {"result": "36/36 positions; 9 changed; 4 Stockfish-best matches; 0/4 named death-slide changes", "result_type": "Codex-authored auxiliary probe", "agent_identity": "Codex gpt-5.6-sol, high reasoning", "governance_authority": false}
+  },
+  "provenance_rule": "Agents preserve exact measurements but do not declare Maria's findings, losses, rank conclusions, run authorization, or campaign endpoint.",
+  "scope": "A zero-trained-parameter counted chess engine with exact legality anchors, recorded benchmark victories through the 1900 batch, and an active benchmark-victory campaign directed by Maria Smith.",
+  "release_binding": "The Git commit containing this manifest binds the complete release tree."
+}

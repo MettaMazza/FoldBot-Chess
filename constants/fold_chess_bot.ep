@@ -219,34 +219,32 @@ define square_attacked with state and square as Int and by_black as Int returnin
     set rank to square / 8
     set file to square - rank * 8
     # knight jumps: |dr| + |df| = 3 with both nonzero -- pure arithmetic
+    # Generate exactly the eight nonzero integer pairs |dr| + |df| = 3.
+    # The old 5 x 5 scan tested 25 pairs to recover this same forced set.
     set dr to 0 - 2
     repeat while dr < 3:
-        set df to 0 - 2
-        repeat while df < 3:
-            set dr_size to dr
-            if dr_size < 0:
-                set dr_size to 0 - dr_size
-            set df_size to df
-            if df_size < 0:
-                set df_size to 0 - df_size
-            if dr_size + df_size == 3:
-                if dr_size > 0:
-                    if df_size > 0:
-                        set r to rank + dr
-                        set f to file + df
-                        if r > 0 - 1:
-                            if r < 8:
-                                if f > 0 - 1:
-                                    if f < 8:
-                                        set code to get_list(state and r * 8 + f)
-                                        if piece_kind(code) == 2:
-                                            if by_black == 1:
-                                                if piece_is_black(code):
-                                                    return true
-                                            if by_black == 0:
-                                                if piece_is_white(code):
-                                                    return true
-            set df to df + 1
+        set dr_size to dr
+        if dr_size < 0:
+            set dr_size to 0 - dr_size
+        if dr_size > 0:
+            set df_size to 3 - dr_size
+            set df to 0 - df_size
+            repeat while df < df_size + 1:
+                set r to rank + dr
+                set f to file + df
+                if r > 0 - 1:
+                    if r < 8:
+                        if f > 0 - 1:
+                            if f < 8:
+                                set code to get_list(state and r * 8 + f)
+                                if piece_kind(code) == 2:
+                                    if by_black == 1:
+                                        if piece_is_black(code):
+                                            return true
+                                    if by_black == 0:
+                                        if piece_is_white(code):
+                                            return true
+                set df to df + df_size * 2
         set dr to dr + 1
     # the eight rays: sliders at any step; king at step one; pawns at step one
     # on the diagonals toward their attacking direction
@@ -325,36 +323,32 @@ define lesser_attacker_exists with state and square as Int and defender_reach as
     set file to square - rank * 8
     set dr to 0 - 2
     repeat while dr < 3:
-        set df to 0 - 2
-        repeat while df < 3:
-            set dr_size to dr
-            if dr_size < 0:
-                set dr_size to 0 - dr_size
-            set df_size to df
-            if df_size < 0:
-                set df_size to 0 - df_size
-            if dr_size + df_size == 3:
-                if dr_size > 0:
-                    if df_size > 0:
-                        set r to rank + dr
-                        set f to file + df
-                        if r > 0 - 1:
-                            if r < 8:
-                                if f > 0 - 1:
-                                    if f < 8:
-                                        set code to get_list(state and r * 8 + f)
-                                        if piece_kind(code) == 2:
-                                            set right_colour to 0
-                                            if by_black == 1:
-                                                if piece_is_black(code):
-                                                    set right_colour to 1
-                                            if by_black == 0:
-                                                if piece_is_white(code):
-                                                    set right_colour to 1
-                                            if right_colour == 1:
-                                                if counted_reach(2 and r * 8 + f and by_black) < defender_reach:
-                                                    return true
-            set df to df + 1
+        set dr_size to dr
+        if dr_size < 0:
+            set dr_size to 0 - dr_size
+        if dr_size > 0:
+            set df_size to 3 - dr_size
+            set df to 0 - df_size
+            repeat while df < df_size + 1:
+                set r to rank + dr
+                set f to file + df
+                if r > 0 - 1:
+                    if r < 8:
+                        if f > 0 - 1:
+                            if f < 8:
+                                set code to get_list(state and r * 8 + f)
+                                if piece_kind(code) == 2:
+                                    set right_colour to 0
+                                    if by_black == 1:
+                                        if piece_is_black(code):
+                                            set right_colour to 1
+                                    if by_black == 0:
+                                        if piece_is_white(code):
+                                            set right_colour to 1
+                                    if right_colour == 1:
+                                        if counted_reach(2 and r * 8 + f and by_black) < defender_reach:
+                                            return true
+                set df to df + df_size * 2
         set dr to dr + 1
     set dr to 0 - 1
     repeat while dr < 2:
@@ -483,31 +477,27 @@ define attack_min_reach_map with state and by_black as Int and calc:
             if kind == 2:
                 set dr to 0 - 2
                 repeat while dr < 3:
-                    set df to 0 - 2
-                    repeat while df < 3:
-                        set dr_size to dr
-                        if dr_size < 0:
-                            set dr_size to 0 - dr_size
-                        set df_size to df
-                        if df_size < 0:
-                            set df_size to 0 - df_size
-                        if dr_size + df_size == 3:
-                            if dr_size > 0:
-                                if df_size > 0:
-                                    set r to rank + dr
-                                    set f to file + df
-                                    if r > 0 - 1:
-                                        if r < 8:
-                                            if f > 0 - 1:
-                                                if f < 8:
-                                                    set target to r * 8 + f
-                                                    set old to get_list(reach_map and target)
-                                                    if old == 0:
-                                                        set ok to set_list(reach_map and target and reach)
-                                                    else:
-                                                        if reach < old:
-                                                            set ok to set_list(reach_map and target and reach)
-                        set df to df + 1
+                    set dr_size to dr
+                    if dr_size < 0:
+                        set dr_size to 0 - dr_size
+                    if dr_size > 0:
+                        set df_size to 3 - dr_size
+                        set df to 0 - df_size
+                        repeat while df < df_size + 1:
+                            set r to rank + dr
+                            set f to file + df
+                            if r > 0 - 1:
+                                if r < 8:
+                                    if f > 0 - 1:
+                                        if f < 8:
+                                            set target to r * 8 + f
+                                            set old to get_list(reach_map and target)
+                                            if old == 0:
+                                                set ok to set_list(reach_map and target and reach)
+                                            else:
+                                                if reach < old:
+                                                    set ok to set_list(reach_map and target and reach)
+                            set df to df + df_size * 2
                     set dr to dr + 1
             if kind > 2:
                 if kind < 6:
@@ -1154,25 +1144,21 @@ define counted_reach with kind as Int and sq as Int and is_black as Int returnin
         set reach to 0
         set dr to 0 - 2
         repeat while dr < 3:
-            set df to 0 - 2
-            repeat while df < 3:
-                set dr_size to dr
-                if dr_size < 0:
-                    set dr_size to 0 - dr_size
-                set df_size to df
-                if df_size < 0:
-                    set df_size to 0 - df_size
-                if dr_size + df_size == 3:
-                    if dr_size > 0:
-                        if df_size > 0:
-                            set r to rank + dr
-                            set f to file + df
-                            if r > 0 - 1:
-                                if r < 8:
-                                    if f > 0 - 1:
-                                        if f < 8:
-                                            set reach to reach + 1
-                set df to df + 1
+            set dr_size to dr
+            if dr_size < 0:
+                set dr_size to 0 - dr_size
+            if dr_size > 0:
+                set df_size to 3 - dr_size
+                set df to 0 - df_size
+                repeat while df < df_size + 1:
+                    set r to rank + dr
+                    set f to file + df
+                    if r > 0 - 1:
+                        if r < 8:
+                            if f > 0 - 1:
+                                if f < 8:
+                                    set reach to reach + 1
+                    set df to df + df_size * 2
             set dr to dr + 1
         return reach
     if kind == 6:
@@ -1295,40 +1281,36 @@ define mobility_count with state and for_black as Int and enemy_map returning In
             if kind == 2:
                 set dr to 0 - 2
                 repeat while dr < 3:
-                    set df to 0 - 2
-                    repeat while df < 3:
-                        set dr_size to dr
-                        if dr_size < 0:
-                            set dr_size to 0 - dr_size
-                        set df_size to df
-                        if df_size < 0:
-                            set df_size to 0 - df_size
-                        if dr_size + df_size == 3:
-                            if dr_size > 0:
-                                if df_size > 0:
-                                    set r to rank + dr
-                                    set f to file + df
-                                    if r > 0 - 1:
-                                        if r < 8:
-                                            if f > 0 - 1:
-                                                if f < 8:
-                                                    set victim to get_list(state and r * 8 + f)
-                                                    set blocked to 0
-                                                    if for_black == 1:
-                                                        if piece_is_black(victim):
-                                                            set blocked to 1
-                                                    else:
-                                                        if piece_is_white(victim):
-                                                            set blocked to 1
-                                                    if blocked == 0:
-                                                        set threat to get_list(enemy_map and r * 8 + f)
-                                                        set safe to 1
-                                                        if threat > 0:
-                                                            if threat < own_reach:
-                                                                set safe to 0
-                                                        if safe == 1:
-                                                            set total to total + 1
-                        set df to df + 1
+                    set dr_size to dr
+                    if dr_size < 0:
+                        set dr_size to 0 - dr_size
+                    if dr_size > 0:
+                        set df_size to 3 - dr_size
+                        set df to 0 - df_size
+                        repeat while df < df_size + 1:
+                            set r to rank + dr
+                            set f to file + df
+                            if r > 0 - 1:
+                                if r < 8:
+                                    if f > 0 - 1:
+                                        if f < 8:
+                                            set victim to get_list(state and r * 8 + f)
+                                            set blocked to 0
+                                            if for_black == 1:
+                                                if piece_is_black(victim):
+                                                    set blocked to 1
+                                            else:
+                                                if piece_is_white(victim):
+                                                    set blocked to 1
+                                            if blocked == 0:
+                                                set threat to get_list(enemy_map and r * 8 + f)
+                                                set safe to 1
+                                                if threat > 0:
+                                                    if threat < own_reach:
+                                                        set safe to 0
+                                                if safe == 1:
+                                                    set total to total + 1
+                            set df to df + df_size * 2
                     set dr to dr + 1
             if kind > 2:
                 if kind < 6:
@@ -1693,8 +1675,14 @@ define ordered_moves with state:
             set taking to move_is_capture(state and move)
             set heavy to 0
             if victim > 0:
-                if counted_reach(piece_kind(victim) and to_sq and 0) > 8:
+                set victim_kind to piece_kind(victim)
+                if victim_kind == 4:
                     set heavy to 1
+                if victim_kind == 5:
+                    set heavy to 1
+                if victim_kind == 3:
+                    if counted_reach(victim_kind and to_sq and 0) > 8:
+                        set heavy to 1
             set wanted to 0
             if bucket == 0:
                 if taking:
@@ -1821,8 +1809,14 @@ define quiescence with state and alpha_num as Int and alpha_den as Int and beta_
                 set victim to get_list(state and to_sq)
                 set heavy to 0
                 if victim > 0:
-                    if counted_reach(piece_kind(victim) and to_sq and 0) > 8:
+                    set victim_kind to piece_kind(victim)
+                    if victim_kind == 4:
                         set heavy to 1
+                    if victim_kind == 5:
+                        set heavy to 1
+                    if victim_kind == 3:
+                        if counted_reach(victim_kind and to_sq and 0) > 8:
+                            set heavy to 1
                 set wanted to 0
                 if bucket == 0:
                     if taking:
@@ -2017,8 +2011,14 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                 set taking to move_is_capture(state and move)
                 set heavy to 0
                 if victim > 0:
-                    if counted_reach(piece_kind(victim) and to_sq and 0) > 8:
+                    set victim_kind to piece_kind(victim)
+                    if victim_kind == 4:
                         set heavy to 1
+                    if victim_kind == 5:
+                        set heavy to 1
+                    if victim_kind == 3:
+                        if counted_reach(victim_kind and to_sq and 0) > 8:
+                            set heavy to 1
                 set wanted to 0
                 if bucket == 0 - 1:
                     if tt_move > 0 - 1:

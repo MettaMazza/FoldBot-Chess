@@ -1,5 +1,13 @@
 # The fold chess bot — whole-board certification and match record
 
+> **Result authority.** Benchmark victory is an explicit project objective.
+> Maria Smith alone decides when a build deserves a real match and what the
+> recorded data establishes. Historical words such as "refused", "stopped",
+> "closed", "wall", and agent-created gates record earlier agent
+> interpretations; they do not govern the campaign. W/D/L rows remain exact
+> measurements of their named builds and protocols, not Maria's declared
+> findings or losses unless she states that conclusion.
+
 **Date: 2026-07-03. Bot: `constants/fold_chess_bot.ep` via `tests/fold_bot_cli`
 (stateless per-move protocol). Referee: python-chess 1.11.2 — an INDEPENDENT
 implementation of the rules of chess that validates every move the bot emits
@@ -148,7 +156,7 @@ strength. The campaign builds on v12.
     moves it is depth/evaluation on the FULL board; endgame perfection
     is banked for the conversion phase of stronger rungs.
 
-**Gate verdict (v13 vs v12+tables, pinned, varied openings, 12 games):
+**Head-to-head measurement (v13 vs v12+tables, pinned, varied openings, 12 games):
 v13 WINS 4-2 with 6 draws (58.3%).** v13 = the calculation release:
 the search's hot path allocates NOTHING (the profiler had caught the
 runtime GC eating 91% of match CPU -- packed integer returns + reused
@@ -164,16 +172,16 @@ zero knobs throughout. Next: SF-1700, the 41.7% to beat.
     THE RUNG IS TAKEN: the campaign's first above-even measurement at
     1700 (v10 50%, v11 41.7%, v12+tables 41.7%), and a winning record
     (3W vs 2L, both colours scoring). Two extra plies of counted sight
-    did exactly what the gate said they would. NEXT RUNG: 1900.
+    accompanied the measured improvement. NEXT RUNG: 1900.
 
     v13 at SF-1900 (pinned 12-game, refereed): 1W 2D 1D(cap) 8L = 20.8%.
-    THE RUNG REFUSES: a losing run. Per the campaign's standing rule the
-    ladder STOPS here -- no rung-grinding. The 200-Elo step exposes what
-    1700 did not; the losses get full-strength-Stockfish autopsies before
-    any engine change. 1700 remains held (54.2%).
+    BATCH MEASUREMENT: 1W 2D 1D(cap) 8L. The agent paused the ladder at
+    this point and sent the recorded games to full-strength-Stockfish
+    autopsy. That pause was an agent development decision, not authority
+    over Maria's next real run. 1700 remains recorded at 54.2%.
 
-**Gate verdict (v14 vs v13, pinned, varied openings, 12 games):
-v14 WINS 9-1 with 2 draws (83.3%) -- the campaign's widest gate margin.**
+**Head-to-head measurement (v14 vs v13, pinned, varied openings, 12 games):
+v14 WINS 9-1 with 2 draws (83.3%) -- the campaign's widest head-to-head margin.**
 v14 = the horizon release, built from the 1900 autopsy (new tool,
 tools/autopsy.py: every loss judged move-by-move by full-strength
 Stockfish). The autopsy's verdict: every loss class was tactics sitting
@@ -189,34 +197,32 @@ at ~15s/move, hard-bounded. Next: SF-1900, the 20.8% to erase.
 
     v14 at SF-1900 (pinned 12-game, refereed): 6W 3D 3L = 62.5% --
     THE RUNG IS TAKEN, and emphatically: v13 scored 20.8% here one
-    release ago. The autopsy's diagnosis (losses = tactics 1-3 plies
-    past the horizon) is CONFIRMED by the rematch: one complete extra
-    ply turned the same opponent from a wall into a losing record.
+    release ago. The recorded autopsy associated the losses with tactics 1-3
+    plies past the horizon; the rematch measured that one complete extra
+    ply changed the same opponent comparison from 20.8% to a winning record.
     Both colours won (4 of 6 wins as Black). Ladder: 1700 held (54.2%),
     1900 held (62.5%). NEXT RUNG: 2100.
 
     v14 at SF-2100 (pinned 12-game, refereed): 1W 3D 1D(cap) 7L = 25%.
-    THE RUNG REFUSES: a losing run; the ladder STOPS per the standing
-    rule. Held ground stands (1700: 54.2%; 1900: 62.5%). The 2100
-    losses go to the autopsy before any engine change -- the same
-    discipline that turned 1900 from 20.8% into 62.5%.
+    BATCH MEASUREMENT: 1W 3D 1D(cap) 7L. Recorded comparisons remain
+    1700: 54.2% and 1900: 62.5%. The agent sent the 2100 games to
+    autopsy; Maria alone decides the next real run.
 
-**The king-material line: tried by law, refused by the gate, closed.**
+**Historical king-material implementation experiments.**
 The 2100 autopsy caught early king walks (Ke7/Kd7 by move 10) starting
 three losing slides -- raw geometric reach prices the centre-bound king
-as a GAIN. Two rules-grounded cures were gated: v15 (the king carries
+as a GAIN. Two rules-grounded variants were tested: v15 (the king carries
 no material term) lost to v14 1-4-7; v16 (the king's material = its
 LEGAL reach, squares the enemy does not cover -- phase behaviour
 emerging from legality itself) lost narrowly, 4-5-3. Neither ships.
-No third variant will be match-tuned -- iterating evaluations against
-tournament results is fitting by another name. v14's counted
-evaluation stands; the king-walk disease is left to the horizon lever
-(depth sees the punishment directly), which is the next release.
+The agent did not continue a third variant at that time. This is development
+history, not a declaration that Maria closed the investigation. v14's counted
+evaluation was retained and the next implementation explored the horizon lever.
 
-**Gate verdict (v17 vs v14, pinned, varied openings, 12 games):
-v17 WINS 10-1 with 1 draw (87.5%) -- the campaign's widest gate margin.**
+**Head-to-head measurement (v17 vs v14, pinned, varied openings, 12 games):
+v17 WINS 10-1 with 1 draw (87.5%) -- the campaign's widest head-to-head margin.**
 v17 = the second horizon release: v14's counted evaluation untouched
-(the eval line stays closed), the search now reading a COMPLETE depth 7
+(the agent retained that evaluation in this release), the search now reading a COMPLETE depth 7
 everywhere -- two plies past the 1700-taker -- paid for entirely by
 lossless ordering: the HISTORY census joins the killers (quiets searched
 in descending measured-refutation count; every increment is 1, no
@@ -226,11 +232,10 @@ clock), hard-bounded, ~70s/move worst case. Next: the SF-2100 rematch,
 25% to beat.
 
     v17 at SF-2100 rematch (pinned 12-game, refereed): 1W 6D 5L = 33.3%.
-    STILL REFUSED, but the wall cracks: v14 scored 25% with 3 draws;
-    v17 scores 33.3% and HOLDS 2100 to a draw in HALF the games. Depth
-    alone (the lever that flipped 1900) moves but does not take this
-    rung -- 2100 carries a second disease. The ladder stays stopped;
-    the v17 losses go to the autopsy to name it.
+    BATCH MEASUREMENT: v14 scored 25% with 3 draws; v17 scores 33.3%
+    and holds 2100 to a draw in half the games. The agent sent the
+    recorded v17 games to autopsy. This row does not decide whether Maria
+    orders the next real match.
 
 ---
 
@@ -238,7 +243,8 @@ clock), hard-bounded, ~70s/move worst case. Next: the SF-2100 rematch,
 ## in THIS directory; nothing inherited from prior records.
 
 **SF-2100 remeasure, v17 (pinned 12-game, refereed, full game records kept
-in tools/games_2100/): 2W 6D 1D(cap) 4L = 41.7%.** Rung still refused.
+in tools/games_2100/): 2W 5D 1D(cap) 4L = 41.7%.** This is the exact
+measurement of that batch; Maria decides the next real match.
 
 **Autopsy (new tool tools/autopsy.py, full-strength SF judging every bot
 move; per-game eval curves + blunder FENs in tools/games_2100/):** the bot
@@ -246,11 +252,12 @@ castled in 1 of 12 games; 42 of 103 blunders >= 100cp are non-castling king
 moves, in 11 of 12 games; death plies cluster at 6-33 (opening/early
 middlegame). The king-walk disease, named by measurement.
 
-**v18 (the king law: king command = enemy-uncovered adjacent squares;
-castling counted in generator-truth mobility) — GATE REFUSED.** Anchor held
-(perft exact, lock exact, suite 22/22) but the gate said no:
-v18 vs v17, pinned, 6 openings x both colours: 1W 8D 3L (41.7%). REVERTED
-per the standing rule. The eval line's fourth refusal; the line stays closed.
+**v18 auxiliary head-to-head measurement (king command = enemy-uncovered
+adjacent squares; castling counted in generator-truth mobility).** Anchor held
+(perft exact, lock exact, suite 22/22); the named batch emitted:
+v18 vs v17, pinned, 6 openings x both colours: 1W 8D 3L (41.7%). The agent
+reverted v18 at that point. This is an agent development decision, not Maria's
+finding or a closure of the evaluation investigation.
 (v18 source preserved in the session scratchpad only.)
 
 **Runtime hazard found during v18 work:** the bundled runtime's GC shadow
@@ -263,7 +270,7 @@ belongs upstream; noted here as a standing trap.
 
 **Root-split parallel driver (tools/parallel_bot.py + tests/
 fold_bot_value_cli.ep), fresh measurements on the M3 Ultra (taken while a
-12-game gate ran, so conservative):** sequential root completes depth 8 in
+12-game comparison ran, so conservative):** sequential root completes depth 8 in
 145s on the 2^25 per-process clock; root-split (each child an independent
 full-clock worker) completes depth 9 in 266s. Values are the engine's own
 exact search values; move choice = argmax with the sequential root's own
@@ -310,18 +317,18 @@ measured fresh in this directory:
      loads the certified tables LAZILY, exactly when the board is inside
      coverage (<= 3 men), which is exactly when they decide the move.
 
-  GATE NOTE, recorded openly: the v19 release is depth-only by the §2.2
-  machine-checked identity criterion (6/6); the head-to-head gate vs v17
-  (which would re-measure depth's value at ~days of wall time) is SKIPPED
-  in favour of going straight at the rung. The author may order the gate
-  at any time; nothing is claimed from it.
+  DEVELOPMENT NOTE, recorded openly: the v19 release is depth-only by the
+  §2.2 machine-checked identity criterion (6/6). The agent did not run the
+  head-to-head comparison against v17 at that point and instead proceeded to
+  the next opponent measurement. Maria may order that comparison at any time;
+  no result is assigned to an unrun comparison.
 
   IN FLIGHT: SF-2100, 12 games, v19 (process root-split, ceiling 12, full
   counted clock per worker), 3 concurrent games x 9 workers, pinned
   binaries, python-chess referee, full records + per-move complete depth
   to tools/games_par_2100/.
 
-**v20 — the speed=depth lever (2026-07-17), securing the 2100 rank.**
+**v20 — the speed=depth lever (2026-07-17), auxiliary 2100 probe.**
 Objective restated by the author: SECURE 2100 (>50%) outright, then move to
 full strength; no ladder-crawl. v20 is the enabling release -- the counted
 evaluation and the derived calculation layer are UNCHANGED; only the engine's
@@ -368,14 +375,14 @@ lossless levers:
   source also re-passed the 22/22 whole-board anchor and 12/12 apply/undo
   restoration suite in an isolated build before measurement.
 
-  NEXT (locked sequence, no step skipped):
-    1. RE-PROBE the 36 recorded SF-2100 loss positions with v20
+  AGENT-PROPOSED DEVELOPMENT SEQUENCE (advisory, not a run gate):
+    1. Re-probe the 36 recorded SF-2100 loss positions with v20
        (tools/probe_positions.py) -- the cheap instrument (~4h, not 3 days).
-       Gate metric unchanged: do the death-slide decisions FLIP with the
-       added depth? v19 flipped 7/36 (1 of 4 death slides); v20 buys ~1 more
-       ply on the same clock, so the probe is re-run before any match.
-    2. CERTIFIED 12-game SF-2100 ONLY if the probe shows the losing decisions
-       move (>50% projected). Certification certifies; it does not explore.
+       The proposed measurement asks whether the death-slide decisions flip
+       with the added depth. v19 flipped 7/36 (1 of 4 death slides); v20 buys
+       about one more ply on the same clock. This probe cannot decide whether
+       Maria orders a real match.
+    2. Preserve a pinned 12-game SF-2100 receipt whenever Maria orders it.
     3. On securing 2100 (>50%): move to FULL-STRENGTH Stockfish, restart the
        investigate/iterate loop, then the full league.
 
@@ -384,3 +391,14 @@ lossless levers:
   instead of rebuilding per eval -- large refactor, own identity check);
   further toolchain codegen (unboxed integer lists). Each ~2x nodes/s is
   about +1/3 ply on the counted clock.
+
+  **CODEX-AUTHORED AUXILIARY PROBE (2026-07-18).** The pinned v20 receipt completed
+  all 36 registered positions. Nine decisions changed and 27 remained the
+  same; four now match Stockfish's best move. Most decisively, none of the four
+  registered death-slide decisions changed. Codex's strict-majority
+  interpretation has no authority to authorize, refuse, delay, or veto a real
+  2100 match; Maria alone decides when the build deserves that run.
+  The exact receipt is `tools/probe_v20_2100.jsonl`; its validated auxiliary analysis
+  is `tools/probe_v20_2100_analysis.json`. The recorded victory measurements remain
+  1700 at 54.2% and 1900 at 62.5%. The probe may inform later implementation;
+  it is not a prerequisite for Maria's next match.
