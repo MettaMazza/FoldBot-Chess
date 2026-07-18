@@ -105,6 +105,15 @@ where a forward forcing must be derived and put under the guards
   over its channel; the main thread computes d\* and the forced argmax.
 - The Python driver now enforces the all-child condition directly and has a
   regression test for both the empty-worker fallback and common-depth argmax.
+- `tools/verify_parallel_identity.py` generates its sample systematically from
+  the engine's own root order, then requires both the selected move and exact
+  rational value to equal the one-worker engine at the common completed depth.
+  It seals the source and binary hashes with every position row.
+  `tools/parallel_identity_v20_common_depth_20260718.json` records four
+  systematically generated two-ply positions at ceiling 3: move identity 4/4,
+  exact rational value identity 4/4, and zero disagreements. Its independent
+  receipt verifier passes with SHA-256
+  `dcd993b55499646ac0d18a9ccd78922aa8568c1617ad7cce49caf8eed6fcc2a6`.
 - **The runtime trap stands** (MATCHES.md §5): the GC's shadow root stack is
   per-thread (4096 entries each) and silently stops tracing beyond the cap;
   the buffer-collection hazard was verified under GuardMalloc. The threaded

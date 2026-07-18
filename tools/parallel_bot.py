@@ -54,8 +54,9 @@ def root_moves(hist, ceiling):
     n = int(lines[0])
     return [int(x) for x in lines[1:1 + n]]
 
-def child_passes(hist, move, ceiling):
-    lines = run_cli(VALUE_CLI, ceiling, list(hist) + [move, 8889])
+def position_passes(hist, ceiling):
+    """Every exact search pass completed for the current history."""
+    lines = run_cli(VALUE_CLI, ceiling, list(hist) + [8889])
     passes = {}
     for ln in lines:
         if ln == "done":
@@ -63,6 +64,9 @@ def child_passes(hist, move, ceiling):
         d, num, den = ln.split()
         passes[int(d)] = Fraction(int(num), int(den))
     return passes
+
+def child_passes(hist, move, ceiling):
+    return position_passes(list(hist) + [move], ceiling)
 
 def sequential_move(hist, ceiling):
     """The one-worker engine decision used when no common root depth exists."""

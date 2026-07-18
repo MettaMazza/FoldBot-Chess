@@ -1,0 +1,105 @@
+{
+  "benchmark_authority": false,
+  "bindings": {
+    "identity_tool": {
+      "bytes": 6664,
+      "path": "tools/verify_parallel_identity.py",
+      "sha256": "1cb0751cbf3b891c2a3fcb03382a9089b83bd6df5276a45be84e1311e8c7959c"
+    },
+    "move_cli": {
+      "bytes": 157744,
+      "path": "tests/fold_bot_cli_v20",
+      "sha256": "36c7eda4ce75cb2c0aafbd18f0e976325ccbf054c1fdb555eb37da5004c5d342"
+    },
+    "parallel_driver": {
+      "bytes": 5827,
+      "path": "tools/parallel_bot.py",
+      "sha256": "34a370dab5e6e236aa1f7fac431d4842beec13ee8acff8f4bb7bf66bc258161b"
+    },
+    "value_cli": {
+      "bytes": 140528,
+      "path": "tests/fold_bot_value_cli_v20",
+      "sha256": "6b7fe7c9968abab25d9bdcc3aff60e3f928285187270d6d3cd85a482cc1ff410"
+    }
+  },
+  "checkout_base_commit": "bacff62bcd385ae6d7c5cae2cff17f69dfbba06e",
+  "generated_at_utc": "2026-07-18T12:36:05.072941+00:00",
+  "governance_authority": false,
+  "identity": {
+    "disagreements": 0,
+    "moves": 4,
+    "values": 4
+  },
+  "interpretation": "generated-position calculation identity only; Maria Smith decides real-match timing and rank conclusions",
+  "result_type": "measured implementation result",
+  "rows": [
+    {
+      "ceiling": 3,
+      "common_root_depth": 3,
+      "history": [
+        82,
+        3112
+      ],
+      "history_length": 2,
+      "parallel_move": 731,
+      "parallel_value": "8/15",
+      "sequential_move": 731,
+      "sequential_value": "8/15",
+      "status": "identical"
+    },
+    {
+      "ceiling": 3,
+      "common_root_depth": 3,
+      "history": [
+        82,
+        3104
+      ],
+      "history_length": 2,
+      "parallel_move": 731,
+      "parallel_value": "43/81",
+      "sequential_move": 731,
+      "sequential_value": "43/81",
+      "status": "identical"
+    },
+    {
+      "ceiling": 3,
+      "common_root_depth": 3,
+      "history": [
+        80,
+        3112
+      ],
+      "history_length": 2,
+      "parallel_move": 731,
+      "parallel_value": "61/117",
+      "sequential_move": 731,
+      "sequential_value": "61/117",
+      "status": "identical"
+    },
+    {
+      "ceiling": 3,
+      "common_root_depth": 3,
+      "history": [
+        80,
+        3104
+      ],
+      "history_length": 2,
+      "parallel_move": 796,
+      "parallel_value": "25/48",
+      "sequential_move": 796,
+      "sequential_value": "25/48",
+      "status": "identical"
+    }
+  ],
+  "sample_generation": {
+    "branch": 2,
+    "ply": 2,
+    "positions": 4,
+    "rule": "breadth expansion by the first branch engine-generated root moves"
+  },
+  "schema": "foldbot-parallel-identity/v1",
+  "search": {
+    "ceiling": 3,
+    "workers": 4
+  },
+  "status": "completed"
+}

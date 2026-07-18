@@ -411,3 +411,13 @@ lossless levers:
   exists. Focused regression tests cover that fallback and confirm that every
   searched child participates in the common-depth argmax. This is an
   implementation correctness repair, not a rank declaration or a run gate.
+
+  POST-CORRECTION IDENTITY RECEIPT (2026-07-18): the engine generated a complete
+  breadth sample from the first two root-ordered moves over two plies. At search
+  ceiling 3, the corrected process root and exact one-worker engine agreed on
+  all four moves and all four exact rational values at common completed depth 3
+  (8/15, 43/81, 61/117, and 25/48), with zero disagreements. The receipt binds
+  both pinned v20 binaries, the parallel driver, and the identity tool and is
+  independently verified at
+  `tools/parallel_identity_v20_common_depth_20260718.json`. This is calculation
+  identity evidence; Maria Smith decides match timing and rank conclusions.
