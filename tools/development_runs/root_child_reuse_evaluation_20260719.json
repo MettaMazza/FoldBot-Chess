@@ -1,0 +1,60 @@
+{
+  "schema": "foldbot-lossless-calculation-candidate/v1",
+  "status": "completed",
+  "provenance": {
+    "origin": "Codex-authored applied development investigation",
+    "agent": "Codex",
+    "model": "gpt-5.6-sol",
+    "reasoning_level": "high",
+    "authority": "Not Maria's official game, finding, loss, rank conclusion, promotion, or run gate."
+  },
+  "candidate": {
+    "name": "single-construction root-child reuse",
+    "intended_effect": "Remove the second identical root make_move before worker handoff without changing the generated move surface, exact values, ordering, or common decision depth.",
+    "base_source_sha256": "81c233d0755419d3e8d91799d76552fb444477c073f641d159ed3808de10336a",
+    "patch": {
+      "path": "tools/development_runs/root_child_reuse_candidate_20260719.patch",
+      "sha256": "29bb6630fc7adf47cf48b5a4a6df01112ce6dcd81dbae6f99b0763c0ccd84e41"
+    },
+    "move_cli": {
+      "path": "tests/fold_bot_cli_root_child_reuse_20260719",
+      "sha256": "f5dfd051d3bb9e47cc1145120d4b09bc7a518ceb7c8b26874c0e46f7c3539aec"
+    },
+    "value_cli": {
+      "path": "tests/fold_bot_value_cli_root_child_reuse_20260719",
+      "sha256": "e2121ddaf9acb73b6a276e6630f30b620e9a08f82cb7b2cbe11cd62de9c3f36f"
+    }
+  },
+  "applied_comparison": {
+    "protocol": "same 36 recorded 2100 positions, ceiling 3, 26 workers, same machine",
+    "baseline_receipt": {
+      "path": "tools/development_runs/root_child_reuse_baseline_c3_20260719.jsonl",
+      "sha256": "480c08d286a8b285198112dcc029750bd3c0eaa415e37cbdfc72d52c1c5aa6e0",
+      "engine_seconds": 2.075576833
+    },
+    "candidate_receipt": {
+      "path": "tools/development_runs/root_child_reuse_current_c3_20260719.jsonl",
+      "sha256": "62365306b3d7c88b87da401294e89fb63835c154173362ec3dfa8ef93583c494",
+      "engine_seconds": 2.124612667
+    },
+    "move_identity": "36/36",
+    "completed_depth_identity": "36/36",
+    "all_positions_completed_depth": 3
+  },
+  "exact_identity": {
+    "path": "tools/development_runs/root_child_reuse_current_parallel_identity_20260719.json",
+    "sha256": "148547c54f00f484b5affa1516444c7f4e9b88066fd4e9847e8e60dafda109ed",
+    "generated_positions": 4,
+    "move_identity": "4/4",
+    "exact_rational_value_identity": "4/4",
+    "disagreements": 0
+  },
+  "engine_state": {
+    "candidate_retained_in_current_source": false,
+    "current_source_sha256": "81c233d0755419d3e8d91799d76552fb444477c073f641d159ed3808de10336a",
+    "current_move_cli_sha256": "ea931837839ffdd234b1b224022fb21da0f613d48ac5db1bd0ae131adea033f5",
+    "current_value_cli_sha256": "c428e5a0f6b387803abfd7a1433f05b3422f726ca9beb6547b47b0c9333c2083",
+    "reason": "The exact simplification was active and value-identical, while the matched applied timing did not demonstrate its intended whole-panel speed effect. The baseline source and binaries were therefore restored rather than accumulating an unsupported performance change."
+  },
+  "next_direction": "Constitute typed exact-value transposition bounds from held-orbit search memory, then require fixed-depth full-search identity and the same 36-position applied comparison before retention."
+}

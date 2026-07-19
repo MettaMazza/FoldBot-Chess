@@ -62,6 +62,8 @@ The latest source-bound real-position evidence contains three matched surfaces:
 
 These are applied development measurements of the named builds, not Maria Smith's official games, findings, losses, or rank conclusion. The next state is to use the real-position panel to derive the next lossless calculation improvement, validate it on the same source-bound positions, and execute the 2100 match when Maria designates the build. The secured 1900 victory, exact legality, endgame proofs, common-depth identity, and demonstrated depth-8–11 real-position calculation provide a constructive route forward; no theorem-derived wall is established.
 
+The first new calculation candidate reused each already generated root child for worker handoff. It preserved 36/36 real-position moves and depths and 4/4 generated-position exact rational values. The matched panel measured 2.075576833 seconds before and 2.124612667 seconds with the candidate, so the live source and binaries were restored while the complete candidate executable, patch, and receipts were retained as development evidence. The next investigated mechanism is a typed exact-value transposition relation: held search orbits can return exact/lower/upper bounds losslessly rather than supplying move order alone, with value identity and the same 36 positions as binding checks.
+
 ## The rule that governs this workspace
 
 **Read [`AGENT.md`](AGENT.md) first.** Every derivation and expansion must route through the

@@ -239,3 +239,26 @@ the position-level evidence, followed by the same source-bound panel and the
 Maria-authorized 2100 run. Exact legality, endgame proof, the secured 1900 rung,
 and the current calculation receipts give an executable path to that campaign;
 no theorem-derived obstruction has been produced.
+
+## 13. Applied root-child reuse investigation
+
+The first candidate derived from the 36-position surface removed a duplicated
+root construction: the child already built for the closed-orbit read was held
+and passed to its worker rather than constructed a second time. The candidate
+changed no generated move, ordering relation, value law, decision depth or
+resource clock. Source-level anchor checks passed; the same real-position panel
+gave 36/36 move identity and 36/36 completed-depth identity; and the generated
+identity surface gave 4/4 move and 4/4 exact rational value identity.
+
+The fixed applied protocol measured 2.075576833 seconds for the baseline and
+2.124612667 seconds for the candidate. That measurement did not establish the
+declared whole-panel speed effect, so the current source and executable hashes
+were returned byte-for-byte to the baseline. The candidate patch, binaries and
+receipts remain under `tools/development_runs/` as a development artifact, not
+as Maria's finding, loss or campaign conclusion.
+
+The next lossless calculation direction is a typed exact-value transposition
+relation. The current table remembers the best move only; a held search orbit
+can also preserve its exact, lower or upper rational bound under the existing
+alpha-beta law. Admission requires full-search value identity at fixed depth
+and the identical 36-position applied comparison before retention.

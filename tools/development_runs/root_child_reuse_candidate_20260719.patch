@@ -1,0 +1,15 @@
+diff --git a/constants/fold_chess_bot.ep b/constants/fold_chess_bot.ep
+--- a/constants/fold_chess_bot.ep
++++ b/constants/fold_chess_bot.ep
+@@
+-    set orbit_flag to create_list()
++    set orbit_flag to create_list()
++    set children to create_list()
+@@
+         set move to get_list(moves and i)
+         set child to make_move(state and move)
++        set ok to append_list(children and child)
+@@
+-        set hand to make_move(state and get_list(moves and i))
++        set hand to get_list(children and i)
+         spawn root_worker(hand and ceiling - 1 and i and chan)
