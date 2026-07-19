@@ -180,3 +180,18 @@ point at this folder; keep them pointing here.
 The construction this workspace exists to protect: **a full, legal, competitive chess player whose
 every number is counted and whose every evaluation is an exact rational — zero parameters, zero
 gradient steps.** Keep it that way.
+
+---
+
+## 5. Required end-of-turn report
+
+Every development turn must end with **Completed, Ongoing, Todo, and Suggested
+direction**. For every applied game or matched-position calculation, name the
+baseline and candidate and state separately what improved, what regressed, and
+what remained identical in outcomes, moves, exact values, depth, nodes, time,
+memory, legality and receipt closure. Then state what the pattern could
+indicate as an explicit engineering inference and the next concrete counted or
+forced change intended to advance it. A development regression is reported
+but is not a theoretical wall, Maria-authored loss, rank conclusion or campaign
+endpoint. A positive result is reported directly and is not minimized. Maria
+assigns conclusions.
