@@ -196,3 +196,16 @@ derived depth field `(ceiling + 2) * depth_base`; and the collector allocates
 exactly the supplied ceiling's rows. The message contains the same
 `(child index, completed depth, exact packed value)` relation without a
 separately selected width or sentinel. Source tests bind the derived bases.
+
+## 10. Calculation-state-owned table addressing (2026-07-19)
+
+Search no longer repeats the transposition-table size, history-table size, or
+killer-depth limit as separately authored addressing literals. The table that
+`calc_create` actually constructs owns its capacity: transposition and history
+slots reduce against the corresponding live list length, while killer access
+is admitted exactly when the supplied depth is inside the live killer list.
+This preserves the existing measured storage construction and search relation,
+but prevents allocation and addressing from silently disagreeing. The measured
+`2^26` calculation clock remains explicitly a sealed implementation resource
+boundary; the current corpus does not supply an exact identity that would let
+this document relabel it as a theorem-derived value.

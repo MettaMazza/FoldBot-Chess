@@ -1939,6 +1939,7 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
     set tt_keys to get_list(calc and 0)
     set tt_moves to get_list(calc and 1)
     set tt_stamp to get_list(calc and 2)
+    set tt_capacity to length_list(tt_keys)
     set tt_gen to get_list(calc and 3)
     set killer_a to get_list(calc and 4)
     set killer_b to get_list(calc and 5)
@@ -1947,14 +1948,14 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
         if tt_gen > 0:
             set use_tt to 1
             set key to tt_key(state)
-            set slot to key - (key / 262144) * 262144
+            set slot to key - (key / tt_capacity) * tt_capacity
             if get_list(tt_stamp and slot) == tt_gen:
                 if get_list(tt_keys and slot) == key:
                     set tt_move to get_list(tt_moves and slot)
     # The killer pair for this depth (quiet refuters of sibling lines).
     set k1 to 0 - 1
     set k2 to 0 - 1
-    if length_list(killer_a) > 63:
+    if length_list(killer_a) > depth:
         set k1 to get_list(killer_a and depth)
         set k2 to get_list(killer_b and depth)
     set hist_ready to 0
@@ -2088,14 +2089,15 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                             if taking:
                                 set taking to taking
                             else:
-                                if length_list(killer_a) > 63:
+                                if length_list(killer_a) > depth:
                                     if move == k1:
                                         set k1 to k1
                                     else:
                                         set ok to set_list(killer_b and depth and k1)
                                         set ok to set_list(killer_a and depth and move)
                                 if hist_ready == 1:
-                                    set hslot to move - (move / 4096) * 4096
+                                    set hist_capacity to length_list(hist)
+                                    set hslot to move - (move / hist_capacity) * hist_capacity
                                     set ok to set_list(hist and hslot and get_list(hist and hslot) + 1)
                             return best_num * 65536 + best_den
                         if my_num * a_den > a_num * my_den:
