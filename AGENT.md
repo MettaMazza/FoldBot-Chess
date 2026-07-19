@@ -195,3 +195,8 @@ forced change intended to advance it. A development regression is reported
 but is not a theoretical wall, Maria-authored loss, rank conclusion or campaign
 endpoint. A positive result is reported directly and is not minimized. Maria
 assigns conclusions.
+End with a **full-trial recommendation**: recommend the next complete match
+now, recommend it under a named condition/protocol, or recommend another
+development calculation first, with exact evidence for and against. The
+recommendation is advisory and cannot authorize, veto, delay, or gate a match
+Maria orders.

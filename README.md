@@ -77,6 +77,25 @@ The next calculation should measure a compact held-value representation or a
 deeper matched panel where exact transpositions recur more often, without
 changing value identity or the active baseline first.
 
+That compact two-array representation has now been implemented and measured.
+It again preserved **36/36** real-position moves and completed depths and
+**4/4** generated-position moves and exact rational values. Packing the four
+typed-value arrays into two improved the candidate total from `2.421576875` to
+`2.370992332` seconds, but the active ordering-only baseline remained faster at
+`2.075576833` seconds: the compact candidate was **14.23% slower**, with 14/36
+positions faster. The candidate is preserved as applied evidence and the live
+source and binaries are restored to the faster baseline. The result indicates
+that packing reduces the table overhead, but at the measured depth the exact
+value reuses still do not repay two additional full-capacity arrays. The next
+calculation should therefore measure recurrence and reuse on a deeper
+source-bound subset before allocating another complete value table.
+
+A new full 2100 match is **not yet the recommended next execution** from this
+specific candidate because it changed neither the selected move nor completed
+depth and made the matched calculation slower. The recommended next execution
+is the deeper source-bound reuse panel; a full match remains available whenever
+Maria orders it, and this advisory recommendation does not gate her decision.
+
 ## The rule that governs this workspace
 
 **Read [`AGENT.md`](AGENT.md) first.** Every derivation and expansion must route through the
