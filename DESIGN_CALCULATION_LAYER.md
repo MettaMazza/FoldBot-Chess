@@ -262,3 +262,26 @@ relation. The current table remembers the best move only; a held search orbit
 can also preserve its exact, lower or upper rational bound under the existing
 alpha-beta law. Admission requires full-search value identity at fixed depth
 and the identical 36-position applied comparison before retention.
+
+## 14. Applied typed transposition investigation
+
+The typed candidate extended the held search orbit with counted depth, exact
+numerator and denominator, and exact/lower/upper relation. Position identity
+also included the half-move clock because it changes distance to the
+rules-forced draw. The candidate compiled through ErnosPlain, preserved all
+36/36 moves and completed depths on the real-position ceiling-3 panel, and
+preserved 4/4 generated moves and exact rational values.
+
+The matched timing regressed: baseline `2.075576833` seconds, candidate
+`2.421576875` seconds, a candidate/baseline ratio of `1.1667006668`; 11 of 36
+individual positions were faster. The declared optimisation effect was
+therefore not established, and the active source was restored byte-for-byte to
+the ordering-only baseline. Commit `d7de020` and the bound binaries/receipts
+preserve the complete candidate; commit `c75f350` preserves the deliberate
+active restoration.
+
+An engineering inference is that four additional full-capacity integer arrays
+cost more on this shallow panel than the exact-value hits save. That is not a
+theoretical limit on typed bounds. The next applied comparison should test a
+compact per-entry representation or a deeper source-bound position surface
+with the same exact-value and move-identity requirements.
