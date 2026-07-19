@@ -1,0 +1,20 @@
+{
+  "schema": "foldbot-stockfish-development-termination/v1",
+  "status": "terminated-for-latency",
+  "authority": "Applied development latency evidence only; Maria Smith assigns conclusions and official status.",
+  "source_commit": "028b4c4fc666421292572d2da703ca0e3ebe9287",
+  "source": {
+    "path": "tools/match_parallel.py",
+    "sha256": "e54d4ad98a1819282625d3b4c0ce0fec7a2b6aa18a7c5110949bf333fad8fde8"
+  },
+  "development_configuration_sha256": "e4adcd22e46c94eabd66f37d8289d7a199bba5581502b8488f80ea7ac47119d9",
+  "command": "python3 -u tools/match_parallel.py 2100 1 9 2 tools/match_receipts/development_current_2100_20260719 development-current",
+  "elapsed_at_decision": "00:37:16",
+  "completed_engine_moves": [
+    {"ply": 1, "move": "d2d4", "depth": 9, "seconds": 729},
+    {"ply": 3, "move": "b1c3", "depth": 9, "seconds": 950}
+  ],
+  "completed_games": 0,
+  "performance_observation": "The current-source build required 729 and 950 seconds for its first two moves, preventing useful full-game development iteration.",
+  "decision": "Reject this full-game configuration as a development-feedback loop; use source-bound matched positions and measure move identity, depth, nodes, and time before changing search."
+}

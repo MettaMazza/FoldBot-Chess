@@ -7,8 +7,10 @@
 Every chess engine ever built carries fitted numbers — the hand-tuned 1/3/3/5/9 piece
 values, tuned positional tables, or millions of trained weights. **FoldBot carries none.**
 A piece is worth the squares it commands from where it stands. A position's value is the
-mover's exact share of the One. The search depth is the counted colour, three. Nothing is
-tuned; nothing is trained; every evaluation is an exact rational.
+mover's exact share of the One. The counted colour, three, supplies the exact search anchor;
+the current calculation layer iteratively deepens and plays the deepest completed common
+pass under its source-bound calculation clock. Nothing is tuned; nothing is trained; every
+evaluation is an exact rational.
 
 ### What it does — measured and replayable
 
@@ -48,6 +50,18 @@ Competitive parity is defined at each registered rung as **strictly over 50%**. 
 does not claim that 2100 is already secured; the open 2100 work is a development objective,
 not a theoretical wall on the engine or the theory.
 
+## Current calculation stage
+
+V20 preserves every legal root move to a common completed depth and has an independently verified 4/4 receipt for sequential/parallel move identity and 4/4 exact rational value identity, with zero disagreements. Worker messages are derived from the supplied search ceiling rather than fixed depth fields or sentinels, and transposition, history, and killer addressing now read the capacities of the live calculation state rather than repeating separate authored sizes.
+
+The latest source-bound real-position evidence contains three matched surfaces:
+
+- current and pinned v20 at ceiling 3 selected the same move and completed the same depth on all **36/36** recorded 2100 positions;
+- the current calculation completed all **36** positions at ceiling 12, reaching depths **8–11**; **27/36** selections matched the historically played FoldBot move and **4/36** matched Stockfish's recorded best move;
+- the current 2100 development game receipt preserves two completed depth-9 moves before explicit termination, rather than converting a partial run into a result.
+
+These are applied development measurements of the named builds, not Maria Smith's official games, findings, losses, or rank conclusion. The next state is to use the real-position panel to derive the next lossless calculation improvement, validate it on the same source-bound positions, and execute the 2100 match when Maria designates the build. The secured 1900 victory, exact legality, endgame proofs, common-depth identity, and demonstrated depth-8–11 real-position calculation provide a constructive route forward; no theorem-derived wall is established.
+
 ## The rule that governs this workspace
 
 **Read [`AGENT.md`](AGENT.md) first.** Every derivation and expansion must route through the
@@ -58,7 +72,7 @@ this engine carries none.
 
 ## Papers & findings
 
-- **[From the Self-Proven Theorem to Master-Level Chess — and the Law Inside Neural Networks](papers/From_One_Axiom_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md)**
+- **[From the Self-Proven Theorem to Master-Level Chess — and the Law Inside Neural Networks](papers/From_The_Self_Proven_Theorem_To_Master_Chess_And_The_Law_Inside_Neural_Networks.md)**
 - Full match record: [`tools/MATCHES.md`](tools/MATCHES.md)
 - Release manifest: [`release/chess_release_manifest_v2.2.json`](release/chess_release_manifest_v2.2.json)
 

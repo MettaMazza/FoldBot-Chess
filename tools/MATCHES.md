@@ -428,3 +428,39 @@ lossless levers:
   verifier replays every legal move, terminal result, telemetry count, game hash,
   and final tally. An interrupted run therefore retains its registration and
   completed game receipts rather than silently replacing an older batch.
+
+## 6. Current source-bound development evidence — 2026-07-19
+
+These are development measurements of named builds. They are not registered
+official games, Maria Smith's findings or losses, a rank conclusion, or an
+agent-owned gate on the 2100 campaign.
+
+**Matched real-position identity at ceiling 3.** Current source and pinned v20
+were each run over the same 36 positions from the preserved 2100 games. Both
+completed every position at depth 3 and selected the same move on 36/36 rows.
+The current-source total was 2.266225958 seconds and the v20 total was
+1.735647293 seconds. Receipts:
+`tools/match_receipts/development_current_position_panel_c3_20260719.jsonl`
+and
+`tools/match_receipts/development_v20_position_panel_c3_20260719.jsonl`.
+
+**Current real-position depth surface at ceiling 12.** The current engine
+completed the same 36 positions with 26 workers in 11,943.368908458 seconds.
+Completed depths were 8 on 6 rows, 9 on 17, 10 on 4, and 11 on 9. Twenty-seven
+selected moves match the historically played FoldBot move and four match the
+Stockfish-best move recorded by the source autopsy. Receipt:
+`tools/development_runs/current_2100_panel_c12_20260719.jsonl`.
+
+**Development game preservation.** The current-source 2100 run preserved two
+completed depth-9 moves (`d2d4` in 729 seconds and `b1c3` in 950 seconds) before
+explicit termination. The receipt remains partial development evidence and is
+not converted into a game result:
+`tools/match_receipts/development_current_2100_20260719/termination.json`.
+
+**Current stage and next state.** V20/current calculation now has complete-root
+common-depth selection, exact sequential/parallel value identity,
+ceiling-derived worker messages, calculation-state-owned table addressing, and
+real-position depth-8–11 execution. The next state is a lossless calculation
+change measured against the same panel, followed by the Maria-authorized 2100
+run. The secured 1900 victory and current calculation evidence establish a
+constructive continuation; no development row establishes a theoretical wall.

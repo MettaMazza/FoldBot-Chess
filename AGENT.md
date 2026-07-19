@@ -17,6 +17,37 @@ When Maria orders it, execute the named match and preserve the receipt. Agents
 do not declare development batches to be Maria's findings, losses, rank
 conclusions, or campaign endpoint.
 
+For any change that can affect move choice, search completion, or playing
+strength, proof, perft, identity, and unit tests establish implementation
+closure only. Do not call the changed build technically validated or promoted
+until a source-bound applied development game or matched-position campaign has
+produced replayable outcome data. Preserve favourable and unfavourable rows
+alike. Maria alone decides when that evidence warrants the real match or a
+conclusion.
+
+## Mandatory real-data performance gate
+
+**No implementation change is complete merely because it builds, closes,
+traces, or passes tests. Every change must be supported by real implemented
+data from the actual executable path.** Before editing, preserve a source-bound
+baseline using a declared real opponent game set or matched-position campaign.
+After editing, execute the same protocol with the same positions, colours,
+opponent, time/search contract, engine settings, and hardware conditions.
+Record wins, draws, losses, move agreement or tactical outcomes, nodes, depth,
+time, memory, source and opponent identities, commands, transcripts, and
+receipt hashes. Perft, fixtures, identity tests, static reasoning, projected
+speed, and agent interpretations are not playing-strength evidence.
+
+State the intended operational effect before the run. A change advances the
+benchmark-victory campaign only when the applied comparison demonstrates that
+effect without an undeclared regression. A neutral or regressive change is
+rejected and reverted after its evidence is preserved, unless Maria explicitly
+directs its retention. A necessary rules, forcing, correctness, provenance, or
+instrumentation repair may be retained when real replay proves the repair and
+playing performance does not regress, but it must be reported as
+infrastructure—not strength progress. Never accumulate blind search tweaks and
+infer success from code volume.
+
 ---
 
 ## 0. The one validated anchor (do not regress it)

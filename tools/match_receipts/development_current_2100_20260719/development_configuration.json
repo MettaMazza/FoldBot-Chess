@@ -1,0 +1,46 @@
+{
+  "configured_at_utc": "2026-07-19T07:30:14.791384+00:00",
+  "governance_authority": false,
+  "hardware": {
+    "logical_cpu_count": 32,
+    "machine": "arm64",
+    "platform": "macOS-15.6-arm64-arm-64bit"
+  },
+  "interpretation": "measured match receipt; Maria Smith assigns rank and publication conclusions",
+  "move_cli": {
+    "path": "tests/fold_bot_cli_v20",
+    "sha256": "ea931837839ffdd234b1b224022fb21da0f613d48ac5db1bd0ae131adea033f5"
+  },
+  "opponent": {
+    "limit_strength": true,
+    "move_time_seconds": 0.05,
+    "path": "/opt/homebrew/bin/stockfish",
+    "sha256": "adede32cc0c12af8f10e1d19ff41371f7347ad1c793271b6350db4865d84c963",
+    "uci_elo": 2100,
+    "uci_identity": {
+      "author": "the Stockfish developers (see AUTHORS file)",
+      "name": "Stockfish 18"
+    }
+  },
+  "protocol": {
+    "colour_schedule": "FoldBot White in odd-numbered games and Black in even-numbered games",
+    "concurrent_games": 1,
+    "games": 2,
+    "maximum_plies": 240,
+    "search_ceiling": 12,
+    "terminal_rule": "python-chess outcome with claim_draw=True",
+    "workers_per_game": 9
+  },
+  "run_kind": "development",
+  "schema": "foldbot-stockfish-development-configuration/v1",
+  "source": {
+    "path": "tools/match_parallel.py",
+    "sha256": "e54d4ad98a1819282625d3b4c0ce0fec7a2b6aa18a7c5110949bf333fad8fde8"
+  },
+  "source_commit": "028b4c4fc666421292572d2da703ca0e3ebe9287",
+  "status": "development-configured",
+  "value_cli": {
+    "path": "tests/fold_bot_value_cli_v20",
+    "sha256": "c428e5a0f6b387803abfd7a1433f05b3422f726ca9beb6547b47b0c9333c2083"
+  }
+}

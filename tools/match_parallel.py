@@ -18,9 +18,10 @@ WORKERS = int(sys.argv[3]) if len(sys.argv) > 3 else 9
 GAMES = int(sys.argv[4]) if len(sys.argv) > 4 else 12
 OUT = os.path.abspath(sys.argv[5]) if len(sys.argv) > 5 else \
     os.path.join(HERE, f"games_par_{ELO}")
+CURRENT_DEVELOPMENT = len(sys.argv) > 6 and sys.argv[6] == "development-current"
 SF = "/opt/homebrew/bin/stockfish"
 CEILING = 12
-ENGINE_TAG = "v20"
+ENGINE_TAG = "current-development" if CURRENT_DEVELOPMENT else "v20"
 
 def pin(src):
     t = tempfile.NamedTemporaryFile(delete=False, suffix="_fold_pin")
@@ -30,8 +31,12 @@ def pin(src):
     atexit.register(lambda p=t.name: os.unlink(p))
     return t.name
 
-MOVE_SOURCE = os.path.join(HERE, "..", "tests", "fold_bot_cli_v20")
-VALUE_SOURCE = os.path.join(HERE, "..", "tests", "fold_bot_value_cli_v20")
+MOVE_SOURCE = os.path.join(
+    HERE, "..", "tests",
+    "fold_bot_cli" if CURRENT_DEVELOPMENT else "fold_bot_cli_v20")
+VALUE_SOURCE = os.path.join(
+    HERE, "..", "tests",
+    "fold_bot_value_cli" if CURRENT_DEVELOPMENT else "fold_bot_value_cli_v20")
 MOVE_PIN = pin(MOVE_SOURCE)
 VALUE_PIN = pin(VALUE_SOURCE)
 
@@ -117,9 +122,13 @@ if __name__ == "__main__":
     output.parent.mkdir(parents=True, exist_ok=True)
     output.mkdir()
     registration = {
-        "schema": "foldbot-stockfish-registration/v1",
-        "status": "registered",
-        "registered_at_utc": datetime.now(timezone.utc).isoformat(),
+        "schema": ("foldbot-stockfish-development-configuration/v1"
+                   if CURRENT_DEVELOPMENT
+                   else "foldbot-stockfish-registration/v1"),
+        "status": ("development-configured" if CURRENT_DEVELOPMENT
+                   else "registered"),
+        ("configured_at_utc" if CURRENT_DEVELOPMENT else "registered_at_utc"):
+            datetime.now(timezone.utc).isoformat(),
         "source_commit": git_commit(),
         "source": {"path": "tools/match_parallel.py",
                    "sha256": sha256(__file__)},
@@ -139,11 +148,18 @@ if __name__ == "__main__":
         "hardware": {"platform": platform.platform(), "machine": platform.machine(),
                      "logical_cpu_count": os.cpu_count()},
         "governance_authority": False,
+        "run_kind": "development" if CURRENT_DEVELOPMENT else "measurement",
         "interpretation": "measured match receipt; Maria Smith assigns rank and publication conclusions",
     }
     registration_bytes = json_bytes(registration)
     registration_sha = hashlib.sha256(registration_bytes).hexdigest()
-    with open(output / "registration.json", "xb") as handle:
+    configuration_name = (
+        "development_configuration.json" if CURRENT_DEVELOPMENT
+        else "registration.json")
+    binding_field = (
+        "development_configuration_sha256" if CURRENT_DEVELOPMENT
+        else "registration_sha256")
+    with open(output / configuration_name, "xb") as handle:
         handle.write(registration_bytes)
     tally = {}
     game_bindings = []
@@ -152,13 +168,16 @@ if __name__ == "__main__":
             if res == "ILLEGAL":
                 raise RuntimeError(f"FoldBot emitted an illegal move in game {g + 1}")
             tally[res] = tally.get(res, 0) + 1
-            rec = {"schema": "foldbot-stockfish-game/v1", "status": "completed",
-                   "registration_sha256": registration_sha,
+            rec = {"schema": ("foldbot-stockfish-development-game/v1"
+                              if CURRENT_DEVELOPMENT
+                              else "foldbot-stockfish-game/v1"),
+                   "status": "completed",
                    "game": g+1, "elo": ELO, "engine": ENGINE_TAG,
                    "move_cli_sha256": MOVE_SHA256, "value_cli_sha256": VALUE_SHA256,
                    "bot_white": bot_white, "result": res,
                    "plies": len(uci), "moves_uci": uci,
                    "bot_complete_depths": depths, "bot_move_seconds": times}
+            rec[binding_field] = registration_sha
             game_name = f"game_{g+1:02d}.json"
             game_path = output / game_name
             write_new_json(game_path, rec)
@@ -168,8 +187,12 @@ if __name__ == "__main__":
             print(f"game {g+1} ({'White' if bot_white else 'Black'}): {res} "
                   f"[{len(uci)} plies, min depth {md}, max move {mt}s]", flush=True)
     print(f"MEASUREMENT {ELO} parallel ({GAMES} games):", tally)
-    match = {"schema": "foldbot-stockfish-match/v1", "status": "completed",
+    match = {"schema": ("foldbot-stockfish-development-measurement/v1"
+                        if CURRENT_DEVELOPMENT
+                        else "foldbot-stockfish-match/v1"),
+             "status": "completed",
              "completed_at_utc": datetime.now(timezone.utc).isoformat(),
-             "registration_sha256": registration_sha, "games": game_bindings,
+             "games": game_bindings,
              "result": tally}
+    match[binding_field] = registration_sha
     write_new_json(output / "match.json", match)

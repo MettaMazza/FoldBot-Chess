@@ -1,6 +1,6 @@
 # DESIGN — the calculation layer, re-derived and forced (the v19 program)
 
-**Date: 2026-07-18. Status: design for rebuild, per the author's ruling.**
+**Date: 2026-07-19. Status: implemented v20 calculation constitution with active measured continuation.**
 
 ## 0. Provenance and scope
 
@@ -209,3 +209,33 @@ but prevents allocation and addressing from silently disagreeing. The measured
 `2^26` calculation clock remains explicitly a sealed implementation resource
 boundary; the current corpus does not supply an exact identity that would let
 this document relabel it as a theorem-derived value.
+
+## 11. Source-bound real-position calculation evidence (2026-07-19)
+
+The current and pinned-v20 engines were executed on the same 36 positions from
+the preserved 2100 game record at ceiling 3. Both completed every row at depth
+3 and selected the same move on 36/36 positions. Their respective totals were
+2.266226 and 1.735647 seconds. This is applied move/depth identity on real game
+states in addition to the generated 4/4 exact-value identity receipt.
+
+The current engine then completed the same 36-position panel at ceiling 12 with
+26 workers. Six positions completed at depth 8, seventeen at depth 9, four at
+depth 10, and nine at depth 11. Twenty-seven selected moves match the moves
+FoldBot historically played in the source games; four match Stockfish's
+recorded best move. Total measured engine time was 11,943.368908 seconds.
+
+These rows are source-bound applied development measurements. They demonstrate
+that the calculation layer reaches depth 8–11 on real positions and preserve
+the exact decision surface for the next matched change. They are not Maria
+Smith's official match, rank result, loss, or campaign conclusion.
+
+## 12. Current stage and next state
+
+The secured calculation surface now includes complete-root common-depth
+selection, exact sequential/parallel value identity, ceiling-derived worker
+messages, live-capacity table addressing, and real-position depth-8–11
+execution. The next state is a lossless calculation improvement derived from
+the position-level evidence, followed by the same source-bound panel and the
+Maria-authorized 2100 run. Exact legality, endgame proof, the secured 1900 rung,
+and the current calculation receipts give an executable path to that campaign;
+no theorem-derived obstruction has been produced.
