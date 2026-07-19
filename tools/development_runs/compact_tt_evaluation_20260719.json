@@ -1,0 +1,39 @@
+{
+  "schema": "foldbot-compact-typed-transposition-evaluation/v1",
+  "status": "completed",
+  "result_type": "measured implementation result",
+  "governance_authority": false,
+  "benchmark_authority": false,
+  "author_audit": "Codex gpt-5.6-sol, high reasoning",
+  "base_commit": "a513492f5b057ee43569004ea14af96cf59424f9",
+  "candidate": {
+    "purpose": "Reduce the four-array typed-value overhead by packing each rational value and each depth/relation pair into two table arrays.",
+    "additional_full_capacity_arrays": 2,
+    "parameters": null,
+    "fitted_values": null
+  },
+  "applied_comparison": {
+    "baseline_receipt": "tools/development_runs/root_child_reuse_baseline_c3_20260719.jsonl",
+    "candidate_receipt": "tools/development_runs/compact_tt_candidate_c3_20260719.jsonl",
+    "positions": 36,
+    "move_identity": "36/36",
+    "completed_depth_identity": "36/36",
+    "baseline_total_seconds": 2.0755768330000004,
+    "candidate_total_seconds": 2.3709923320000006,
+    "candidate_over_baseline_ratio": 1.1423293487878317,
+    "candidate_faster_positions": 14
+  },
+  "exact_identity": {
+    "receipt": "tools/development_runs/compact_tt_candidate_parallel_identity_20260719.json",
+    "move_identity": "4/4",
+    "exact_rational_value_identity": "4/4"
+  },
+  "comparison_to_four_array_candidate": {
+    "four_array_seconds": 2.4215768749999995,
+    "compact_seconds": 2.3709923320000006,
+    "compact_is_faster": true,
+    "active_baseline_is_still_faster": true
+  },
+  "active_source_decision": "Preserve candidate evidence and restore the active ordering-only baseline; compact packing reduced the prior candidate overhead but did not demonstrate a whole-panel speed improvement.",
+  "conclusion_authority": "Maria Smith alone determines conclusions and full-match timing."
+}

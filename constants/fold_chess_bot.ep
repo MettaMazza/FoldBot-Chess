@@ -67,13 +67,9 @@ import "../foundation/exact_fractions.ep"
 # smuggled signal; the borrow rules make sharing across spawn a compile
 # error). The slots:
 #   0 TT keys, 1 TT moves, 2 TT stamps, 3 TT generation -- THE TRANSPOSITION
-#     TABLE: position -> best move found there. ORDERING ONLY -- values are
-#     always recomputed by full search, so the move played is unchanged; the
-#     table just makes each deepening pass search the previous pass's
-#     refutation FIRST (a held orbit of the search's own refutations). Keys
-#     are a rolling INTEGER hash (pure arithmetic, zero allocation).
-#     Open-addressed, single-probe: a collision merely tries a different
-#     move first, so correctness is untouched by construction.
+#     TABLE. Slots 13/14 compact each held exact rational value and its
+#     depth/relation metadata into two integers. A full key and generation
+#     match admits exact/lower/upper reuse; collisions cannot enter values.
 #   4/5 KILLER MOVES: per-depth, the last two QUIET moves that refuted a
 #     sibling line -- tried right after the captures. Pure bookkeeping of
 #     the search's own cutoffs: no weights, no constants, ordering only.
@@ -92,10 +88,14 @@ define calc_create:
     set tt_keys to create_list()
     set tt_moves to create_list()
     set tt_stamp to create_list()
+    set tt_values to create_list()
+    set tt_meta to create_list()
     repeat while length_list(tt_keys) < 262144:
         set ok to append_list(tt_keys and 0)
         set ok to append_list(tt_moves and 0)
         set ok to append_list(tt_stamp and 0)
+        set ok to append_list(tt_values and 1)
+        set ok to append_list(tt_meta and 0)
     set killer_a to create_list()
     set killer_b to create_list()
     repeat while length_list(killer_a) < 64:
@@ -126,6 +126,8 @@ define calc_create:
     set ok to append_list(calc and create_list())
     set ok to append_list(calc and undo)
     set ok to append_list(calc and 0)
+    set ok to append_list(calc and tt_values)
+    set ok to append_list(calc and tt_meta)
     return calc
 
 
@@ -1893,13 +1895,12 @@ define quiescence with state and alpha_num as Int and alpha_den as Int and beta_
             return 65536 + 1024
     return best_num * 65536 + best_den
 
-# The rolling integer key of a position: slots 0..69 (board, side, rights,
-# en-passant) folded by multiply-add, reduced mod a prime below 2^55 so the
-# product never overflows 64 bits. Pure integer arithmetic, no allocation.
+# The rolling integer key of a calculation state includes the half-move clock
+# because it changes distance to the rules-forced draw once values are reused.
 define tt_key with state returning Int:
     set k to 0
     set i to 0
-    repeat while i < 70:
+    repeat while i < 71:
         set k to k * 131 + get_list(state and i)
         set k to k - (k / 36028797018963913) * 36028797018963913
         set i to i + 1
@@ -1930,6 +1931,8 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
     set best_move to 0 - 1
     set a_num to alpha_num
     set a_den to alpha_den
+    set b_num to beta_num
+    set b_den to beta_den
     # Transposition ordering: only at nodes with real subtrees (depth > 1);
     # the numerous depth-1 leaves skip the key cost for almost no gain.
     set use_tt to 0
@@ -1939,6 +1942,8 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
     set tt_keys to get_list(calc and 0)
     set tt_moves to get_list(calc and 1)
     set tt_stamp to get_list(calc and 2)
+    set tt_values to get_list(calc and 13)
+    set tt_meta to get_list(calc and 14)
     set tt_capacity to length_list(tt_keys)
     set tt_gen to get_list(calc and 3)
     set killer_a to get_list(calc and 4)
@@ -1952,6 +1957,25 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
             if get_list(tt_stamp and slot) == tt_gen:
                 if get_list(tt_keys and slot) == key:
                     set tt_move to get_list(tt_moves and slot)
+                    set held_meta to get_list(tt_meta and slot)
+                    set held_depth to held_meta / 4
+                    set held_bound to held_meta - held_depth * 4
+                    if held_depth >= depth:
+                        set held_value to get_list(tt_values and slot)
+                        set held_num to held_value / 65536
+                        set held_den to held_value - held_num * 65536
+                        if held_bound == 1:
+                            return held_value
+                        if held_bound == 1 + 1:
+                            if held_num * a_den > a_num * held_den:
+                                set a_num to held_num
+                                set a_den to held_den
+                        if held_bound == 1 + 1 + 1:
+                            if held_num * b_den < b_num * held_den:
+                                set b_num to held_num
+                                set b_den to held_den
+                        if a_num * b_den > b_num * a_den:
+                            return held_value
     # The killer pair for this depth (quiet refuters of sibling lines).
     set k1 to 0 - 1
     set k2 to 0 - 1
@@ -2065,13 +2089,13 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                         # plain search: lossless, not one constant added.
                         set deeper to 0
                         if legal_seen == 1:
-                            set deeper to search_value(state and depth - 1 and beta_den - beta_num and beta_den and a_den - a_num and a_den and calc)
+                            set deeper to search_value(state and depth - 1 and b_den - b_num and b_den and a_den - a_num and a_den and calc)
                         else:
                             set deeper to search_value(state and depth - 1 and a_den - a_num and a_den and a_den - a_num and a_den and calc)
                             set probe_num to (deeper - (deeper / 65536) * 65536) - deeper / 65536
                             set probe_den to deeper - (deeper / 65536) * 65536
                             if probe_num * a_den > a_num * probe_den:
-                                set deeper to search_value(state and depth - 1 and beta_den - beta_num and beta_den and a_den - a_num and a_den and calc)
+                                set deeper to search_value(state and depth - 1 and b_den - b_num and b_den and a_den - a_num and a_den and calc)
                         set ok to undo_move(state and move and calc)
                         set child_num to deeper / 65536
                         set child_den to deeper - child_num * 65536
@@ -2081,11 +2105,13 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
                             set best_num to my_num
                             set best_den to my_den
                             set best_move to move
-                        if my_num * beta_den > beta_num * my_den:
+                        if my_num * b_den > b_num * my_den:
                             if use_tt == 1:
                                 set ok to set_list(tt_keys and slot and key)
                                 set ok to set_list(tt_moves and slot and move)
                                 set ok to set_list(tt_stamp and slot and tt_gen)
+                                set ok to set_list(tt_values and slot and best_num * 65536 + best_den)
+                                set ok to set_list(tt_meta and slot and depth * 4 + 1 + 1)
                             if taking:
                                 set taking to taking
                             else:
@@ -2110,6 +2136,13 @@ define search_value with state and depth as Int and alpha_num as Int and alpha_d
             set ok to set_list(tt_keys and slot and key)
             set ok to set_list(tt_moves and slot and best_move)
             set ok to set_list(tt_stamp and slot and tt_gen)
+            set completed_bound to 1
+            if best_num * alpha_den < alpha_num * best_den:
+                set completed_bound to 1 + 1 + 1
+            if best_num * alpha_den == alpha_num * best_den:
+                set completed_bound to 1 + 1 + 1
+            set ok to set_list(tt_values and slot and best_num * 65536 + best_den)
+            set ok to set_list(tt_meta and slot and depth * 4 + completed_bound)
     if legal_seen == 0:
         set checked to side_in_check(state)
         if checked:
