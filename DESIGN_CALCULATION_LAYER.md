@@ -185,3 +185,14 @@ anchor remains 22/22 and the depth-7 starting result remains move 731 at
 122/238. A single before/after depth-7 timing was neutral within noise (3.53 s
 versus 3.52 s user CPU), so this is retained as an exact finite-enumeration
 simplification, not claimed as a whole-search acceleration or rank advance.
+
+## 9. Ceiling-derived worker message form (2026-07-19)
+
+The spawned-root channel no longer reserves a fixed 64-depth matrix, a fixed
+eight-bit depth field, a `255` completion sentinel, or a fixed `2^40` index
+stride. Each worker reuses the existing exact fraction-pack square as its depth
+base; its completion depth is `ceiling + 1`; the index stride is the complete
+derived depth field `(ceiling + 2) * depth_base`; and the collector allocates
+exactly the supplied ceiling's rows. The message contains the same
+`(child index, completed depth, exact packed value)` relation without a
+separately selected width or sentinel. Source tests bind the derived bases.

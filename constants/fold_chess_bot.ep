@@ -2440,17 +2440,32 @@ define endgame_best_move with state and kqk and krk:
 # focus fully holds one lock) with its own worker-local calculation state and
 # the full counted clock; workers speak only over the channel, and only
 # COMPLETED passes (no smuggled signal -- the borrow rules make shared state
-# a compile error). Message packing, exact by construction: den and num are
-# both far below 2^16 (the pack already used by the search), depth below 2^8,
-# so message = index*2^40 + depth*2^32 + num*65536 + den, and the done marker
-# uses the impossible depth field 255.
+# a compile error). Message packing reuses the search's exact fraction pack.
+# The depth field base is the square of that pack base; the index field and
+# done marker are derived from the caller's ceiling, so no unrelated fixed
+# depth width or sentinel enters the calculation layer.
+define worker_message_depth_base returning Int:
+    set value_pack_base to 65536
+    return value_pack_base * value_pack_base
+
+define worker_message_index_base with ceiling as Int returning Int:
+    return (ceiling + 2) * worker_message_depth_base()
+
+define worker_done_depth with ceiling as Int returning Int:
+    return ceiling + 1
+
 define root_worker with child and ceiling as Int and index as Int and chan:
     set calc to calc_create()
     set ok to set_list(calc and 3 and 1)
     set budget to thinking_budget()
     set remaining to budget
+    set depth_base to worker_message_depth_base()
+    set index_base to worker_message_index_base(ceiling)
+    set done_depth to worker_done_depth(ceiling)
     set depth to 1
-    set climbing to 1
+    set climbing to 0
+    if ceiling > 0:
+        set climbing to 1
     repeat while climbing == 1:
         set ok to set_list(calc and 7 and remaining)
         set ok to set_list(calc and 8 and 0)
@@ -2459,13 +2474,13 @@ define root_worker with child and ceiling as Int and index as Int and chan:
         if get_list(calc and 8) == 1:
             set climbing to 0
         else:
-            send index * 1099511627776 + depth * 4294967296 + packed to chan
+            send index * index_base + depth * depth_base + packed to chan
             set depth to depth + 1
             if depth > ceiling:
                 set climbing to 0
             if remaining < 1:
                 set climbing to 0
-    send index * 1099511627776 + 255 * 4294967296 to chan
+    send index * index_base + done_depth * depth_base to chan
     return 0
 
 # The spawned root decision. The decision depth d* is FORCED, not chosen:
@@ -2515,7 +2530,7 @@ define search_best_spawned with state and ceiling as Int and seen as Str:
     repeat while i < count:
         set row to create_list()
         set d to 0
-        repeat while d < 64:
+        repeat while d < ceiling:
             set ok to append_list(row and 0)
             set d to d + 1
         set ok to append_list(values and row)
@@ -2534,13 +2549,17 @@ define search_best_spawned with state and ceiling as Int and seen as Str:
         set i to i + 1
     # Collect every completed pass from every worker.
     set done_count to 0
+    set worker_ceiling to ceiling - 1
+    set depth_base to worker_message_depth_base()
+    set index_base to worker_message_index_base(worker_ceiling)
+    set done_depth to worker_done_depth(worker_ceiling)
     repeat while done_count < spawned:
         set msg to receive from chan
-        set idx to msg / 1099511627776
-        set rest to msg - idx * 1099511627776
-        set d to rest / 4294967296
-        set packed to rest - d * 4294967296
-        if d == 255:
+        set idx to msg / index_base
+        set rest to msg - idx * index_base
+        set d to rest / depth_base
+        set packed to rest - d * depth_base
+        if d == done_depth:
             set done_count to done_count + 1
         else:
             set row to get_list(values and idx)
@@ -2548,7 +2567,7 @@ define search_best_spawned with state and ceiling as Int and seen as Str:
             if d > get_list(deepest and idx):
                 set ok to set_list(deepest and idx and d)
     # d* -- the deepest depth ALL searched children completed (forced).
-    set d_star to 63
+    set d_star to ceiling
     set any_child to 0
     set i to 0
     repeat while i < count:
