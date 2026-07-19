@@ -46,18 +46,25 @@ def main() -> None:
     parser.add_argument("--games", type=Path, default=ROOT / "tools/games_2100")
     parser.add_argument("--ceiling", type=int, default=3)
     parser.add_argument("--workers", type=int, default=9)
-    parser.add_argument("--engine-tag", choices=("current", "v20"),
+    parser.add_argument("--engine-tag", choices=("current", "v20", "compact_tt"),
                         default="current")
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists():
         raise FileExistsError(f"development panel exists: {output}")
 
-    suffix = "" if args.engine_tag == "current" else "_v20"
-    parallel_bot.ENGINE_TAG = (
-        "current-development" if args.engine_tag == "current" else "v20")
-    parallel_bot.MOVE_CLI = str(ROOT / f"tests/fold_bot_cli{suffix}")
-    parallel_bot.VALUE_CLI = str(ROOT / f"tests/fold_bot_value_cli{suffix}")
+    binaries = {
+        "current": ("current-development", "fold_bot_cli", "fold_bot_value_cli"),
+        "v20": ("v20", "fold_bot_cli_v20", "fold_bot_value_cli_v20"),
+        "compact_tt": (
+            "compact-typed-tt-development",
+            "fold_bot_cli_compact_tt_20260719",
+            "fold_bot_value_cli_compact_tt_20260719"),
+    }
+    engine_identity, move_name, value_name = binaries[args.engine_tag]
+    parallel_bot.ENGINE_TAG = engine_identity
+    parallel_bot.MOVE_CLI = str(ROOT / "tests" / move_name)
+    parallel_bot.VALUE_CLI = str(ROOT / "tests" / value_name)
     parallel_bot.require_binary(parallel_bot.MOVE_CLI, "move")
     parallel_bot.require_binary(parallel_bot.VALUE_CLI, "value")
     commit = subprocess.check_output(
@@ -98,8 +105,10 @@ def main() -> None:
         "source_commit": commit,
         "engine_tag": args.engine_tag,
         "source": {"path": "tools/development_position_panel.py", "sha256": sha256(Path(__file__))},
-        "move_cli": {"path": "tests/fold_bot_cli", "sha256": sha256(Path(parallel_bot.MOVE_CLI))},
-        "value_cli": {"path": "tests/fold_bot_value_cli", "sha256": sha256(Path(parallel_bot.VALUE_CLI))},
+        "move_cli": {"path": str(Path(parallel_bot.MOVE_CLI).relative_to(ROOT)),
+                     "sha256": sha256(Path(parallel_bot.MOVE_CLI))},
+        "value_cli": {"path": str(Path(parallel_bot.VALUE_CLI).relative_to(ROOT)),
+                      "sha256": sha256(Path(parallel_bot.VALUE_CLI))},
         "games": str(args.games.resolve()),
         "positions": len(probes),
         "ceiling": args.ceiling,

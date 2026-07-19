@@ -96,6 +96,23 @@ depth and made the matched calculation slower. The recommended next execution
 is the deeper source-bound reuse panel; a full match remains available whenever
 Maria orders it, and this advisory recommendation does not gate her decision.
 
+The recommended deeper panel has now completed and changes the implementation
+decision. Across the same **36 real 2100 positions** at ceiling 6, the compact
+exact-value table again preserved **36/36 moves and completed depths**, while
+total calculation time improved from `34.142311874` to `30.986964794` seconds
+(**9.24% faster**); the candidate was faster on **30/36** positions. Together
+with the earlier **4/4 exact rational value identity**, this shows that exact
+reuse does not repay its allocation at depth 3 but becomes net-positive by
+depth 6, consistent with greater transposition recurrence as calculation
+deepens. The compact source and rebuilt active binaries are now activated; no
+evaluation quantity, search depth, selected move, or trained parameter changed.
+
+A complete 2100 cumulative development match is now recommended under the
+current receipt protocol. The active benchmark path historically reaches
+depths 8–11, the candidate is already positive by depth 6, and all matched
+moves, depths, and exact-value controls remained identical. It is not an
+official run unless Maria explicitly registers it as one.
+
 ## The rule that governs this workspace
 
 **Read [`AGENT.md`](AGENT.md) first.** Every derivation and expansion must route through the

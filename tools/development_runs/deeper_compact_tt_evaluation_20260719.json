@@ -1,0 +1,52 @@
+{
+  "schema": "foldbot-deeper-compact-typed-transposition-evaluation/v1",
+  "status": "completed",
+  "result_type": "cumulative development benchmark",
+  "official_run": false,
+  "governance_authority": false,
+  "benchmark_authority": false,
+  "author_audit": "Codex gpt-5.6-sol, high reasoning",
+  "candidate": {
+    "purpose": "Measure whether exact typed-value recurrence at depth six repays the compact two-array table overhead observed at depth three.",
+    "additional_full_capacity_arrays": 2,
+    "parameters": null,
+    "fitted_values": null
+  },
+  "applied_comparison": {
+    "positions": 36,
+    "ceiling": 6,
+    "workers": 26,
+    "baseline_receipt": "tools/development_runs/deeper_reuse_baseline_c6_20260719.jsonl",
+    "baseline_receipt_sha256": "44ebb6c7fe1191fdc7952a8bf85f6e4f9ef697c9acd51b258ae4080ccfb887a0",
+    "candidate_receipt": "tools/development_runs/deeper_reuse_compact_tt_c6_20260719.jsonl",
+    "candidate_receipt_sha256": "bdc779e874816a6f06d7b9ac276694a099bae3e16cbf7b93317566387d6ba29f",
+    "move_identity": "36/36",
+    "completed_depth_identity": "36/36",
+    "baseline_total_seconds": 34.14231187400001,
+    "candidate_total_seconds": 30.98696479399999,
+    "candidate_over_baseline_ratio": 0.9075825008088315,
+    "candidate_time_improvement_fraction": 0.09241749919116844,
+    "candidate_faster_positions": 30
+  },
+  "shallower_comparison": {
+    "ceiling": 3,
+    "move_identity": "36/36",
+    "completed_depth_identity": "36/36",
+    "baseline_total_seconds": 2.0755768330000004,
+    "candidate_total_seconds": 2.3709923320000006,
+    "candidate_time_regression_fraction": 0.1423293487878317
+  },
+  "exact_identity": {
+    "move_identity": "4/4",
+    "exact_rational_value_identity": "4/4",
+    "receipt": "tools/development_runs/compact_tt_candidate_parallel_identity_20260719.json"
+  },
+  "active_source_decision": "Activate the compact exact-value table: it is byte-identical to the preserved candidate, improves the deeper complete panel while preserving every move and completed depth, and the active match path historically reaches depths above six.",
+  "inference": "The exact reuse does not repay its allocation at depth three but becomes net-positive by depth six, consistent with increased transposition recurrence in deeper calculation.",
+  "sources": {
+    "tools/development_position_panel.py": "efc4dbebd7134840f0c29c8d5d53a45af75624722e3fe3379d2c71a16cd07faf",
+    "tests/fold_bot_cli": "223fce2343918944370d5a6ad95e547688ada985df27da3fbe9be16b6b895db2",
+    "tests/fold_bot_value_cli": "a63485e2795a179edbeb02169c157b5af4c3d9db62b24cf476d557e9e72af10c"
+  },
+  "authority": "Maria Smith alone registers official runs and assigns conclusions."
+}
