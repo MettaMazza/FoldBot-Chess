@@ -4,7 +4,7 @@
 
 **The fold's computational program, en route to UnisonAI**
 
-Maria Smith (Ernos Labs) — release v2.3, 2026-07-19
+Maria Smith (Ernos Labs) — publication edition v2.4, 2026-07-22
 Companion to *The Smithian Fold Theory of Everything* (DOI: 10.5281/zenodo.21182469)
 
 ---
